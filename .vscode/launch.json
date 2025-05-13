@@ -1,0 +1,44 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+    
+        {
+            "name": "Python 调试程序: 当前文件",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--model", "simple-cnn",
+                "--dataset", "mnist",
+                "--alg", "fedavg",
+                "--lr", "0.01",
+                "--lr_G", "0.008",
+                "--lr_D", "0.008",
+                "--batch-size", "64",
+                "--epochs", "10",
+                "--epoch_G", "5",
+                "--epoch_D", "1",
+                "--optimizer", "sgd",
+                "--optimizer_G", "sgd",
+                "--optimizer_D", "sgd",
+                "--n_parties", "10",
+                "--mu", "0.01",
+                "--rho", "0.9",
+                "--comm_round", "10",
+                "--partition", "homo",
+                "--noise", "0.5",
+                "--device", "cuda:0",
+                "--datadir", "../NIID-Bench-GANFL/data/",
+                "--logdir", "./logs/",
+                "--reg", "1e-5",
+                "--sample", "1",
+                "--init_seed", "0"
+            ]
+        }
+    ]
+}

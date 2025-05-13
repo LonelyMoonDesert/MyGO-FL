@@ -1,0 +1,1827 @@
+11-25 13:49 INFO     Namespace(model='vgg', resume=True, ckpt_dir='./checkpoints', dataset='cifar10', net_config=None, partition='homo', batch_size=64, lr=0.008, lr_G=0.008, lr_D=0.008, epochs=5, epoch_G=5, epoch_D=1, n_parties=5, alg='fedgan', training_type='local', use_projection_head=False, out_dim=256, loss='contrastive', temperature=0.5, comm_round=10, is_same_initial=1, init_seed=0, dropout_p=0.0, datadir='./data/', reg=1e-05, l1_lambda=0.0001, l1=False, adv_l1_lambda=0.0001, adv_l1=False, lambda_adv=0.3, logdir='./logs/', modeldir='./models/', beta=0.0, device='cuda:0', log_file_name='experiment_log-2024-11-25-134935', optimizer='sgd', optimizer_G='sgd', optimizer_D='sgd', mu=0.01, noise=0.5, noise_type='level', rho=0.9, sample=1.0, scheduler='StepLR', scheduler_g='StepLR', scheduler_d='StepLR', gamma=0.01, step_size=30, milestones='30,60', T_max=50, factor=0.1, patience=10, base_lr=0.001, max_lr=0.01, step_size_up=2000, steps_per_epoch=1000)
+11-25 13:49 INFO     cuda:0
+11-25 13:49 INFO     ####################################################################################################
+11-25 13:49 INFO     Partitioning data
+11-25 13:49 INFO     Data statistics: {0: {0: 1004, 1: 986, 2: 1016, 3: 1030, 4: 967, 5: 1016, 6: 953, 7: 999, 8: 989, 9: 1040}, 1: {0: 997, 1: 1027, 2: 991, 3: 959, 4: 1039, 5: 965, 6: 1002, 7: 1002, 8: 987, 9: 1031}, 2: {0: 1009, 1: 960, 2: 999, 3: 982, 4: 1010, 5: 1018, 6: 1058, 7: 979, 8: 980, 9: 1005}, 3: {0: 984, 1: 1030, 2: 975, 3: 1037, 4: 990, 5: 980, 6: 1008, 7: 1034, 8: 985, 9: 977}, 4: {0: 1006, 1: 997, 2: 1019, 3: 992, 4: 994, 5: 1021, 6: 979, 7: 986, 8: 1059, 9: 947}}
+11-25 13:49 INFO     Getting global dataset using ConcatDataset.
+11-25 13:49 INFO     Initializing nets
+11-25 13:49 INFO     in comm round:0
+11-25 13:49 INFO     Training network 0. n_training: 10000
+11-25 13:49 INFO     Training network 0
+11-25 13:49 INFO     >> Pre-Training Training accuracy: 0.0856
+11-25 13:49 INFO     >> Pre-Training Test accuracy: 0.0857
+11-25 13:50 INFO     Epoch: 0 Loss: 2.302254
+11-25 13:50 INFO     Epoch: 1 Loss: 2.285619
+11-25 13:50 INFO     Epoch: 2 Loss: 2.159834
+11-25 13:50 INFO     Epoch: 3 Loss: 2.075083
+11-25 13:50 INFO     Epoch: 4 Loss: 1.986553
+11-25 13:50 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:50 INFO     >> Training accuracy: 0.268800
+11-25 13:50 INFO     >> Test accuracy: 0.276500
+11-25 13:50 INFO      ** Training complete **
+11-25 13:50 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 13:50 INFO     net 0 final test acc 0.276500
+11-25 13:50 INFO     Training network 1. n_training: 10000
+11-25 13:50 INFO     Training network 1
+11-25 13:50 INFO     >> Pre-Training Training accuracy: 0.0956
+11-25 13:50 INFO     >> Pre-Training Test accuracy: 0.0857
+11-25 13:50 INFO     Epoch: 0 Loss: 2.302302
+11-25 13:51 INFO     Epoch: 1 Loss: 2.291722
+11-25 13:51 INFO     Epoch: 2 Loss: 2.260134
+11-25 13:51 INFO     Epoch: 3 Loss: 2.168513
+11-25 13:51 INFO     Epoch: 4 Loss: 2.090136
+11-25 13:51 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:51 INFO     >> Training accuracy: 0.232700
+11-25 13:51 INFO     >> Test accuracy: 0.238800
+11-25 13:51 INFO      ** Training complete **
+11-25 13:51 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 13:51 INFO     net 1 final test acc 0.238800
+11-25 13:51 INFO     Training network 2. n_training: 10000
+11-25 13:51 INFO     Training network 2
+11-25 13:51 INFO     >> Pre-Training Training accuracy: 0.1014
+11-25 13:51 INFO     >> Pre-Training Test accuracy: 0.0857
+11-25 13:51 INFO     Epoch: 0 Loss: 2.302560
+11-25 13:51 INFO     Epoch: 1 Loss: 2.294181
+11-25 13:51 INFO     Epoch: 2 Loss: 2.187154
+11-25 13:52 INFO     Epoch: 3 Loss: 2.097485
+11-25 13:52 INFO     Epoch: 4 Loss: 2.044547
+11-25 13:52 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:52 INFO     >> Training accuracy: 0.253700
+11-25 13:52 INFO     >> Test accuracy: 0.253600
+11-25 13:52 INFO      ** Training complete **
+11-25 13:52 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 13:52 INFO     net 2 final test acc 0.253600
+11-25 13:52 INFO     Training network 3. n_training: 10000
+11-25 13:52 INFO     Training network 3
+11-25 13:52 INFO     >> Pre-Training Training accuracy: 0.099
+11-25 13:52 INFO     >> Pre-Training Test accuracy: 0.0857
+11-25 13:52 INFO     Epoch: 0 Loss: 2.302555
+11-25 13:52 INFO     Epoch: 1 Loss: 2.297165
+11-25 13:52 INFO     Epoch: 2 Loss: 2.195469
+11-25 13:52 INFO     Epoch: 3 Loss: 2.112978
+11-25 13:52 INFO     Epoch: 4 Loss: 2.078881
+11-25 13:52 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:53 INFO     >> Training accuracy: 0.235800
+11-25 13:53 INFO     >> Test accuracy: 0.255000
+11-25 13:53 INFO      ** Training complete **
+11-25 13:53 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 13:53 INFO     net 3 final test acc 0.255000
+11-25 13:53 INFO     Training network 4. n_training: 10000
+11-25 13:53 INFO     Training network 4
+11-25 13:53 INFO     >> Pre-Training Training accuracy: 0.0994
+11-25 13:53 INFO     >> Pre-Training Test accuracy: 0.0857
+11-25 13:53 INFO     Epoch: 0 Loss: 2.302554
+11-25 13:53 INFO     Epoch: 1 Loss: 2.296522
+11-25 13:53 INFO     Epoch: 2 Loss: 2.215932
+11-25 13:53 INFO     Epoch: 3 Loss: 2.136614
+11-25 13:53 INFO     Epoch: 4 Loss: 2.088566
+11-25 13:53 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:53 INFO     >> Training accuracy: 0.234100
+11-25 13:53 INFO     >> Test accuracy: 0.232000
+11-25 13:53 INFO      ** Training complete **
+11-25 13:53 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 13:53 INFO     net 4 final test acc 0.232000
+11-25 13:53 INFO     global n_training: 782
+11-25 13:53 INFO     global n_test: 313
+11-25 13:54 INFO     >> Global Model Train accuracy: 0.192860
+11-25 13:54 INFO     >> Global Model Test accuracy: 0.203000
+11-25 13:54 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 13:54 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 13:54 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:54 INFO      ** Get feature maps complete **
+11-25 13:54 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 13:54 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 13:55 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:55 INFO      ** Get feature maps complete **
+11-25 13:55 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 13:55 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 13:55 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:55 INFO      ** Get feature maps complete **
+11-25 13:55 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 13:55 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 13:55 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:55 INFO      ** Get feature maps complete **
+11-25 13:55 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 13:55 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 13:55 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:55 INFO      ** Get feature maps complete **
+11-25 13:55 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 13:55 INFO     Epoch 1/1, Discriminator Loss: 0.3360, Accuracy: 99.25%
+11-25 13:55 INFO      ** Discriminator training complete **
+11-25 13:55 INFO     Training network 0. n_training: 10000
+11-25 13:55 INFO     Starting adversarial training of clients...
+11-25 13:55 INFO     >> Pre-Training Training accuracy: 0.1914
+11-25 13:55 INFO     >> Pre-Training Test accuracy: 0.203
+11-25 13:55 INFO     Epoch: 0 Last Batch Total Loss: 1.494195 Task Loss: 1.994657 Adversarial Loss: 0.326449 
+11-25 13:55 INFO     Epoch: 1 Last Batch Total Loss: 1.431602 Task Loss: 1.905181 Adversarial Loss: 0.326584 
+11-25 13:56 INFO     Epoch: 2 Last Batch Total Loss: 1.400429 Task Loss: 1.860678 Adversarial Loss: 0.326516 
+11-25 13:56 INFO     Epoch: 3 Last Batch Total Loss: 1.352589 Task Loss: 1.792307 Adversarial Loss: 0.326580 
+11-25 13:56 INFO     Epoch: 4 Last Batch Total Loss: 1.325950 Task Loss: 1.754249 Adversarial Loss: 0.326585 
+11-25 13:56 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:56 INFO     >> Training accuracy: 0.337100
+11-25 13:56 INFO     >> Test accuracy: 0.355800
+11-25 13:56 INFO      ** Training complete **
+11-25 13:56 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 13:56 INFO     net 0 final test acc 0.355800
+11-25 13:56 INFO     Training network 1. n_training: 10000
+11-25 13:56 INFO     Starting adversarial training of clients...
+11-25 13:56 INFO     >> Pre-Training Training accuracy: 0.1964
+11-25 13:56 INFO     >> Pre-Training Test accuracy: 0.203
+11-25 13:56 INFO     Epoch: 0 Last Batch Total Loss: 1.507695 Task Loss: 2.013990 Adversarial Loss: 0.326339 
+11-25 13:56 INFO     Epoch: 1 Last Batch Total Loss: 1.462058 Task Loss: 1.948813 Adversarial Loss: 0.326295 
+11-25 13:56 INFO     Epoch: 2 Last Batch Total Loss: 1.412305 Task Loss: 1.877657 Adversarial Loss: 0.326485 
+11-25 13:56 INFO     Epoch: 3 Last Batch Total Loss: 1.384871 Task Loss: 1.838416 Adversarial Loss: 0.326599 
+11-25 13:56 INFO     Epoch: 4 Last Batch Total Loss: 1.348804 Task Loss: 1.786948 Adversarial Loss: 0.326465 
+11-25 13:57 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:57 INFO     >> Training accuracy: 0.348000
+11-25 13:57 INFO     >> Test accuracy: 0.366800
+11-25 13:57 INFO      ** Training complete **
+11-25 13:57 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 13:57 INFO     net 1 final test acc 0.366800
+11-25 13:57 INFO     Training network 2. n_training: 10000
+11-25 13:57 INFO     Starting adversarial training of clients...
+11-25 13:57 INFO     >> Pre-Training Training accuracy: 0.2067
+11-25 13:57 INFO     >> Pre-Training Test accuracy: 0.203
+11-25 13:57 INFO     Epoch: 0 Last Batch Total Loss: 1.516363 Task Loss: 2.026371 Adversarial Loss: 0.326345 
+11-25 13:57 INFO     Epoch: 1 Last Batch Total Loss: 1.476076 Task Loss: 1.968823 Adversarial Loss: 0.326334 
+11-25 13:57 INFO     Epoch: 2 Last Batch Total Loss: 1.430474 Task Loss: 1.903681 Adversarial Loss: 0.326326 
+11-25 13:57 INFO     Epoch: 3 Last Batch Total Loss: 1.415372 Task Loss: 1.882063 Adversarial Loss: 0.326427 
+11-25 13:57 INFO     Epoch: 4 Last Batch Total Loss: 1.384801 Task Loss: 1.838340 Adversarial Loss: 0.326545 
+11-25 13:57 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:57 INFO     >> Training accuracy: 0.329500
+11-25 13:57 INFO     >> Test accuracy: 0.335500
+11-25 13:57 INFO      ** Training complete **
+11-25 13:57 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 13:57 INFO     net 2 final test acc 0.335500
+11-25 13:57 INFO     Training network 3. n_training: 10000
+11-25 13:57 INFO     Starting adversarial training of clients...
+11-25 13:58 INFO     >> Pre-Training Training accuracy: 0.1983
+11-25 13:58 INFO     >> Pre-Training Test accuracy: 0.203
+11-25 13:58 INFO     Epoch: 0 Last Batch Total Loss: 1.525404 Task Loss: 2.039142 Adversarial Loss: 0.326680 
+11-25 13:58 INFO     Epoch: 1 Last Batch Total Loss: 1.487597 Task Loss: 1.985179 Adversarial Loss: 0.326572 
+11-25 13:58 INFO     Epoch: 2 Last Batch Total Loss: 1.463579 Task Loss: 1.950792 Adversarial Loss: 0.326748 
+11-25 13:58 INFO     Epoch: 3 Last Batch Total Loss: 1.431902 Task Loss: 1.905623 Adversarial Loss: 0.326555 
+11-25 13:58 INFO     Epoch: 4 Last Batch Total Loss: 1.416377 Task Loss: 1.883473 Adversarial Loss: 0.326488 
+11-25 13:58 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:58 INFO     >> Training accuracy: 0.305700
+11-25 13:58 INFO     >> Test accuracy: 0.328600
+11-25 13:58 INFO      ** Training complete **
+11-25 13:58 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 13:58 INFO     net 3 final test acc 0.328600
+11-25 13:58 INFO     Training network 4. n_training: 10000
+11-25 13:58 INFO     Starting adversarial training of clients...
+11-25 13:58 INFO     >> Pre-Training Training accuracy: 0.2033
+11-25 13:58 INFO     >> Pre-Training Test accuracy: 0.203
+11-25 13:58 INFO     Epoch: 0 Last Batch Total Loss: 1.548955 Task Loss: 2.072809 Adversarial Loss: 0.326630 
+11-25 13:59 INFO     Epoch: 1 Last Batch Total Loss: 1.513993 Task Loss: 2.022957 Adversarial Loss: 0.326412 
+11-25 13:59 INFO     Epoch: 2 Last Batch Total Loss: 1.482387 Task Loss: 1.977747 Adversarial Loss: 0.326548 
+11-25 13:59 INFO     Epoch: 3 Last Batch Total Loss: 1.455957 Task Loss: 1.939920 Adversarial Loss: 0.326710 
+11-25 13:59 INFO     Epoch: 4 Last Batch Total Loss: 1.437891 Task Loss: 1.914040 Adversarial Loss: 0.326878 
+11-25 13:59 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 13:59 INFO     >> Training accuracy: 0.307100
+11-25 13:59 INFO     >> Test accuracy: 0.325600
+11-25 13:59 INFO      ** Training complete **
+11-25 13:59 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 13:59 INFO     net 4 final test acc 0.325600
+11-25 13:59 INFO     global n_training: 782
+11-25 13:59 INFO     global n_test: 313
+11-25 13:59 INFO     >> Global Model Train accuracy: 0.323220
+11-25 13:59 INFO     >> Global Model Test accuracy: 0.343600
+11-25 13:59 INFO     in comm round:1
+11-25 13:59 INFO     Training network 0. n_training: 10000
+11-25 13:59 INFO     Training network 0
+11-25 14:00 INFO     >> Pre-Training Training accuracy: 0.3258
+11-25 14:00 INFO     >> Pre-Training Test accuracy: 0.3436
+11-25 14:00 INFO     Epoch: 0 Loss: 1.772876
+11-25 14:00 INFO     Epoch: 1 Loss: 1.718761
+11-25 14:00 INFO     Epoch: 2 Loss: 1.645254
+11-25 14:00 INFO     Epoch: 3 Loss: 1.589722
+11-25 14:00 INFO     Epoch: 4 Loss: 1.557122
+11-25 14:00 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:00 INFO     >> Training accuracy: 0.414900
+11-25 14:00 INFO     >> Test accuracy: 0.427400
+11-25 14:00 INFO      ** Training complete **
+11-25 14:00 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:00 INFO     net 0 final test acc 0.427400
+11-25 14:00 INFO     Training network 1. n_training: 10000
+11-25 14:00 INFO     Training network 1
+11-25 14:00 INFO     >> Pre-Training Training accuracy: 0.3198
+11-25 14:00 INFO     >> Pre-Training Test accuracy: 0.3436
+11-25 14:00 INFO     Epoch: 0 Loss: 1.792862
+11-25 14:01 INFO     Epoch: 1 Loss: 1.749942
+11-25 14:01 INFO     Epoch: 2 Loss: 1.698337
+11-25 14:01 INFO     Epoch: 3 Loss: 1.638541
+11-25 14:01 INFO     Epoch: 4 Loss: 1.599489
+11-25 14:01 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:01 INFO     >> Training accuracy: 0.426900
+11-25 14:01 INFO     >> Test accuracy: 0.441200
+11-25 14:01 INFO      ** Training complete **
+11-25 14:01 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:01 INFO     net 1 final test acc 0.441200
+11-25 14:01 INFO     Training network 2. n_training: 10000
+11-25 14:01 INFO     Training network 2
+11-25 14:01 INFO     >> Pre-Training Training accuracy: 0.3289
+11-25 14:01 INFO     >> Pre-Training Test accuracy: 0.3436
+11-25 14:01 INFO     Epoch: 0 Loss: 1.809441
+11-25 14:01 INFO     Epoch: 1 Loss: 1.760789
+11-25 14:01 INFO     Epoch: 2 Loss: 1.732188
+11-25 14:02 INFO     Epoch: 3 Loss: 1.686679
+11-25 14:02 INFO     Epoch: 4 Loss: 1.654587
+11-25 14:02 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:02 INFO     >> Training accuracy: 0.417800
+11-25 14:02 INFO     >> Test accuracy: 0.402200
+11-25 14:02 INFO      ** Training complete **
+11-25 14:02 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:02 INFO     net 2 final test acc 0.402200
+11-25 14:02 INFO     Training network 3. n_training: 10000
+11-25 14:02 INFO     Training network 3
+11-25 14:02 INFO     >> Pre-Training Training accuracy: 0.3005
+11-25 14:02 INFO     >> Pre-Training Test accuracy: 0.3436
+11-25 14:02 INFO     Epoch: 0 Loss: 1.867212
+11-25 14:02 INFO     Epoch: 1 Loss: 1.826362
+11-25 14:02 INFO     Epoch: 2 Loss: 1.782605
+11-25 14:02 INFO     Epoch: 3 Loss: 1.756393
+11-25 14:02 INFO     Epoch: 4 Loss: 1.715839
+11-25 14:02 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:02 INFO     >> Training accuracy: 0.363300
+11-25 14:02 INFO     >> Test accuracy: 0.357600
+11-25 14:02 INFO      ** Training complete **
+11-25 14:02 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:02 INFO     net 3 final test acc 0.357600
+11-25 14:02 INFO     Training network 4. n_training: 10000
+11-25 14:03 INFO     Training network 4
+11-25 14:03 INFO     >> Pre-Training Training accuracy: 0.2529
+11-25 14:03 INFO     >> Pre-Training Test accuracy: 0.3436
+11-25 14:03 INFO     Epoch: 0 Loss: 1.908350
+11-25 14:03 INFO     Epoch: 1 Loss: 1.860704
+11-25 14:03 INFO     Epoch: 2 Loss: 1.816608
+11-25 14:03 INFO     Epoch: 3 Loss: 1.774635
+11-25 14:03 INFO     Epoch: 4 Loss: 1.756893
+11-25 14:03 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:03 INFO     >> Training accuracy: 0.368300
+11-25 14:03 INFO     >> Test accuracy: 0.328600
+11-25 14:03 INFO      ** Training complete **
+11-25 14:03 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:03 INFO     net 4 final test acc 0.328600
+11-25 14:03 INFO     global n_training: 782
+11-25 14:03 INFO     global n_test: 313
+11-25 14:04 INFO     >> Global Model Train accuracy: 0.387920
+11-25 14:04 INFO     >> Global Model Test accuracy: 0.420800
+11-25 14:04 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 14:04 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 14:04 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:04 INFO      ** Get feature maps complete **
+11-25 14:04 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:04 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 14:04 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:04 INFO      ** Get feature maps complete **
+11-25 14:04 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:04 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 14:05 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:05 INFO      ** Get feature maps complete **
+11-25 14:05 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:05 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 14:05 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:05 INFO      ** Get feature maps complete **
+11-25 14:05 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:05 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 14:05 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:05 INFO      ** Get feature maps complete **
+11-25 14:05 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:05 INFO     Epoch 1/1, Discriminator Loss: 0.3437, Accuracy: 98.70%
+11-25 14:05 INFO      ** Discriminator training complete **
+11-25 14:05 INFO     Training network 0. n_training: 10000
+11-25 14:05 INFO     Starting adversarial training of clients...
+11-25 14:05 INFO     >> Pre-Training Training accuracy: 0.3913
+11-25 14:05 INFO     >> Pre-Training Test accuracy: 0.4208
+11-25 14:05 INFO     Epoch: 0 Last Batch Total Loss: 1.175624 Task Loss: 1.539859 Adversarial Loss: 0.325744 
+11-25 14:05 INFO     Epoch: 1 Last Batch Total Loss: 1.147004 Task Loss: 1.498944 Adversarial Loss: 0.325809 
+11-25 14:05 INFO     Epoch: 2 Last Batch Total Loss: 1.125434 Task Loss: 1.468140 Adversarial Loss: 0.325787 
+11-25 14:05 INFO     Epoch: 3 Last Batch Total Loss: 1.102575 Task Loss: 1.435487 Adversarial Loss: 0.325781 
+11-25 14:06 INFO     Epoch: 4 Last Batch Total Loss: 1.084872 Task Loss: 1.410237 Adversarial Loss: 0.325685 
+11-25 14:06 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:06 INFO     >> Training accuracy: 0.519000
+11-25 14:06 INFO     >> Test accuracy: 0.525900
+11-25 14:06 INFO      ** Training complete **
+11-25 14:06 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:06 INFO     net 0 final test acc 0.525900
+11-25 14:06 INFO     Training network 1. n_training: 10000
+11-25 14:06 INFO     Starting adversarial training of clients...
+11-25 14:06 INFO     >> Pre-Training Training accuracy: 0.4017
+11-25 14:06 INFO     >> Pre-Training Test accuracy: 0.4208
+11-25 14:06 INFO     Epoch: 0 Last Batch Total Loss: 1.195097 Task Loss: 1.567714 Adversarial Loss: 0.325656 
+11-25 14:06 INFO     Epoch: 1 Last Batch Total Loss: 1.183733 Task Loss: 1.551459 Adversarial Loss: 0.325704 
+11-25 14:06 INFO     Epoch: 2 Last Batch Total Loss: 1.144000 Task Loss: 1.494683 Adversarial Loss: 0.325739 
+11-25 14:06 INFO     Epoch: 3 Last Batch Total Loss: 1.127643 Task Loss: 1.471282 Adversarial Loss: 0.325818 
+11-25 14:06 INFO     Epoch: 4 Last Batch Total Loss: 1.108603 Task Loss: 1.444133 Adversarial Loss: 0.325700 
+11-25 14:06 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:06 INFO     >> Training accuracy: 0.512800
+11-25 14:06 INFO     >> Test accuracy: 0.497900
+11-25 14:06 INFO      ** Training complete **
+11-25 14:06 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:06 INFO     net 1 final test acc 0.497900
+11-25 14:06 INFO     Training network 2. n_training: 10000
+11-25 14:06 INFO     Starting adversarial training of clients...
+11-25 14:07 INFO     >> Pre-Training Training accuracy: 0.4162
+11-25 14:07 INFO     >> Pre-Training Test accuracy: 0.4208
+11-25 14:07 INFO     Epoch: 0 Last Batch Total Loss: 1.212366 Task Loss: 1.592387 Adversarial Loss: 0.325652 
+11-25 14:07 INFO     Epoch: 1 Last Batch Total Loss: 1.197775 Task Loss: 1.571483 Adversarial Loss: 0.325787 
+11-25 14:07 INFO     Epoch: 2 Last Batch Total Loss: 1.189391 Task Loss: 1.559520 Adversarial Loss: 0.325758 
+11-25 14:07 INFO     Epoch: 3 Last Batch Total Loss: 1.174656 Task Loss: 1.538449 Adversarial Loss: 0.325804 
+11-25 14:07 INFO     Epoch: 4 Last Batch Total Loss: 1.166010 Task Loss: 1.526130 Adversarial Loss: 0.325732 
+11-25 14:07 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:07 INFO     >> Training accuracy: 0.448100
+11-25 14:07 INFO     >> Test accuracy: 0.401100
+11-25 14:07 INFO      ** Training complete **
+11-25 14:07 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:07 INFO     net 2 final test acc 0.401100
+11-25 14:07 INFO     Training network 3. n_training: 10000
+11-25 14:07 INFO     Starting adversarial training of clients...
+11-25 14:07 INFO     >> Pre-Training Training accuracy: 0.3786
+11-25 14:07 INFO     >> Pre-Training Test accuracy: 0.4208
+11-25 14:07 INFO     Epoch: 0 Last Batch Total Loss: 1.262596 Task Loss: 1.664156 Adversarial Loss: 0.325621 
+11-25 14:08 INFO     Epoch: 1 Last Batch Total Loss: 1.256676 Task Loss: 1.655659 Adversarial Loss: 0.325716 
+11-25 14:08 INFO     Epoch: 2 Last Batch Total Loss: 1.228176 Task Loss: 1.614948 Adversarial Loss: 0.325708 
+11-25 14:08 INFO     Epoch: 3 Last Batch Total Loss: 1.226159 Task Loss: 1.612066 Adversarial Loss: 0.325708 
+11-25 14:08 INFO     Epoch: 4 Last Batch Total Loss: 1.205669 Task Loss: 1.582790 Adversarial Loss: 0.325719 
+11-25 14:08 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:08 INFO     >> Training accuracy: 0.414000
+11-25 14:08 INFO     >> Test accuracy: 0.382400
+11-25 14:08 INFO      ** Training complete **
+11-25 14:08 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:08 INFO     net 3 final test acc 0.382400
+11-25 14:08 INFO     Training network 4. n_training: 10000
+11-25 14:08 INFO     Starting adversarial training of clients...
+11-25 14:08 INFO     >> Pre-Training Training accuracy: 0.3158
+11-25 14:08 INFO     >> Pre-Training Test accuracy: 0.4208
+11-25 14:08 INFO     Epoch: 0 Last Batch Total Loss: 1.297491 Task Loss: 1.714007 Adversarial Loss: 0.325619 
+11-25 14:08 INFO     Epoch: 1 Last Batch Total Loss: 1.286578 Task Loss: 1.698364 Adversarial Loss: 0.325744 
+11-25 14:08 INFO     Epoch: 2 Last Batch Total Loss: 1.267430 Task Loss: 1.671011 Adversarial Loss: 0.325741 
+11-25 14:09 INFO     Epoch: 3 Last Batch Total Loss: 1.261436 Task Loss: 1.662477 Adversarial Loss: 0.325676 
+11-25 14:09 INFO     Epoch: 4 Last Batch Total Loss: 1.247493 Task Loss: 1.642570 Adversarial Loss: 0.325648 
+11-25 14:09 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:09 INFO     >> Training accuracy: 0.411600
+11-25 14:09 INFO     >> Test accuracy: 0.381500
+11-25 14:09 INFO      ** Training complete **
+11-25 14:09 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:09 INFO     net 4 final test acc 0.381500
+11-25 14:09 INFO     global n_training: 782
+11-25 14:09 INFO     global n_test: 313
+11-25 14:09 INFO     >> Global Model Train accuracy: 0.415620
+11-25 14:09 INFO     >> Global Model Test accuracy: 0.447700
+11-25 14:09 INFO     in comm round:2
+11-25 14:09 INFO     Training network 0. n_training: 10000
+11-25 14:09 INFO     Training network 0
+11-25 14:09 INFO     >> Pre-Training Training accuracy: 0.4143
+11-25 14:09 INFO     >> Pre-Training Test accuracy: 0.4477
+11-25 14:09 INFO     Epoch: 0 Loss: 1.456993
+11-25 14:10 INFO     Epoch: 1 Loss: 1.416253
+11-25 14:10 INFO     Epoch: 2 Loss: 1.359326
+11-25 14:10 INFO     Epoch: 3 Loss: 1.308078
+11-25 14:10 INFO     Epoch: 4 Loss: 1.277423
+11-25 14:10 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:10 INFO     >> Training accuracy: 0.513500
+11-25 14:10 INFO     >> Test accuracy: 0.519600
+11-25 14:10 INFO      ** Training complete **
+11-25 14:10 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:10 INFO     net 0 final test acc 0.519600
+11-25 14:10 INFO     Training network 1. n_training: 10000
+11-25 14:10 INFO     Training network 1
+11-25 14:10 INFO     >> Pre-Training Training accuracy: 0.4458
+11-25 14:10 INFO     >> Pre-Training Test accuracy: 0.4477
+11-25 14:10 INFO     Epoch: 0 Loss: 1.486081
+11-25 14:10 INFO     Epoch: 1 Loss: 1.431494
+11-25 14:11 INFO     Epoch: 2 Loss: 1.403249
+11-25 14:11 INFO     Epoch: 3 Loss: 1.400576
+11-25 14:11 INFO     Epoch: 4 Loss: 1.340510
+11-25 14:11 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:11 INFO     >> Training accuracy: 0.516800
+11-25 14:11 INFO     >> Test accuracy: 0.533300
+11-25 14:11 INFO      ** Training complete **
+11-25 14:11 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:11 INFO     net 1 final test acc 0.533300
+11-25 14:11 INFO     Training network 2. n_training: 10000
+11-25 14:11 INFO     Training network 2
+11-25 14:11 INFO     >> Pre-Training Training accuracy: 0.4695
+11-25 14:11 INFO     >> Pre-Training Test accuracy: 0.4477
+11-25 14:11 INFO     Epoch: 0 Loss: 1.533703
+11-25 14:11 INFO     Epoch: 1 Loss: 1.514065
+11-25 14:11 INFO     Epoch: 2 Loss: 1.506911
+11-25 14:12 INFO     Epoch: 3 Loss: 1.469326
+11-25 14:12 INFO     Epoch: 4 Loss: 1.444884
+11-25 14:12 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:12 INFO     >> Training accuracy: 0.487200
+11-25 14:12 INFO     >> Test accuracy: 0.453500
+11-25 14:12 INFO      ** Training complete **
+11-25 14:12 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:12 INFO     net 2 final test acc 0.453500
+11-25 14:12 INFO     Training network 3. n_training: 10000
+11-25 14:12 INFO     Training network 3
+11-25 14:12 INFO     >> Pre-Training Training accuracy: 0.4351
+11-25 14:12 INFO     >> Pre-Training Test accuracy: 0.4477
+11-25 14:12 INFO     Epoch: 0 Loss: 1.594308
+11-25 14:12 INFO     Epoch: 1 Loss: 1.597175
+11-25 14:12 INFO     Epoch: 2 Loss: 1.566160
+11-25 14:12 INFO     Epoch: 3 Loss: 1.552173
+11-25 14:12 INFO     Epoch: 4 Loss: 1.515019
+11-25 14:12 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:13 INFO     >> Training accuracy: 0.472000
+11-25 14:13 INFO     >> Test accuracy: 0.388700
+11-25 14:13 INFO      ** Training complete **
+11-25 14:13 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:13 INFO     net 3 final test acc 0.388700
+11-25 14:13 INFO     Training network 4. n_training: 10000
+11-25 14:13 INFO     Training network 4
+11-25 14:13 INFO     >> Pre-Training Training accuracy: 0.3566
+11-25 14:13 INFO     >> Pre-Training Test accuracy: 0.4477
+11-25 14:13 INFO     Epoch: 0 Loss: 1.656434
+11-25 14:13 INFO     Epoch: 1 Loss: 1.650431
+11-25 14:13 INFO     Epoch: 2 Loss: 1.623044
+11-25 14:13 INFO     Epoch: 3 Loss: 1.630247
+11-25 14:13 INFO     Epoch: 4 Loss: 1.601954
+11-25 14:13 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:13 INFO     >> Training accuracy: 0.449400
+11-25 14:13 INFO     >> Test accuracy: 0.408300
+11-25 14:13 INFO      ** Training complete **
+11-25 14:13 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:13 INFO     net 4 final test acc 0.408300
+11-25 14:13 INFO     global n_training: 782
+11-25 14:13 INFO     global n_test: 313
+11-25 14:14 INFO     >> Global Model Train accuracy: 0.460660
+11-25 14:14 INFO     >> Global Model Test accuracy: 0.487500
+11-25 14:14 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 14:14 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 14:15 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:15 INFO      ** Get feature maps complete **
+11-25 14:15 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:15 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 14:15 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:15 INFO      ** Get feature maps complete **
+11-25 14:15 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:15 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 14:15 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:15 INFO      ** Get feature maps complete **
+11-25 14:15 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:15 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 14:15 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:15 INFO      ** Get feature maps complete **
+11-25 14:15 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:15 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 14:15 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:15 INFO      ** Get feature maps complete **
+11-25 14:15 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:15 INFO     Epoch 1/1, Discriminator Loss: 0.3478, Accuracy: 98.29%
+11-25 14:15 INFO      ** Discriminator training complete **
+11-25 14:15 INFO     Training network 0. n_training: 10000
+11-25 14:15 INFO     Starting adversarial training of clients...
+11-25 14:15 INFO     >> Pre-Training Training accuracy: 0.4612
+11-25 14:15 INFO     >> Pre-Training Test accuracy: 0.4875
+11-25 14:15 INFO     Epoch: 0 Last Batch Total Loss: 1.003972 Task Loss: 1.294665 Adversarial Loss: 0.325688 
+11-25 14:16 INFO     Epoch: 1 Last Batch Total Loss: 0.967393 Task Loss: 1.242372 Adversarial Loss: 0.325777 
+11-25 14:16 INFO     Epoch: 2 Last Batch Total Loss: 0.944024 Task Loss: 1.208982 Adversarial Loss: 0.325789 
+11-25 14:16 INFO     Epoch: 3 Last Batch Total Loss: 0.924257 Task Loss: 1.180778 Adversarial Loss: 0.325708 
+11-25 14:16 INFO     Epoch: 4 Last Batch Total Loss: 0.908419 Task Loss: 1.158136 Adversarial Loss: 0.325745 
+11-25 14:16 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:16 INFO     >> Training accuracy: 0.601300
+11-25 14:16 INFO     >> Test accuracy: 0.587100
+11-25 14:16 INFO      ** Training complete **
+11-25 14:16 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:16 INFO     net 0 final test acc 0.587100
+11-25 14:16 INFO     Training network 1. n_training: 10000
+11-25 14:16 INFO     Starting adversarial training of clients...
+11-25 14:16 INFO     >> Pre-Training Training accuracy: 0.4956
+11-25 14:16 INFO     >> Pre-Training Test accuracy: 0.4875
+11-25 14:16 INFO     Epoch: 0 Last Batch Total Loss: 1.025041 Task Loss: 1.324780 Adversarial Loss: 0.325650 
+11-25 14:16 INFO     Epoch: 1 Last Batch Total Loss: 0.999615 Task Loss: 1.288453 Adversarial Loss: 0.325660 
+11-25 14:17 INFO     Epoch: 2 Last Batch Total Loss: 0.975615 Task Loss: 1.254179 Adversarial Loss: 0.325634 
+11-25 14:17 INFO     Epoch: 3 Last Batch Total Loss: 0.964912 Task Loss: 1.238918 Adversarial Loss: 0.325566 
+11-25 14:17 INFO     Epoch: 4 Last Batch Total Loss: 0.940288 Task Loss: 1.203725 Adversarial Loss: 0.325601 
+11-25 14:17 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:17 INFO     >> Training accuracy: 0.578100
+11-25 14:17 INFO     >> Test accuracy: 0.545000
+11-25 14:17 INFO      ** Training complete **
+11-25 14:17 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:17 INFO     net 1 final test acc 0.545000
+11-25 14:17 INFO     Training network 2. n_training: 10000
+11-25 14:17 INFO     Starting adversarial training of clients...
+11-25 14:17 INFO     >> Pre-Training Training accuracy: 0.5061
+11-25 14:17 INFO     >> Pre-Training Test accuracy: 0.4875
+11-25 14:17 INFO     Epoch: 0 Last Batch Total Loss: 1.073657 Task Loss: 1.394269 Adversarial Loss: 0.325564 
+11-25 14:17 INFO     Epoch: 1 Last Batch Total Loss: 1.069454 Task Loss: 1.388258 Adversarial Loss: 0.325576 
+11-25 14:17 INFO     Epoch: 2 Last Batch Total Loss: 1.047019 Task Loss: 1.356186 Adversarial Loss: 0.325631 
+11-25 14:18 INFO     Epoch: 3 Last Batch Total Loss: 1.043218 Task Loss: 1.350765 Adversarial Loss: 0.325609 
+11-25 14:18 INFO     Epoch: 4 Last Batch Total Loss: 1.028081 Task Loss: 1.329165 Adversarial Loss: 0.325553 
+11-25 14:18 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:18 INFO     >> Training accuracy: 0.526900
+11-25 14:18 INFO     >> Test accuracy: 0.450100
+11-25 14:18 INFO      ** Training complete **
+11-25 14:18 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:18 INFO     net 2 final test acc 0.450100
+11-25 14:18 INFO     Training network 3. n_training: 10000
+11-25 14:18 INFO     Starting adversarial training of clients...
+11-25 14:18 INFO     >> Pre-Training Training accuracy: 0.4502
+11-25 14:18 INFO     >> Pre-Training Test accuracy: 0.4875
+11-25 14:18 INFO     Epoch: 0 Last Batch Total Loss: 1.131689 Task Loss: 1.477188 Adversarial Loss: 0.325526 
+11-25 14:18 INFO     Epoch: 1 Last Batch Total Loss: 1.139954 Task Loss: 1.489012 Adversarial Loss: 0.325485 
+11-25 14:18 INFO     Epoch: 2 Last Batch Total Loss: 1.098974 Task Loss: 1.430445 Adversarial Loss: 0.325542 
+11-25 14:18 INFO     Epoch: 3 Last Batch Total Loss: 1.098595 Task Loss: 1.429901 Adversarial Loss: 0.325547 
+11-25 14:18 INFO     Epoch: 4 Last Batch Total Loss: 1.089940 Task Loss: 1.417529 Adversarial Loss: 0.325564 
+11-25 14:19 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:19 INFO     >> Training accuracy: 0.502900
+11-25 14:19 INFO     >> Test accuracy: 0.390500
+11-25 14:19 INFO      ** Training complete **
+11-25 14:19 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:19 INFO     net 3 final test acc 0.390500
+11-25 14:19 INFO     Training network 4. n_training: 10000
+11-25 14:19 INFO     Starting adversarial training of clients...
+11-25 14:19 INFO     >> Pre-Training Training accuracy: 0.3438
+11-25 14:19 INFO     >> Pre-Training Test accuracy: 0.4875
+11-25 14:19 INFO     Epoch: 0 Last Batch Total Loss: 1.193266 Task Loss: 1.565137 Adversarial Loss: 0.325569 
+11-25 14:19 INFO     Epoch: 1 Last Batch Total Loss: 1.175132 Task Loss: 1.539249 Adversarial Loss: 0.325526 
+11-25 14:19 INFO     Epoch: 2 Last Batch Total Loss: 1.166016 Task Loss: 1.526225 Adversarial Loss: 0.325528 
+11-25 14:19 INFO     Epoch: 3 Last Batch Total Loss: 1.142167 Task Loss: 1.492154 Adversarial Loss: 0.325529 
+11-25 14:19 INFO     Epoch: 4 Last Batch Total Loss: 1.148472 Task Loss: 1.501170 Adversarial Loss: 0.325509 
+11-25 14:19 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:19 INFO     >> Training accuracy: 0.460300
+11-25 14:19 INFO     >> Test accuracy: 0.370300
+11-25 14:19 INFO      ** Training complete **
+11-25 14:19 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:19 INFO     net 4 final test acc 0.370300
+11-25 14:19 INFO     global n_training: 782
+11-25 14:19 INFO     global n_test: 313
+11-25 14:20 INFO     >> Global Model Train accuracy: 0.482820
+11-25 14:20 INFO     >> Global Model Test accuracy: 0.505400
+11-25 14:20 INFO     in comm round:3
+11-25 14:20 INFO     Training network 0. n_training: 10000
+11-25 14:20 INFO     Training network 0
+11-25 14:20 INFO     >> Pre-Training Training accuracy: 0.4853
+11-25 14:20 INFO     >> Pre-Training Test accuracy: 0.5054
+11-25 14:20 INFO     Epoch: 0 Loss: 1.226597
+11-25 14:20 INFO     Epoch: 1 Loss: 1.228668
+11-25 14:20 INFO     Epoch: 2 Loss: 1.147812
+11-25 14:20 INFO     Epoch: 3 Loss: 1.111574
+11-25 14:21 INFO     Epoch: 4 Loss: 1.090593
+11-25 14:21 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:21 INFO     >> Training accuracy: 0.633700
+11-25 14:21 INFO     >> Test accuracy: 0.616400
+11-25 14:21 INFO      ** Training complete **
+11-25 14:21 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:21 INFO     net 0 final test acc 0.616400
+11-25 14:21 INFO     Training network 1. n_training: 10000
+11-25 14:21 INFO     Training network 1
+11-25 14:21 INFO     >> Pre-Training Training accuracy: 0.5202
+11-25 14:21 INFO     >> Pre-Training Test accuracy: 0.5054
+11-25 14:21 INFO     Epoch: 0 Loss: 1.280708
+11-25 14:21 INFO     Epoch: 1 Loss: 1.231138
+11-25 14:21 INFO     Epoch: 2 Loss: 1.220635
+11-25 14:21 INFO     Epoch: 3 Loss: 1.188509
+11-25 14:21 INFO     Epoch: 4 Loss: 1.152615
+11-25 14:21 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:21 INFO     >> Training accuracy: 0.630600
+11-25 14:21 INFO     >> Test accuracy: 0.603000
+11-25 14:21 INFO      ** Training complete **
+11-25 14:21 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:21 INFO     net 1 final test acc 0.603000
+11-25 14:21 INFO     Training network 2. n_training: 10000
+11-25 14:22 INFO     Training network 2
+11-25 14:22 INFO     >> Pre-Training Training accuracy: 0.5493
+11-25 14:22 INFO     >> Pre-Training Test accuracy: 0.5054
+11-25 14:22 INFO     Epoch: 0 Loss: 1.361378
+11-25 14:22 INFO     Epoch: 1 Loss: 1.362554
+11-25 14:22 INFO     Epoch: 2 Loss: 1.340681
+11-25 14:22 INFO     Epoch: 3 Loss: 1.302674
+11-25 14:22 INFO     Epoch: 4 Loss: 1.278358
+11-25 14:22 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:22 INFO     >> Training accuracy: 0.559100
+11-25 14:22 INFO     >> Test accuracy: 0.474000
+11-25 14:22 INFO      ** Training complete **
+11-25 14:22 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:22 INFO     net 2 final test acc 0.474000
+11-25 14:22 INFO     Training network 3. n_training: 10000
+11-25 14:22 INFO     Training network 3
+11-25 14:22 INFO     >> Pre-Training Training accuracy: 0.4797
+11-25 14:22 INFO     >> Pre-Training Test accuracy: 0.5054
+11-25 14:23 INFO     Epoch: 0 Loss: 1.451044
+11-25 14:23 INFO     Epoch: 1 Loss: 1.442113
+11-25 14:23 INFO     Epoch: 2 Loss: 1.422252
+11-25 14:23 INFO     Epoch: 3 Loss: 1.435549
+11-25 14:23 INFO     Epoch: 4 Loss: 1.392473
+11-25 14:23 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:23 INFO     >> Training accuracy: 0.501900
+11-25 14:23 INFO     >> Test accuracy: 0.481900
+11-25 14:23 INFO      ** Training complete **
+11-25 14:23 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:23 INFO     net 3 final test acc 0.481900
+11-25 14:23 INFO     Training network 4. n_training: 10000
+11-25 14:23 INFO     Training network 4
+11-25 14:23 INFO     >> Pre-Training Training accuracy: 0.3815
+11-25 14:23 INFO     >> Pre-Training Test accuracy: 0.5054
+11-25 14:23 INFO     Epoch: 0 Loss: 1.551919
+11-25 14:23 INFO     Epoch: 1 Loss: 1.540020
+11-25 14:24 INFO     Epoch: 2 Loss: 1.514311
+11-25 14:24 INFO     Epoch: 3 Loss: 1.497877
+11-25 14:24 INFO     Epoch: 4 Loss: 1.484480
+11-25 14:24 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:24 INFO     >> Training accuracy: 0.484100
+11-25 14:24 INFO     >> Test accuracy: 0.391500
+11-25 14:24 INFO      ** Training complete **
+11-25 14:24 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:24 INFO     net 4 final test acc 0.391500
+11-25 14:24 INFO     global n_training: 782
+11-25 14:24 INFO     global n_test: 313
+11-25 14:24 INFO     >> Global Model Train accuracy: 0.519240
+11-25 14:24 INFO     >> Global Model Test accuracy: 0.542700
+11-25 14:25 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 14:25 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 14:25 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:25 INFO      ** Get feature maps complete **
+11-25 14:25 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:25 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 14:25 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:25 INFO      ** Get feature maps complete **
+11-25 14:25 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:25 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 14:25 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:25 INFO      ** Get feature maps complete **
+11-25 14:25 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:25 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 14:25 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:25 INFO      ** Get feature maps complete **
+11-25 14:25 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:25 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 14:25 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:25 INFO      ** Get feature maps complete **
+11-25 14:25 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:25 INFO     Epoch 1/1, Discriminator Loss: 0.3534, Accuracy: 97.78%
+11-25 14:25 INFO      ** Discriminator training complete **
+11-25 14:25 INFO     Training network 0. n_training: 10000
+11-25 14:26 INFO     Starting adversarial training of clients...
+11-25 14:26 INFO     >> Pre-Training Training accuracy: 0.519
+11-25 14:26 INFO     >> Pre-Training Test accuracy: 0.5427
+11-25 14:26 INFO     Epoch: 0 Last Batch Total Loss: 0.875207 Task Loss: 1.110794 Adversarial Loss: 0.325505 
+11-25 14:26 INFO     Epoch: 1 Last Batch Total Loss: 0.837816 Task Loss: 1.057361 Adversarial Loss: 0.325545 
+11-25 14:26 INFO     Epoch: 2 Last Batch Total Loss: 0.817177 Task Loss: 1.027894 Adversarial Loss: 0.325505 
+11-25 14:26 INFO     Epoch: 3 Last Batch Total Loss: 0.794906 Task Loss: 0.996099 Adversarial Loss: 0.325454 
+11-25 14:26 INFO     Epoch: 4 Last Batch Total Loss: 0.779451 Task Loss: 0.974010 Adversarial Loss: 0.325479 
+11-25 14:26 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:26 INFO     >> Training accuracy: 0.676600
+11-25 14:26 INFO     >> Test accuracy: 0.636200
+11-25 14:26 INFO      ** Training complete **
+11-25 14:26 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:26 INFO     net 0 final test acc 0.636200
+11-25 14:26 INFO     Training network 1. n_training: 10000
+11-25 14:26 INFO     Starting adversarial training of clients...
+11-25 14:26 INFO     >> Pre-Training Training accuracy: 0.556
+11-25 14:26 INFO     >> Pre-Training Test accuracy: 0.5427
+11-25 14:27 INFO     Epoch: 0 Last Batch Total Loss: 0.899018 Task Loss: 1.144834 Adversarial Loss: 0.325449 
+11-25 14:27 INFO     Epoch: 1 Last Batch Total Loss: 0.865313 Task Loss: 1.096660 Adversarial Loss: 0.325503 
+11-25 14:27 INFO     Epoch: 2 Last Batch Total Loss: 0.857916 Task Loss: 1.086123 Adversarial Loss: 0.325433 
+11-25 14:27 INFO     Epoch: 3 Last Batch Total Loss: 0.842538 Task Loss: 1.064159 Adversarial Loss: 0.325422 
+11-25 14:27 INFO     Epoch: 4 Last Batch Total Loss: 0.820651 Task Loss: 1.032909 Adversarial Loss: 0.325380 
+11-25 14:27 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:27 INFO     >> Training accuracy: 0.659800
+11-25 14:27 INFO     >> Test accuracy: 0.616300
+11-25 14:27 INFO      ** Training complete **
+11-25 14:27 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:27 INFO     net 1 final test acc 0.616300
+11-25 14:27 INFO     Training network 2. n_training: 10000
+11-25 14:27 INFO     Starting adversarial training of clients...
+11-25 14:27 INFO     >> Pre-Training Training accuracy: 0.5639
+11-25 14:27 INFO     >> Pre-Training Test accuracy: 0.5427
+11-25 14:27 INFO     Epoch: 0 Last Batch Total Loss: 0.972456 Task Loss: 1.249770 Adversarial Loss: 0.325389 
+11-25 14:27 INFO     Epoch: 1 Last Batch Total Loss: 0.967519 Task Loss: 1.242702 Adversarial Loss: 0.325425 
+11-25 14:27 INFO     Epoch: 2 Last Batch Total Loss: 0.961405 Task Loss: 1.233966 Adversarial Loss: 0.325429 
+11-25 14:28 INFO     Epoch: 3 Last Batch Total Loss: 0.944481 Task Loss: 1.209789 Adversarial Loss: 0.325427 
+11-25 14:28 INFO     Epoch: 4 Last Batch Total Loss: 0.940087 Task Loss: 1.203508 Adversarial Loss: 0.325437 
+11-25 14:28 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:28 INFO     >> Training accuracy: 0.591500
+11-25 14:28 INFO     >> Test accuracy: 0.503500
+11-25 14:28 INFO      ** Training complete **
+11-25 14:28 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:28 INFO     net 2 final test acc 0.503500
+11-25 14:28 INFO     Training network 3. n_training: 10000
+11-25 14:28 INFO     Starting adversarial training of clients...
+11-25 14:28 INFO     >> Pre-Training Training accuracy: 0.4955
+11-25 14:28 INFO     >> Pre-Training Test accuracy: 0.5427
+11-25 14:28 INFO     Epoch: 0 Last Batch Total Loss: 1.058504 Task Loss: 1.372682 Adversarial Loss: 0.325421 
+11-25 14:28 INFO     Epoch: 1 Last Batch Total Loss: 1.035344 Task Loss: 1.339574 Adversarial Loss: 0.325475 
+11-25 14:28 INFO     Epoch: 2 Last Batch Total Loss: 1.020700 Task Loss: 1.318668 Adversarial Loss: 0.325443 
+11-25 14:28 INFO     Epoch: 3 Last Batch Total Loss: 1.019112 Task Loss: 1.316391 Adversarial Loss: 0.325463 
+11-25 14:28 INFO     Epoch: 4 Last Batch Total Loss: 1.007049 Task Loss: 1.299172 Adversarial Loss: 0.325428 
+11-25 14:29 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:29 INFO     >> Training accuracy: 0.546500
+11-25 14:29 INFO     >> Test accuracy: 0.485500
+11-25 14:29 INFO      ** Training complete **
+11-25 14:29 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:29 INFO     net 3 final test acc 0.485500
+11-25 14:29 INFO     Training network 4. n_training: 10000
+11-25 14:29 INFO     Starting adversarial training of clients...
+11-25 14:29 INFO     >> Pre-Training Training accuracy: 0.3771
+11-25 14:29 INFO     >> Pre-Training Test accuracy: 0.5427
+11-25 14:29 INFO     Epoch: 0 Last Batch Total Loss: 1.129396 Task Loss: 1.473962 Adversarial Loss: 0.325410 
+11-25 14:29 INFO     Epoch: 1 Last Batch Total Loss: 1.117823 Task Loss: 1.457418 Adversarial Loss: 0.325435 
+11-25 14:29 INFO     Epoch: 2 Last Batch Total Loss: 1.108017 Task Loss: 1.443422 Adversarial Loss: 0.325408 
+11-25 14:29 INFO     Epoch: 3 Last Batch Total Loss: 1.104343 Task Loss: 1.438165 Adversarial Loss: 0.325426 
+11-25 14:29 INFO     Epoch: 4 Last Batch Total Loss: 1.088825 Task Loss: 1.415965 Adversarial Loss: 0.325499 
+11-25 14:29 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:29 INFO     >> Training accuracy: 0.499000
+11-25 14:29 INFO     >> Test accuracy: 0.449900
+11-25 14:29 INFO      ** Training complete **
+11-25 14:29 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:29 INFO     net 4 final test acc 0.449900
+11-25 14:29 INFO     global n_training: 782
+11-25 14:29 INFO     global n_test: 313
+11-25 14:30 INFO     >> Global Model Train accuracy: 0.538380
+11-25 14:30 INFO     >> Global Model Test accuracy: 0.560400
+11-25 14:30 INFO     in comm round:4
+11-25 14:30 INFO     Training network 0. n_training: 10000
+11-25 14:30 INFO     Training network 0
+11-25 14:30 INFO     >> Pre-Training Training accuracy: 0.5482
+11-25 14:30 INFO     >> Pre-Training Test accuracy: 0.5604
+11-25 14:30 INFO     Epoch: 0 Loss: 1.074822
+11-25 14:30 INFO     Epoch: 1 Loss: 1.048069
+11-25 14:30 INFO     Epoch: 2 Loss: 0.996663
+11-25 14:30 INFO     Epoch: 3 Loss: 0.970702
+11-25 14:30 INFO     Epoch: 4 Loss: 0.950128
+11-25 14:30 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:30 INFO     >> Training accuracy: 0.640800
+11-25 14:30 INFO     >> Test accuracy: 0.611500
+11-25 14:30 INFO      ** Training complete **
+11-25 14:30 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:30 INFO     net 0 final test acc 0.611500
+11-25 14:30 INFO     Training network 1. n_training: 10000
+11-25 14:31 INFO     Training network 1
+11-25 14:31 INFO     >> Pre-Training Training accuracy: 0.5913
+11-25 14:31 INFO     >> Pre-Training Test accuracy: 0.5604
+11-25 14:31 INFO     Epoch: 0 Loss: 1.130666
+11-25 14:31 INFO     Epoch: 1 Loss: 1.081631
+11-25 14:31 INFO     Epoch: 2 Loss: 1.064049
+11-25 14:31 INFO     Epoch: 3 Loss: 1.041437
+11-25 14:31 INFO     Epoch: 4 Loss: 1.016405
+11-25 14:31 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:31 INFO     >> Training accuracy: 0.649400
+11-25 14:31 INFO     >> Test accuracy: 0.631500
+11-25 14:31 INFO      ** Training complete **
+11-25 14:31 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:31 INFO     net 1 final test acc 0.631500
+11-25 14:31 INFO     Training network 2. n_training: 10000
+11-25 14:31 INFO     Training network 2
+11-25 14:31 INFO     >> Pre-Training Training accuracy: 0.5951
+11-25 14:31 INFO     >> Pre-Training Test accuracy: 0.5604
+11-25 14:31 INFO     Epoch: 0 Loss: 1.229028
+11-25 14:32 INFO     Epoch: 1 Loss: 1.226840
+11-25 14:32 INFO     Epoch: 2 Loss: 1.211332
+11-25 14:32 INFO     Epoch: 3 Loss: 1.213205
+11-25 14:32 INFO     Epoch: 4 Loss: 1.178893
+11-25 14:32 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:32 INFO     >> Training accuracy: 0.614500
+11-25 14:32 INFO     >> Test accuracy: 0.522900
+11-25 14:32 INFO      ** Training complete **
+11-25 14:32 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:32 INFO     net 2 final test acc 0.522900
+11-25 14:32 INFO     Training network 3. n_training: 10000
+11-25 14:32 INFO     Training network 3
+11-25 14:32 INFO     >> Pre-Training Training accuracy: 0.511
+11-25 14:32 INFO     >> Pre-Training Test accuracy: 0.5604
+11-25 14:32 INFO     Epoch: 0 Loss: 1.354212
+11-25 14:32 INFO     Epoch: 1 Loss: 1.353764
+11-25 14:32 INFO     Epoch: 2 Loss: 1.319366
+11-25 14:33 INFO     Epoch: 3 Loss: 1.304834
+11-25 14:33 INFO     Epoch: 4 Loss: 1.297902
+11-25 14:33 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:33 INFO     >> Training accuracy: 0.549400
+11-25 14:33 INFO     >> Test accuracy: 0.431800
+11-25 14:33 INFO      ** Training complete **
+11-25 14:33 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:33 INFO     net 3 final test acc 0.431800
+11-25 14:33 INFO     Training network 4. n_training: 10000
+11-25 14:33 INFO     Training network 4
+11-25 14:33 INFO     >> Pre-Training Training accuracy: 0.3829
+11-25 14:33 INFO     >> Pre-Training Test accuracy: 0.5604
+11-25 14:33 INFO     Epoch: 0 Loss: 1.473143
+11-25 14:33 INFO     Epoch: 1 Loss: 1.440792
+11-25 14:33 INFO     Epoch: 2 Loss: 1.425110
+11-25 14:33 INFO     Epoch: 3 Loss: 1.431791
+11-25 14:33 INFO     Epoch: 4 Loss: 1.405979
+11-25 14:33 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:33 INFO     >> Training accuracy: 0.519800
+11-25 14:33 INFO     >> Test accuracy: 0.395100
+11-25 14:33 INFO      ** Training complete **
+11-25 14:33 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:33 INFO     net 4 final test acc 0.395100
+11-25 14:33 INFO     global n_training: 782
+11-25 14:33 INFO     global n_test: 313
+11-25 14:34 INFO     >> Global Model Train accuracy: 0.548240
+11-25 14:34 INFO     >> Global Model Test accuracy: 0.560200
+11-25 14:34 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 14:34 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 14:34 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:34 INFO      ** Get feature maps complete **
+11-25 14:34 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:34 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 14:35 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:35 INFO      ** Get feature maps complete **
+11-25 14:35 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:35 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 14:35 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:35 INFO      ** Get feature maps complete **
+11-25 14:35 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:35 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 14:35 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:35 INFO      ** Get feature maps complete **
+11-25 14:35 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:35 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 14:35 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:35 INFO      ** Get feature maps complete **
+11-25 14:35 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:35 INFO     Epoch 1/1, Discriminator Loss: 0.3625, Accuracy: 96.99%
+11-25 14:35 INFO      ** Discriminator training complete **
+11-25 14:35 INFO     Training network 0. n_training: 10000
+11-25 14:35 INFO     Starting adversarial training of clients...
+11-25 14:35 INFO     >> Pre-Training Training accuracy: 0.5463
+11-25 14:35 INFO     >> Pre-Training Test accuracy: 0.5602
+11-25 14:35 INFO     Epoch: 0 Last Batch Total Loss: 0.784524 Task Loss: 0.981320 Adversarial Loss: 0.325332 
+11-25 14:35 INFO     Epoch: 1 Last Batch Total Loss: 0.737671 Task Loss: 0.914360 Adversarial Loss: 0.325395 
+11-25 14:35 INFO     Epoch: 2 Last Batch Total Loss: 0.717018 Task Loss: 0.884865 Adversarial Loss: 0.325375 
+11-25 14:36 INFO     Epoch: 3 Last Batch Total Loss: 0.689218 Task Loss: 0.845153 Adversarial Loss: 0.325369 
+11-25 14:36 INFO     Epoch: 4 Last Batch Total Loss: 0.685584 Task Loss: 0.839950 Adversarial Loss: 0.325396 
+11-25 14:36 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:36 INFO     >> Training accuracy: 0.716600
+11-25 14:36 INFO     >> Test accuracy: 0.665700
+11-25 14:36 INFO      ** Training complete **
+11-25 14:36 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:36 INFO     net 0 final test acc 0.665700
+11-25 14:36 INFO     Training network 1. n_training: 10000
+11-25 14:36 INFO     Starting adversarial training of clients...
+11-25 14:36 INFO     >> Pre-Training Training accuracy: 0.5932
+11-25 14:36 INFO     >> Pre-Training Test accuracy: 0.5602
+11-25 14:36 INFO     Epoch: 0 Last Batch Total Loss: 0.799853 Task Loss: 1.003233 Adversarial Loss: 0.325301 
+11-25 14:36 INFO     Epoch: 1 Last Batch Total Loss: 0.793309 Task Loss: 0.993871 Adversarial Loss: 0.325330 
+11-25 14:36 INFO     Epoch: 2 Last Batch Total Loss: 0.767547 Task Loss: 0.957068 Adversarial Loss: 0.325332 
+11-25 14:36 INFO     Epoch: 3 Last Batch Total Loss: 0.747445 Task Loss: 0.928330 Adversarial Loss: 0.325380 
+11-25 14:36 INFO     Epoch: 4 Last Batch Total Loss: 0.722268 Task Loss: 0.892365 Adversarial Loss: 0.325374 
+11-25 14:37 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:37 INFO     >> Training accuracy: 0.699100
+11-25 14:37 INFO     >> Test accuracy: 0.648700
+11-25 14:37 INFO      ** Training complete **
+11-25 14:37 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:37 INFO     net 1 final test acc 0.648700
+11-25 14:37 INFO     Training network 2. n_training: 10000
+11-25 14:37 INFO     Starting adversarial training of clients...
+11-25 14:37 INFO     >> Pre-Training Training accuracy: 0.6088
+11-25 14:37 INFO     >> Pre-Training Test accuracy: 0.5602
+11-25 14:37 INFO     Epoch: 0 Last Batch Total Loss: 0.897329 Task Loss: 1.142496 Adversarial Loss: 0.325273 
+11-25 14:37 INFO     Epoch: 1 Last Batch Total Loss: 0.886512 Task Loss: 1.127024 Adversarial Loss: 0.325318 
+11-25 14:37 INFO     Epoch: 2 Last Batch Total Loss: 0.871844 Task Loss: 1.106065 Adversarial Loss: 0.325329 
+11-25 14:37 INFO     Epoch: 3 Last Batch Total Loss: 0.869452 Task Loss: 1.102631 Adversarial Loss: 0.325370 
+11-25 14:37 INFO     Epoch: 4 Last Batch Total Loss: 0.851934 Task Loss: 1.077615 Adversarial Loss: 0.325346 
+11-25 14:37 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:37 INFO     >> Training accuracy: 0.632300
+11-25 14:37 INFO     >> Test accuracy: 0.533400
+11-25 14:37 INFO      ** Training complete **
+11-25 14:37 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:37 INFO     net 2 final test acc 0.533400
+11-25 14:37 INFO     Training network 3. n_training: 10000
+11-25 14:37 INFO     Starting adversarial training of clients...
+11-25 14:37 INFO     >> Pre-Training Training accuracy: 0.5499
+11-25 14:37 INFO     >> Pre-Training Test accuracy: 0.5602
+11-25 14:38 INFO     Epoch: 0 Last Batch Total Loss: 0.989454 Task Loss: 1.274106 Adversarial Loss: 0.325266 
+11-25 14:38 INFO     Epoch: 1 Last Batch Total Loss: 0.979774 Task Loss: 1.260270 Adversarial Loss: 0.325285 
+11-25 14:38 INFO     Epoch: 2 Last Batch Total Loss: 0.964237 Task Loss: 1.238073 Adversarial Loss: 0.325288 
+11-25 14:38 INFO     Epoch: 3 Last Batch Total Loss: 0.953736 Task Loss: 1.223058 Adversarial Loss: 0.325319 
+11-25 14:38 INFO     Epoch: 4 Last Batch Total Loss: 0.942345 Task Loss: 1.206794 Adversarial Loss: 0.325297 
+11-25 14:38 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:38 INFO     >> Training accuracy: 0.585900
+11-25 14:38 INFO     >> Test accuracy: 0.526900
+11-25 14:38 INFO      ** Training complete **
+11-25 14:38 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:38 INFO     net 3 final test acc 0.526900
+11-25 14:38 INFO     Training network 4. n_training: 10000
+11-25 14:38 INFO     Starting adversarial training of clients...
+11-25 14:38 INFO     >> Pre-Training Training accuracy: 0.4111
+11-25 14:38 INFO     >> Pre-Training Test accuracy: 0.5602
+11-25 14:38 INFO     Epoch: 0 Last Batch Total Loss: 1.080118 Task Loss: 1.403625 Adversarial Loss: 0.325269 
+11-25 14:38 INFO     Epoch: 1 Last Batch Total Loss: 1.051514 Task Loss: 1.362752 Adversarial Loss: 0.325292 
+11-25 14:38 INFO     Epoch: 2 Last Batch Total Loss: 1.058207 Task Loss: 1.372314 Adversarial Loss: 0.325291 
+11-25 14:39 INFO     Epoch: 3 Last Batch Total Loss: 1.052219 Task Loss: 1.363752 Adversarial Loss: 0.325311 
+11-25 14:39 INFO     Epoch: 4 Last Batch Total Loss: 1.041484 Task Loss: 1.348422 Adversarial Loss: 0.325294 
+11-25 14:39 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:39 INFO     >> Training accuracy: 0.535500
+11-25 14:39 INFO     >> Test accuracy: 0.450700
+11-25 14:39 INFO      ** Training complete **
+11-25 14:39 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:39 INFO     net 4 final test acc 0.450700
+11-25 14:39 INFO     global n_training: 782
+11-25 14:39 INFO     global n_test: 313
+11-25 14:39 INFO     >> Global Model Train accuracy: 0.587200
+11-25 14:39 INFO     >> Global Model Test accuracy: 0.605900
+11-25 14:39 INFO     in comm round:5
+11-25 14:39 INFO     Training network 0. n_training: 10000
+11-25 14:39 INFO     Training network 0
+11-25 14:39 INFO     >> Pre-Training Training accuracy: 0.5932
+11-25 14:39 INFO     >> Pre-Training Test accuracy: 0.6059
+11-25 14:39 INFO     Epoch: 0 Loss: 0.957951
+11-25 14:39 INFO     Epoch: 1 Loss: 0.929211
+11-25 14:40 INFO     Epoch: 2 Loss: 0.879445
+11-25 14:40 INFO     Epoch: 3 Loss: 0.862267
+11-25 14:40 INFO     Epoch: 4 Loss: 0.824028
+11-25 14:40 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:40 INFO     >> Training accuracy: 0.729700
+11-25 14:40 INFO     >> Test accuracy: 0.685300
+11-25 14:40 INFO      ** Training complete **
+11-25 14:40 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:40 INFO     net 0 final test acc 0.685300
+11-25 14:40 INFO     Training network 1. n_training: 10000
+11-25 14:40 INFO     Training network 1
+11-25 14:40 INFO     >> Pre-Training Training accuracy: 0.6335
+11-25 14:40 INFO     >> Pre-Training Test accuracy: 0.6059
+11-25 14:40 INFO     Epoch: 0 Loss: 1.007330
+11-25 14:40 INFO     Epoch: 1 Loss: 0.978757
+11-25 14:40 INFO     Epoch: 2 Loss: 0.945515
+11-25 14:40 INFO     Epoch: 3 Loss: 0.931321
+11-25 14:40 INFO     Epoch: 4 Loss: 0.883692
+11-25 14:40 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:41 INFO     >> Training accuracy: 0.701700
+11-25 14:41 INFO     >> Test accuracy: 0.659500
+11-25 14:41 INFO      ** Training complete **
+11-25 14:41 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:41 INFO     net 1 final test acc 0.659500
+11-25 14:41 INFO     Training network 2. n_training: 10000
+11-25 14:41 INFO     Training network 2
+11-25 14:41 INFO     >> Pre-Training Training accuracy: 0.6336
+11-25 14:41 INFO     >> Pre-Training Test accuracy: 0.6059
+11-25 14:41 INFO     Epoch: 0 Loss: 1.128122
+11-25 14:41 INFO     Epoch: 1 Loss: 1.157148
+11-25 14:41 INFO     Epoch: 2 Loss: 1.099493
+11-25 14:41 INFO     Epoch: 3 Loss: 1.091340
+11-25 14:41 INFO     Epoch: 4 Loss: 1.091346
+11-25 14:41 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:41 INFO     >> Training accuracy: 0.621600
+11-25 14:41 INFO     >> Test accuracy: 0.588000
+11-25 14:41 INFO      ** Training complete **
+11-25 14:41 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:41 INFO     net 2 final test acc 0.588000
+11-25 14:41 INFO     Training network 3. n_training: 10000
+11-25 14:41 INFO     Training network 3
+11-25 14:41 INFO     >> Pre-Training Training accuracy: 0.5492
+11-25 14:41 INFO     >> Pre-Training Test accuracy: 0.6059
+11-25 14:42 INFO     Epoch: 0 Loss: 1.275689
+11-25 14:42 INFO     Epoch: 1 Loss: 1.276172
+11-25 14:42 INFO     Epoch: 2 Loss: 1.265685
+11-25 14:42 INFO     Epoch: 3 Loss: 1.245013
+11-25 14:42 INFO     Epoch: 4 Loss: 1.217217
+11-25 14:42 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:42 INFO     >> Training accuracy: 0.581600
+11-25 14:42 INFO     >> Test accuracy: 0.508100
+11-25 14:42 INFO      ** Training complete **
+11-25 14:42 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:42 INFO     net 3 final test acc 0.508100
+11-25 14:42 INFO     Training network 4. n_training: 10000
+11-25 14:42 INFO     Training network 4
+11-25 14:42 INFO     >> Pre-Training Training accuracy: 0.4236
+11-25 14:42 INFO     >> Pre-Training Test accuracy: 0.6059
+11-25 14:42 INFO     Epoch: 0 Loss: 1.406941
+11-25 14:42 INFO     Epoch: 1 Loss: 1.381158
+11-25 14:43 INFO     Epoch: 2 Loss: 1.365570
+11-25 14:43 INFO     Epoch: 3 Loss: 1.367974
+11-25 14:43 INFO     Epoch: 4 Loss: 1.363258
+11-25 14:43 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:43 INFO     >> Training accuracy: 0.538800
+11-25 14:43 INFO     >> Test accuracy: 0.466300
+11-25 14:43 INFO      ** Training complete **
+11-25 14:43 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:43 INFO     net 4 final test acc 0.466300
+11-25 14:43 INFO     global n_training: 782
+11-25 14:43 INFO     global n_test: 313
+11-25 14:43 INFO     >> Global Model Train accuracy: 0.615740
+11-25 14:43 INFO     >> Global Model Test accuracy: 0.631200
+11-25 14:44 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 14:44 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 14:44 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:44 INFO      ** Get feature maps complete **
+11-25 14:44 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:44 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 14:44 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:44 INFO      ** Get feature maps complete **
+11-25 14:44 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:44 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 14:44 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:44 INFO      ** Get feature maps complete **
+11-25 14:44 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:44 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 14:44 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:44 INFO      ** Get feature maps complete **
+11-25 14:44 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:44 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 14:44 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:44 INFO      ** Get feature maps complete **
+11-25 14:44 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:45 INFO     Epoch 1/1, Discriminator Loss: 0.3709, Accuracy: 96.25%
+11-25 14:45 INFO      ** Discriminator training complete **
+11-25 14:45 INFO     Training network 0. n_training: 10000
+11-25 14:45 INFO     Starting adversarial training of clients...
+11-25 14:45 INFO     >> Pre-Training Training accuracy: 0.6234
+11-25 14:45 INFO     >> Pre-Training Test accuracy: 0.6312
+11-25 14:45 INFO     Epoch: 0 Last Batch Total Loss: 0.699195 Task Loss: 0.859409 Adversarial Loss: 0.325362 
+11-25 14:45 INFO     Epoch: 1 Last Batch Total Loss: 0.674495 Task Loss: 0.824136 Adversarial Loss: 0.325332 
+11-25 14:45 INFO     Epoch: 2 Last Batch Total Loss: 0.637842 Task Loss: 0.771763 Adversarial Loss: 0.325360 
+11-25 14:45 INFO     Epoch: 3 Last Batch Total Loss: 0.631135 Task Loss: 0.762188 Adversarial Loss: 0.325347 
+11-25 14:45 INFO     Epoch: 4 Last Batch Total Loss: 0.592424 Task Loss: 0.706890 Adversarial Loss: 0.325335 
+11-25 14:45 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:45 INFO     >> Training accuracy: 0.788300
+11-25 14:45 INFO     >> Test accuracy: 0.713500
+11-25 14:45 INFO      ** Training complete **
+11-25 14:45 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:45 INFO     net 0 final test acc 0.713500
+11-25 14:45 INFO     Training network 1. n_training: 10000
+11-25 14:45 INFO     Starting adversarial training of clients...
+11-25 14:46 INFO     >> Pre-Training Training accuracy: 0.6579
+11-25 14:46 INFO     >> Pre-Training Test accuracy: 0.6312
+11-25 14:46 INFO     Epoch: 0 Last Batch Total Loss: 0.719067 Task Loss: 0.887808 Adversarial Loss: 0.325338 
+11-25 14:46 INFO     Epoch: 1 Last Batch Total Loss: 0.696156 Task Loss: 0.855088 Adversarial Loss: 0.325314 
+11-25 14:46 INFO     Epoch: 2 Last Batch Total Loss: 0.692964 Task Loss: 0.850533 Adversarial Loss: 0.325303 
+11-25 14:46 INFO     Epoch: 3 Last Batch Total Loss: 0.661198 Task Loss: 0.805132 Adversarial Loss: 0.325354 
+11-25 14:46 INFO     Epoch: 4 Last Batch Total Loss: 0.666184 Task Loss: 0.812255 Adversarial Loss: 0.325353 
+11-25 14:46 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:46 INFO     >> Training accuracy: 0.745800
+11-25 14:46 INFO     >> Test accuracy: 0.673800
+11-25 14:46 INFO      ** Training complete **
+11-25 14:46 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:46 INFO     net 1 final test acc 0.673800
+11-25 14:46 INFO     Training network 2. n_training: 10000
+11-25 14:46 INFO     Starting adversarial training of clients...
+11-25 14:46 INFO     >> Pre-Training Training accuracy: 0.6507
+11-25 14:46 INFO     >> Pre-Training Test accuracy: 0.6312
+11-25 14:47 INFO     Epoch: 0 Last Batch Total Loss: 0.828594 Task Loss: 1.044304 Adversarial Loss: 0.325271 
+11-25 14:47 INFO     Epoch: 1 Last Batch Total Loss: 0.833162 Task Loss: 1.050830 Adversarial Loss: 0.325269 
+11-25 14:47 INFO     Epoch: 2 Last Batch Total Loss: 0.818164 Task Loss: 1.029394 Adversarial Loss: 0.325296 
+11-25 14:47 INFO     Epoch: 3 Last Batch Total Loss: 0.798591 Task Loss: 1.001428 Adversarial Loss: 0.325306 
+11-25 14:47 INFO     Epoch: 4 Last Batch Total Loss: 0.799919 Task Loss: 1.003328 Adversarial Loss: 0.325299 
+11-25 14:47 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:47 INFO     >> Training accuracy: 0.680300
+11-25 14:47 INFO     >> Test accuracy: 0.583300
+11-25 14:47 INFO      ** Training complete **
+11-25 14:47 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:47 INFO     net 2 final test acc 0.583300
+11-25 14:47 INFO     Training network 3. n_training: 10000
+11-25 14:47 INFO     Starting adversarial training of clients...
+11-25 14:47 INFO     >> Pre-Training Training accuracy: 0.5265
+11-25 14:47 INFO     >> Pre-Training Test accuracy: 0.6312
+11-25 14:47 INFO     Epoch: 0 Last Batch Total Loss: 0.935941 Task Loss: 1.197661 Adversarial Loss: 0.325261 
+11-25 14:47 INFO     Epoch: 1 Last Batch Total Loss: 0.929297 Task Loss: 1.188174 Adversarial Loss: 0.325251 
+11-25 14:48 INFO     Epoch: 2 Last Batch Total Loss: 0.917136 Task Loss: 1.170797 Adversarial Loss: 0.325258 
+11-25 14:48 INFO     Epoch: 3 Last Batch Total Loss: 0.911976 Task Loss: 1.163425 Adversarial Loss: 0.325263 
+11-25 14:48 INFO     Epoch: 4 Last Batch Total Loss: 0.896300 Task Loss: 1.141017 Adversarial Loss: 0.325293 
+11-25 14:48 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:48 INFO     >> Training accuracy: 0.623200
+11-25 14:48 INFO     >> Test accuracy: 0.490200
+11-25 14:48 INFO      ** Training complete **
+11-25 14:48 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:48 INFO     net 3 final test acc 0.490200
+11-25 14:48 INFO     Training network 4. n_training: 10000
+11-25 14:48 INFO     Starting adversarial training of clients...
+11-25 14:48 INFO     >> Pre-Training Training accuracy: 0.3835
+11-25 14:48 INFO     >> Pre-Training Test accuracy: 0.6312
+11-25 14:48 INFO     Epoch: 0 Last Batch Total Loss: 1.055463 Task Loss: 1.368425 Adversarial Loss: 0.325218 
+11-25 14:48 INFO     Epoch: 1 Last Batch Total Loss: 1.031586 Task Loss: 1.334309 Adversarial Loss: 0.325234 
+11-25 14:48 INFO     Epoch: 2 Last Batch Total Loss: 1.020204 Task Loss: 1.318034 Adversarial Loss: 0.325268 
+11-25 14:49 INFO     Epoch: 3 Last Batch Total Loss: 1.013050 Task Loss: 1.307812 Adversarial Loss: 0.325272 
+11-25 14:49 INFO     Epoch: 4 Last Batch Total Loss: 1.003736 Task Loss: 1.294506 Adversarial Loss: 0.325273 
+11-25 14:49 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:49 INFO     >> Training accuracy: 0.560300
+11-25 14:49 INFO     >> Test accuracy: 0.506400
+11-25 14:49 INFO      ** Training complete **
+11-25 14:49 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:49 INFO     net 4 final test acc 0.506400
+11-25 14:49 INFO     global n_training: 782
+11-25 14:49 INFO     global n_test: 313
+11-25 14:49 INFO     >> Global Model Train accuracy: 0.628620
+11-25 14:49 INFO     >> Global Model Test accuracy: 0.640400
+11-25 14:49 INFO     in comm round:6
+11-25 14:49 INFO     Training network 0. n_training: 10000
+11-25 14:49 INFO     Training network 0
+11-25 14:49 INFO     >> Pre-Training Training accuracy: 0.6379
+11-25 14:49 INFO     >> Pre-Training Test accuracy: 0.6404
+11-25 14:49 INFO     Epoch: 0 Loss: 0.850750
+11-25 14:50 INFO     Epoch: 1 Loss: 0.817882
+11-25 14:50 INFO     Epoch: 2 Loss: 0.782745
+11-25 14:50 INFO     Epoch: 3 Loss: 0.752630
+11-25 14:50 INFO     Epoch: 4 Loss: 0.733240
+11-25 14:50 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:50 INFO     >> Training accuracy: 0.782100
+11-25 14:50 INFO     >> Test accuracy: 0.708200
+11-25 14:50 INFO      ** Training complete **
+11-25 14:50 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:50 INFO     net 0 final test acc 0.708200
+11-25 14:50 INFO     Training network 1. n_training: 10000
+11-25 14:50 INFO     Training network 1
+11-25 14:50 INFO     >> Pre-Training Training accuracy: 0.6756
+11-25 14:50 INFO     >> Pre-Training Test accuracy: 0.6404
+11-25 14:50 INFO     Epoch: 0 Loss: 0.901312
+11-25 14:50 INFO     Epoch: 1 Loss: 0.874838
+11-25 14:50 INFO     Epoch: 2 Loss: 0.880496
+11-25 14:51 INFO     Epoch: 3 Loss: 0.823707
+11-25 14:51 INFO     Epoch: 4 Loss: 0.821495
+11-25 14:51 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:51 INFO     >> Training accuracy: 0.752900
+11-25 14:51 INFO     >> Test accuracy: 0.678900
+11-25 14:51 INFO      ** Training complete **
+11-25 14:51 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:51 INFO     net 1 final test acc 0.678900
+11-25 14:51 INFO     Training network 2. n_training: 10000
+11-25 14:51 INFO     Training network 2
+11-25 14:51 INFO     >> Pre-Training Training accuracy: 0.6702
+11-25 14:51 INFO     >> Pre-Training Test accuracy: 0.6404
+11-25 14:51 INFO     Epoch: 0 Loss: 1.062369
+11-25 14:51 INFO     Epoch: 1 Loss: 1.061718
+11-25 14:51 INFO     Epoch: 2 Loss: 1.041486
+11-25 14:51 INFO     Epoch: 3 Loss: 1.021697
+11-25 14:52 INFO     Epoch: 4 Loss: 1.028108
+11-25 14:52 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:52 INFO     >> Training accuracy: 0.670100
+11-25 14:52 INFO     >> Test accuracy: 0.599200
+11-25 14:52 INFO      ** Training complete **
+11-25 14:52 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:52 INFO     net 2 final test acc 0.599200
+11-25 14:52 INFO     Training network 3. n_training: 10000
+11-25 14:52 INFO     Training network 3
+11-25 14:52 INFO     >> Pre-Training Training accuracy: 0.5681
+11-25 14:52 INFO     >> Pre-Training Test accuracy: 0.6404
+11-25 14:52 INFO     Epoch: 0 Loss: 1.217637
+11-25 14:52 INFO     Epoch: 1 Loss: 1.205214
+11-25 14:52 INFO     Epoch: 2 Loss: 1.197375
+11-25 14:52 INFO     Epoch: 3 Loss: 1.173437
+11-25 14:52 INFO     Epoch: 4 Loss: 1.155972
+11-25 14:52 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:53 INFO     >> Training accuracy: 0.607200
+11-25 14:53 INFO     >> Test accuracy: 0.557900
+11-25 14:53 INFO      ** Training complete **
+11-25 14:53 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:53 INFO     net 3 final test acc 0.557900
+11-25 14:53 INFO     Training network 4. n_training: 10000
+11-25 14:53 INFO     Training network 4
+11-25 14:53 INFO     >> Pre-Training Training accuracy: 0.4169
+11-25 14:53 INFO     >> Pre-Training Test accuracy: 0.6404
+11-25 14:53 INFO     Epoch: 0 Loss: 1.383951
+11-25 14:53 INFO     Epoch: 1 Loss: 1.333976
+11-25 14:53 INFO     Epoch: 2 Loss: 1.327760
+11-25 14:53 INFO     Epoch: 3 Loss: 1.311764
+11-25 14:53 INFO     Epoch: 4 Loss: 1.310638
+11-25 14:53 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:53 INFO     >> Training accuracy: 0.558800
+11-25 14:53 INFO     >> Test accuracy: 0.501100
+11-25 14:53 INFO      ** Training complete **
+11-25 14:53 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:53 INFO     net 4 final test acc 0.501100
+11-25 14:53 INFO     global n_training: 782
+11-25 14:53 INFO     global n_test: 313
+11-25 14:54 INFO     >> Global Model Train accuracy: 0.647660
+11-25 14:54 INFO     >> Global Model Test accuracy: 0.656100
+11-25 14:54 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 14:54 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 14:54 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:54 INFO      ** Get feature maps complete **
+11-25 14:54 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:54 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 14:54 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:54 INFO      ** Get feature maps complete **
+11-25 14:54 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:54 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 14:55 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:55 INFO      ** Get feature maps complete **
+11-25 14:55 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:55 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 14:55 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:55 INFO      ** Get feature maps complete **
+11-25 14:55 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:55 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 14:55 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:55 INFO      ** Get feature maps complete **
+11-25 14:55 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:55 INFO     Epoch 1/1, Discriminator Loss: 0.3730, Accuracy: 96.04%
+11-25 14:55 INFO      ** Discriminator training complete **
+11-25 14:55 INFO     Training network 0. n_training: 10000
+11-25 14:55 INFO     Starting adversarial training of clients...
+11-25 14:55 INFO     >> Pre-Training Training accuracy: 0.6586
+11-25 14:55 INFO     >> Pre-Training Test accuracy: 0.6561
+11-25 14:55 INFO     Epoch: 0 Last Batch Total Loss: 0.643405 Task Loss: 0.779749 Adversarial Loss: 0.325269 
+11-25 14:55 INFO     Epoch: 1 Last Batch Total Loss: 0.589405 Task Loss: 0.702599 Adversarial Loss: 0.325284 
+11-25 14:55 INFO     Epoch: 2 Last Batch Total Loss: 0.570810 Task Loss: 0.676039 Adversarial Loss: 0.325278 
+11-25 14:55 INFO     Epoch: 3 Last Batch Total Loss: 0.550742 Task Loss: 0.647377 Adversarial Loss: 0.325259 
+11-25 14:55 INFO     Epoch: 4 Last Batch Total Loss: 0.528045 Task Loss: 0.614943 Adversarial Loss: 0.325285 
+11-25 14:56 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:56 INFO     >> Training accuracy: 0.819200
+11-25 14:56 INFO     >> Test accuracy: 0.733000
+11-25 14:56 INFO      ** Training complete **
+11-25 14:56 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 14:56 INFO     net 0 final test acc 0.733000
+11-25 14:56 INFO     Training network 1. n_training: 10000
+11-25 14:56 INFO     Starting adversarial training of clients...
+11-25 14:56 INFO     >> Pre-Training Training accuracy: 0.6894
+11-25 14:56 INFO     >> Pre-Training Test accuracy: 0.6561
+11-25 14:56 INFO     Epoch: 0 Last Batch Total Loss: 0.667429 Task Loss: 0.814082 Adversarial Loss: 0.325241 
+11-25 14:56 INFO     Epoch: 1 Last Batch Total Loss: 0.648362 Task Loss: 0.786834 Adversarial Loss: 0.325260 
+11-25 14:56 INFO     Epoch: 2 Last Batch Total Loss: 0.633636 Task Loss: 0.765788 Adversarial Loss: 0.325282 
+11-25 14:56 INFO     Epoch: 3 Last Batch Total Loss: 0.601709 Task Loss: 0.720173 Adversarial Loss: 0.325293 
+11-25 14:56 INFO     Epoch: 4 Last Batch Total Loss: 0.611611 Task Loss: 0.734325 Adversarial Loss: 0.325277 
+11-25 14:56 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:56 INFO     >> Training accuracy: 0.773200
+11-25 14:56 INFO     >> Test accuracy: 0.694300
+11-25 14:56 INFO      ** Training complete **
+11-25 14:56 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 14:56 INFO     net 1 final test acc 0.694300
+11-25 14:56 INFO     Training network 2. n_training: 10000
+11-25 14:56 INFO     Starting adversarial training of clients...
+11-25 14:56 INFO     >> Pre-Training Training accuracy: 0.6717
+11-25 14:56 INFO     >> Pre-Training Test accuracy: 0.6561
+11-25 14:57 INFO     Epoch: 0 Last Batch Total Loss: 0.786845 Task Loss: 0.984681 Adversarial Loss: 0.325228 
+11-25 14:57 INFO     Epoch: 1 Last Batch Total Loss: 0.776210 Task Loss: 0.969484 Adversarial Loss: 0.325238 
+11-25 14:57 INFO     Epoch: 2 Last Batch Total Loss: 0.774318 Task Loss: 0.966773 Adversarial Loss: 0.325255 
+11-25 14:57 INFO     Epoch: 3 Last Batch Total Loss: 0.759279 Task Loss: 0.945289 Adversarial Loss: 0.325257 
+11-25 14:57 INFO     Epoch: 4 Last Batch Total Loss: 0.750080 Task Loss: 0.932149 Adversarial Loss: 0.325253 
+11-25 14:57 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:57 INFO     >> Training accuracy: 0.702200
+11-25 14:57 INFO     >> Test accuracy: 0.622200
+11-25 14:57 INFO      ** Training complete **
+11-25 14:57 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 14:57 INFO     net 2 final test acc 0.622200
+11-25 14:57 INFO     Training network 3. n_training: 10000
+11-25 14:57 INFO     Starting adversarial training of clients...
+11-25 14:57 INFO     >> Pre-Training Training accuracy: 0.5531
+11-25 14:57 INFO     >> Pre-Training Test accuracy: 0.6561
+11-25 14:57 INFO     Epoch: 0 Last Batch Total Loss: 0.901431 Task Loss: 1.148383 Adversarial Loss: 0.325209 
+11-25 14:57 INFO     Epoch: 1 Last Batch Total Loss: 0.890572 Task Loss: 1.132863 Adversarial Loss: 0.325227 
+11-25 14:57 INFO     Epoch: 2 Last Batch Total Loss: 0.878036 Task Loss: 1.114952 Adversarial Loss: 0.325233 
+11-25 14:58 INFO     Epoch: 3 Last Batch Total Loss: 0.864480 Task Loss: 1.095592 Adversarial Loss: 0.325220 
+11-25 14:58 INFO     Epoch: 4 Last Batch Total Loss: 0.866831 Task Loss: 1.098942 Adversarial Loss: 0.325237 
+11-25 14:58 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:58 INFO     >> Training accuracy: 0.638100
+11-25 14:58 INFO     >> Test accuracy: 0.527900
+11-25 14:58 INFO      ** Training complete **
+11-25 14:58 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 14:58 INFO     net 3 final test acc 0.527900
+11-25 14:58 INFO     Training network 4. n_training: 10000
+11-25 14:58 INFO     Starting adversarial training of clients...
+11-25 14:58 INFO     >> Pre-Training Training accuracy: 0.4092
+11-25 14:58 INFO     >> Pre-Training Test accuracy: 0.6561
+11-25 14:58 INFO     Epoch: 0 Last Batch Total Loss: 1.019466 Task Loss: 1.317003 Adversarial Loss: 0.325213 
+11-25 14:58 INFO     Epoch: 1 Last Batch Total Loss: 0.991061 Task Loss: 1.276421 Adversarial Loss: 0.325222 
+11-25 14:58 INFO     Epoch: 2 Last Batch Total Loss: 0.982974 Task Loss: 1.264865 Adversarial Loss: 0.325226 
+11-25 14:58 INFO     Epoch: 3 Last Batch Total Loss: 0.967326 Task Loss: 1.242501 Adversarial Loss: 0.325251 
+11-25 14:58 INFO     Epoch: 4 Last Batch Total Loss: 0.967095 Task Loss: 1.242161 Adversarial Loss: 0.325274 
+11-25 14:58 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 14:58 INFO     >> Training accuracy: 0.569300
+11-25 14:58 INFO     >> Test accuracy: 0.500400
+11-25 14:58 INFO      ** Training complete **
+11-25 14:58 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 14:58 INFO     net 4 final test acc 0.500400
+11-25 14:58 INFO     global n_training: 782
+11-25 14:58 INFO     global n_test: 313
+11-25 14:59 INFO     >> Global Model Train accuracy: 0.654320
+11-25 14:59 INFO     >> Global Model Test accuracy: 0.657100
+11-25 14:59 INFO     in comm round:7
+11-25 14:59 INFO     Training network 0. n_training: 10000
+11-25 14:59 INFO     Training network 0
+11-25 14:59 INFO     >> Pre-Training Training accuracy: 0.6647
+11-25 14:59 INFO     >> Pre-Training Test accuracy: 0.6571
+11-25 14:59 INFO     Epoch: 0 Loss: 0.778929
+11-25 14:59 INFO     Epoch: 1 Loss: 0.737328
+11-25 14:59 INFO     Epoch: 2 Loss: 0.697990
+11-25 14:59 INFO     Epoch: 3 Loss: 0.652778
+11-25 15:00 INFO     Epoch: 4 Loss: 0.668119
+11-25 15:00 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:00 INFO     >> Training accuracy: 0.783200
+11-25 15:00 INFO     >> Test accuracy: 0.714800
+11-25 15:00 INFO      ** Training complete **
+11-25 15:00 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:00 INFO     net 0 final test acc 0.714800
+11-25 15:00 INFO     Training network 1. n_training: 10000
+11-25 15:00 INFO     Training network 1
+11-25 15:00 INFO     >> Pre-Training Training accuracy: 0.7002
+11-25 15:00 INFO     >> Pre-Training Test accuracy: 0.6571
+11-25 15:00 INFO     Epoch: 0 Loss: 0.821344
+11-25 15:00 INFO     Epoch: 1 Loss: 0.800222
+11-25 15:00 INFO     Epoch: 2 Loss: 0.784538
+11-25 15:00 INFO     Epoch: 3 Loss: 0.746813
+11-25 15:00 INFO     Epoch: 4 Loss: 0.733055
+11-25 15:00 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:00 INFO     >> Training accuracy: 0.769300
+11-25 15:00 INFO     >> Test accuracy: 0.694700
+11-25 15:00 INFO      ** Training complete **
+11-25 15:00 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:00 INFO     net 1 final test acc 0.694700
+11-25 15:00 INFO     Training network 2. n_training: 10000
+11-25 15:00 INFO     Training network 2
+11-25 15:01 INFO     >> Pre-Training Training accuracy: 0.6958
+11-25 15:01 INFO     >> Pre-Training Test accuracy: 0.6571
+11-25 15:01 INFO     Epoch: 0 Loss: 1.004384
+11-25 15:01 INFO     Epoch: 1 Loss: 0.993048
+11-25 15:01 INFO     Epoch: 2 Loss: 0.971192
+11-25 15:01 INFO     Epoch: 3 Loss: 0.979440
+11-25 15:01 INFO     Epoch: 4 Loss: 0.963542
+11-25 15:01 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:01 INFO     >> Training accuracy: 0.677500
+11-25 15:01 INFO     >> Test accuracy: 0.638100
+11-25 15:01 INFO      ** Training complete **
+11-25 15:01 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:01 INFO     net 2 final test acc 0.638100
+11-25 15:01 INFO     Training network 3. n_training: 10000
+11-25 15:01 INFO     Training network 3
+11-25 15:01 INFO     >> Pre-Training Training accuracy: 0.5846
+11-25 15:01 INFO     >> Pre-Training Test accuracy: 0.6571
+11-25 15:01 INFO     Epoch: 0 Loss: 1.179381
+11-25 15:01 INFO     Epoch: 1 Loss: 1.160074
+11-25 15:02 INFO     Epoch: 2 Loss: 1.136550
+11-25 15:02 INFO     Epoch: 3 Loss: 1.144070
+11-25 15:02 INFO     Epoch: 4 Loss: 1.113677
+11-25 15:02 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:02 INFO     >> Training accuracy: 0.633500
+11-25 15:02 INFO     >> Test accuracy: 0.548200
+11-25 15:02 INFO      ** Training complete **
+11-25 15:02 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:02 INFO     net 3 final test acc 0.548200
+11-25 15:02 INFO     Training network 4. n_training: 10000
+11-25 15:02 INFO     Training network 4
+11-25 15:02 INFO     >> Pre-Training Training accuracy: 0.4237
+11-25 15:02 INFO     >> Pre-Training Test accuracy: 0.6571
+11-25 15:02 INFO     Epoch: 0 Loss: 1.340143
+11-25 15:02 INFO     Epoch: 1 Loss: 1.318802
+11-25 15:02 INFO     Epoch: 2 Loss: 1.287866
+11-25 15:02 INFO     Epoch: 3 Loss: 1.287586
+11-25 15:02 INFO     Epoch: 4 Loss: 1.266133
+11-25 15:02 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:03 INFO     >> Training accuracy: 0.568600
+11-25 15:03 INFO     >> Test accuracy: 0.483600
+11-25 15:03 INFO      ** Training complete **
+11-25 15:03 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:03 INFO     net 4 final test acc 0.483600
+11-25 15:03 INFO     global n_training: 782
+11-25 15:03 INFO     global n_test: 313
+11-25 15:03 INFO     >> Global Model Train accuracy: 0.657060
+11-25 15:03 INFO     >> Global Model Test accuracy: 0.660600
+11-25 15:04 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 15:04 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 15:04 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:04 INFO      ** Get feature maps complete **
+11-25 15:04 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:04 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 15:04 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:04 INFO      ** Get feature maps complete **
+11-25 15:04 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:04 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 15:04 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:04 INFO      ** Get feature maps complete **
+11-25 15:04 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:04 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 15:04 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:04 INFO      ** Get feature maps complete **
+11-25 15:04 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:04 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 15:04 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:04 INFO      ** Get feature maps complete **
+11-25 15:04 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:04 INFO     Epoch 1/1, Discriminator Loss: 0.3757, Accuracy: 95.79%
+11-25 15:04 INFO      ** Discriminator training complete **
+11-25 15:04 INFO     Training network 0. n_training: 10000
+11-25 15:04 INFO     Starting adversarial training of clients...
+11-25 15:04 INFO     >> Pre-Training Training accuracy: 0.6684
+11-25 15:04 INFO     >> Pre-Training Test accuracy: 0.6606
+11-25 15:05 INFO     Epoch: 0 Last Batch Total Loss: 0.584862 Task Loss: 0.696139 Adversarial Loss: 0.325218 
+11-25 15:05 INFO     Epoch: 1 Last Batch Total Loss: 0.529944 Task Loss: 0.617671 Adversarial Loss: 0.325248 
+11-25 15:05 INFO     Epoch: 2 Last Batch Total Loss: 0.523567 Task Loss: 0.608560 Adversarial Loss: 0.325251 
+11-25 15:05 INFO     Epoch: 3 Last Batch Total Loss: 0.484034 Task Loss: 0.552074 Adversarial Loss: 0.325274 
+11-25 15:05 INFO     Epoch: 4 Last Batch Total Loss: 0.467668 Task Loss: 0.528701 Adversarial Loss: 0.325258 
+11-25 15:05 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:05 INFO     >> Training accuracy: 0.850500
+11-25 15:05 INFO     >> Test accuracy: 0.744900
+11-25 15:05 INFO      ** Training complete **
+11-25 15:05 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:05 INFO     net 0 final test acc 0.744900
+11-25 15:05 INFO     Training network 1. n_training: 10000
+11-25 15:05 INFO     Starting adversarial training of clients...
+11-25 15:05 INFO     >> Pre-Training Training accuracy: 0.7055
+11-25 15:05 INFO     >> Pre-Training Test accuracy: 0.6606
+11-25 15:05 INFO     Epoch: 0 Last Batch Total Loss: 0.620364 Task Loss: 0.746861 Adversarial Loss: 0.325205 
+11-25 15:05 INFO     Epoch: 1 Last Batch Total Loss: 0.598807 Task Loss: 0.716060 Adversarial Loss: 0.325216 
+11-25 15:05 INFO     Epoch: 2 Last Batch Total Loss: 0.572738 Task Loss: 0.678813 Adversarial Loss: 0.325229 
+11-25 15:06 INFO     Epoch: 3 Last Batch Total Loss: 0.564142 Task Loss: 0.666537 Adversarial Loss: 0.325219 
+11-25 15:06 INFO     Epoch: 4 Last Batch Total Loss: 0.546085 Task Loss: 0.640733 Adversarial Loss: 0.325239 
+11-25 15:06 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:06 INFO     >> Training accuracy: 0.800600
+11-25 15:06 INFO     >> Test accuracy: 0.704800
+11-25 15:06 INFO      ** Training complete **
+11-25 15:06 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:06 INFO     net 1 final test acc 0.704800
+11-25 15:06 INFO     Training network 2. n_training: 10000
+11-25 15:06 INFO     Starting adversarial training of clients...
+11-25 15:06 INFO     >> Pre-Training Training accuracy: 0.6955
+11-25 15:06 INFO     >> Pre-Training Test accuracy: 0.6606
+11-25 15:06 INFO     Epoch: 0 Last Batch Total Loss: 0.744585 Task Loss: 0.924322 Adversarial Loss: 0.325199 
+11-25 15:06 INFO     Epoch: 1 Last Batch Total Loss: 0.750169 Task Loss: 0.932283 Adversarial Loss: 0.325237 
+11-25 15:06 INFO     Epoch: 2 Last Batch Total Loss: 0.731737 Task Loss: 0.905941 Adversarial Loss: 0.325261 
+11-25 15:06 INFO     Epoch: 3 Last Batch Total Loss: 0.713095 Task Loss: 0.879324 Adversarial Loss: 0.325227 
+11-25 15:06 INFO     Epoch: 4 Last Batch Total Loss: 0.705494 Task Loss: 0.868467 Adversarial Loss: 0.325225 
+11-25 15:06 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:06 INFO     >> Training accuracy: 0.718600
+11-25 15:06 INFO     >> Test accuracy: 0.630000
+11-25 15:06 INFO      ** Training complete **
+11-25 15:06 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:06 INFO     net 2 final test acc 0.630000
+11-25 15:06 INFO     Training network 3. n_training: 10000
+11-25 15:07 INFO     Starting adversarial training of clients...
+11-25 15:07 INFO     >> Pre-Training Training accuracy: 0.5882
+11-25 15:07 INFO     >> Pre-Training Test accuracy: 0.6606
+11-25 15:07 INFO     Epoch: 0 Last Batch Total Loss: 0.876705 Task Loss: 1.113080 Adversarial Loss: 0.325164 
+11-25 15:07 INFO     Epoch: 1 Last Batch Total Loss: 0.841994 Task Loss: 1.063485 Adversarial Loss: 0.325182 
+11-25 15:07 INFO     Epoch: 2 Last Batch Total Loss: 0.845855 Task Loss: 1.068994 Adversarial Loss: 0.325196 
+11-25 15:07 INFO     Epoch: 3 Last Batch Total Loss: 0.843138 Task Loss: 1.065109 Adversarial Loss: 0.325207 
+11-25 15:07 INFO     Epoch: 4 Last Batch Total Loss: 0.834742 Task Loss: 1.053110 Adversarial Loss: 0.325218 
+11-25 15:07 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:07 INFO     >> Training accuracy: 0.656700
+11-25 15:07 INFO     >> Test accuracy: 0.580900
+11-25 15:07 INFO      ** Training complete **
+11-25 15:07 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:07 INFO     net 3 final test acc 0.580900
+11-25 15:07 INFO     Training network 4. n_training: 10000
+11-25 15:07 INFO     Starting adversarial training of clients...
+11-25 15:07 INFO     >> Pre-Training Training accuracy: 0.4234
+11-25 15:07 INFO     >> Pre-Training Test accuracy: 0.6606
+11-25 15:07 INFO     Epoch: 0 Last Batch Total Loss: 1.005976 Task Loss: 1.297751 Adversarial Loss: 0.325166 
+11-25 15:08 INFO     Epoch: 1 Last Batch Total Loss: 0.970338 Task Loss: 1.246836 Adversarial Loss: 0.325177 
+11-25 15:08 INFO     Epoch: 2 Last Batch Total Loss: 0.953285 Task Loss: 1.222467 Adversarial Loss: 0.325194 
+11-25 15:08 INFO     Epoch: 3 Last Batch Total Loss: 0.950590 Task Loss: 1.218617 Adversarial Loss: 0.325192 
+11-25 15:08 INFO     Epoch: 4 Last Batch Total Loss: 0.945016 Task Loss: 1.210653 Adversarial Loss: 0.325198 
+11-25 15:08 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:08 INFO     >> Training accuracy: 0.588400
+11-25 15:08 INFO     >> Test accuracy: 0.487200
+11-25 15:08 INFO      ** Training complete **
+11-25 15:08 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:08 INFO     net 4 final test acc 0.487200
+11-25 15:08 INFO     global n_training: 782
+11-25 15:08 INFO     global n_test: 313
+11-25 15:08 INFO     >> Global Model Train accuracy: 0.678980
+11-25 15:08 INFO     >> Global Model Test accuracy: 0.671400
+11-25 15:08 INFO     in comm round:8
+11-25 15:08 INFO     Training network 0. n_training: 10000
+11-25 15:09 INFO     Training network 0
+11-25 15:09 INFO     >> Pre-Training Training accuracy: 0.6852
+11-25 15:09 INFO     >> Pre-Training Test accuracy: 0.6714
+11-25 15:09 INFO     Epoch: 0 Loss: 0.700462
+11-25 15:09 INFO     Epoch: 1 Loss: 0.634964
+11-25 15:09 INFO     Epoch: 2 Loss: 0.611115
+11-25 15:09 INFO     Epoch: 3 Loss: 0.595685
+11-25 15:09 INFO     Epoch: 4 Loss: 0.573514
+11-25 15:09 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:09 INFO     >> Training accuracy: 0.830600
+11-25 15:09 INFO     >> Test accuracy: 0.731300
+11-25 15:09 INFO      ** Training complete **
+11-25 15:09 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:09 INFO     net 0 final test acc 0.731300
+11-25 15:09 INFO     Training network 1. n_training: 10000
+11-25 15:09 INFO     Training network 1
+11-25 15:09 INFO     >> Pre-Training Training accuracy: 0.7246
+11-25 15:09 INFO     >> Pre-Training Test accuracy: 0.6714
+11-25 15:09 INFO     Epoch: 0 Loss: 0.752641
+11-25 15:10 INFO     Epoch: 1 Loss: 0.705565
+11-25 15:10 INFO     Epoch: 2 Loss: 0.717048
+11-25 15:10 INFO     Epoch: 3 Loss: 0.688602
+11-25 15:10 INFO     Epoch: 4 Loss: 0.687002
+11-25 15:10 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:10 INFO     >> Training accuracy: 0.779500
+11-25 15:10 INFO     >> Test accuracy: 0.681000
+11-25 15:10 INFO      ** Training complete **
+11-25 15:10 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:10 INFO     net 1 final test acc 0.681000
+11-25 15:10 INFO     Training network 2. n_training: 10000
+11-25 15:10 INFO     Training network 2
+11-25 15:10 INFO     >> Pre-Training Training accuracy: 0.708
+11-25 15:10 INFO     >> Pre-Training Test accuracy: 0.6714
+11-25 15:10 INFO     Epoch: 0 Loss: 0.937959
+11-25 15:10 INFO     Epoch: 1 Loss: 0.958222
+11-25 15:10 INFO     Epoch: 2 Loss: 0.928474
+11-25 15:11 INFO     Epoch: 3 Loss: 0.914639
+11-25 15:11 INFO     Epoch: 4 Loss: 0.884566
+11-25 15:11 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:11 INFO     >> Training accuracy: 0.710200
+11-25 15:11 INFO     >> Test accuracy: 0.599900
+11-25 15:11 INFO      ** Training complete **
+11-25 15:11 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:11 INFO     net 2 final test acc 0.599900
+11-25 15:11 INFO     Training network 3. n_training: 10000
+11-25 15:11 INFO     Training network 3
+11-25 15:11 INFO     >> Pre-Training Training accuracy: 0.5916
+11-25 15:11 INFO     >> Pre-Training Test accuracy: 0.6714
+11-25 15:11 INFO     Epoch: 0 Loss: 1.125115
+11-25 15:11 INFO     Epoch: 1 Loss: 1.108114
+11-25 15:11 INFO     Epoch: 2 Loss: 1.098163
+11-25 15:11 INFO     Epoch: 3 Loss: 1.086706
+11-25 15:11 INFO     Epoch: 4 Loss: 1.085383
+11-25 15:11 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:12 INFO     >> Training accuracy: 0.643700
+11-25 15:12 INFO     >> Test accuracy: 0.533800
+11-25 15:12 INFO      ** Training complete **
+11-25 15:12 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:12 INFO     net 3 final test acc 0.533800
+11-25 15:12 INFO     Training network 4. n_training: 10000
+11-25 15:12 INFO     Training network 4
+11-25 15:12 INFO     >> Pre-Training Training accuracy: 0.4266
+11-25 15:12 INFO     >> Pre-Training Test accuracy: 0.6714
+11-25 15:12 INFO     Epoch: 0 Loss: 1.309133
+11-25 15:12 INFO     Epoch: 1 Loss: 1.271605
+11-25 15:12 INFO     Epoch: 2 Loss: 1.271696
+11-25 15:12 INFO     Epoch: 3 Loss: 1.230079
+11-25 15:12 INFO     Epoch: 4 Loss: 1.244096
+11-25 15:12 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:12 INFO     >> Training accuracy: 0.594200
+11-25 15:12 INFO     >> Test accuracy: 0.501800
+11-25 15:12 INFO      ** Training complete **
+11-25 15:12 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:12 INFO     net 4 final test acc 0.501800
+11-25 15:12 INFO     global n_training: 782
+11-25 15:12 INFO     global n_test: 313
+11-25 15:13 INFO     >> Global Model Train accuracy: 0.671260
+11-25 15:13 INFO     >> Global Model Test accuracy: 0.665800
+11-25 15:13 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 15:13 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 15:13 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:13 INFO      ** Get feature maps complete **
+11-25 15:13 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:13 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 15:14 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:14 INFO      ** Get feature maps complete **
+11-25 15:14 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:14 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 15:14 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:14 INFO      ** Get feature maps complete **
+11-25 15:14 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:14 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 15:14 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:14 INFO      ** Get feature maps complete **
+11-25 15:14 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:14 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 15:14 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:14 INFO      ** Get feature maps complete **
+11-25 15:14 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:14 INFO     Epoch 1/1, Discriminator Loss: 0.3844, Accuracy: 95.16%
+11-25 15:14 INFO      ** Discriminator training complete **
+11-25 15:14 INFO     Training network 0. n_training: 10000
+11-25 15:14 INFO     Starting adversarial training of clients...
+11-25 15:14 INFO     >> Pre-Training Training accuracy: 0.6802
+11-25 15:14 INFO     >> Pre-Training Test accuracy: 0.6658
+11-25 15:14 INFO     Epoch: 0 Last Batch Total Loss: 0.531654 Task Loss: 0.620070 Adversarial Loss: 0.325349 
+11-25 15:14 INFO     Epoch: 1 Last Batch Total Loss: 0.488946 Task Loss: 0.559059 Adversarial Loss: 0.325350 
+11-25 15:15 INFO     Epoch: 2 Last Batch Total Loss: 0.450248 Task Loss: 0.503768 Adversarial Loss: 0.325367 
+11-25 15:15 INFO     Epoch: 3 Last Batch Total Loss: 0.455087 Task Loss: 0.510686 Adversarial Loss: 0.325356 
+11-25 15:15 INFO     Epoch: 4 Last Batch Total Loss: 0.419760 Task Loss: 0.460225 Adversarial Loss: 0.325339 
+11-25 15:15 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:15 INFO     >> Training accuracy: 0.856300
+11-25 15:15 INFO     >> Test accuracy: 0.742200
+11-25 15:15 INFO      ** Training complete **
+11-25 15:15 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:15 INFO     net 0 final test acc 0.742200
+11-25 15:15 INFO     Training network 1. n_training: 10000
+11-25 15:15 INFO     Starting adversarial training of clients...
+11-25 15:15 INFO     >> Pre-Training Training accuracy: 0.7225
+11-25 15:15 INFO     >> Pre-Training Test accuracy: 0.6658
+11-25 15:15 INFO     Epoch: 0 Last Batch Total Loss: 0.567371 Task Loss: 0.671093 Adversarial Loss: 0.325355 
+11-25 15:15 INFO     Epoch: 1 Last Batch Total Loss: 0.548079 Task Loss: 0.643518 Adversarial Loss: 0.325389 
+11-25 15:15 INFO     Epoch: 2 Last Batch Total Loss: 0.524597 Task Loss: 0.609988 Adversarial Loss: 0.325351 
+11-25 15:15 INFO     Epoch: 3 Last Batch Total Loss: 0.511059 Task Loss: 0.590652 Adversarial Loss: 0.325341 
+11-25 15:16 INFO     Epoch: 4 Last Batch Total Loss: 0.498183 Task Loss: 0.572254 Adversarial Loss: 0.325351 
+11-25 15:16 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:16 INFO     >> Training accuracy: 0.821400
+11-25 15:16 INFO     >> Test accuracy: 0.711700
+11-25 15:16 INFO      ** Training complete **
+11-25 15:16 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:16 INFO     net 1 final test acc 0.711700
+11-25 15:16 INFO     Training network 2. n_training: 10000
+11-25 15:16 INFO     Starting adversarial training of clients...
+11-25 15:16 INFO     >> Pre-Training Training accuracy: 0.7165
+11-25 15:16 INFO     >> Pre-Training Test accuracy: 0.6658
+11-25 15:16 INFO     Epoch: 0 Last Batch Total Loss: 0.704747 Task Loss: 0.867360 Adversarial Loss: 0.325316 
+11-25 15:16 INFO     Epoch: 1 Last Batch Total Loss: 0.703188 Task Loss: 0.865138 Adversarial Loss: 0.325305 
+11-25 15:16 INFO     Epoch: 2 Last Batch Total Loss: 0.690541 Task Loss: 0.847061 Adversarial Loss: 0.325330 
+11-25 15:16 INFO     Epoch: 3 Last Batch Total Loss: 0.684166 Task Loss: 0.837957 Adversarial Loss: 0.325322 
+11-25 15:16 INFO     Epoch: 4 Last Batch Total Loss: 0.667485 Task Loss: 0.814127 Adversarial Loss: 0.325320 
+11-25 15:17 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:17 INFO     >> Training accuracy: 0.735800
+11-25 15:17 INFO     >> Test accuracy: 0.632000
+11-25 15:17 INFO      ** Training complete **
+11-25 15:17 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:17 INFO     net 2 final test acc 0.632000
+11-25 15:17 INFO     Training network 3. n_training: 10000
+11-25 15:17 INFO     Starting adversarial training of clients...
+11-25 15:17 INFO     >> Pre-Training Training accuracy: 0.6055
+11-25 15:17 INFO     >> Pre-Training Test accuracy: 0.6658
+11-25 15:17 INFO     Epoch: 0 Last Batch Total Loss: 0.846676 Task Loss: 1.070118 Adversarial Loss: 0.325309 
+11-25 15:17 INFO     Epoch: 1 Last Batch Total Loss: 0.830962 Task Loss: 1.047665 Adversarial Loss: 0.325323 
+11-25 15:17 INFO     Epoch: 2 Last Batch Total Loss: 0.825968 Task Loss: 1.040540 Adversarial Loss: 0.325300 
+11-25 15:17 INFO     Epoch: 3 Last Batch Total Loss: 0.808831 Task Loss: 1.016051 Adversarial Loss: 0.325319 
+11-25 15:17 INFO     Epoch: 4 Last Batch Total Loss: 0.802225 Task Loss: 1.006619 Adversarial Loss: 0.325304 
+11-25 15:17 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:17 INFO     >> Training accuracy: 0.669900
+11-25 15:17 INFO     >> Test accuracy: 0.570800
+11-25 15:17 INFO      ** Training complete **
+11-25 15:17 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:17 INFO     net 3 final test acc 0.570800
+11-25 15:17 INFO     Training network 4. n_training: 10000
+11-25 15:17 INFO     Starting adversarial training of clients...
+11-25 15:18 INFO     >> Pre-Training Training accuracy: 0.4408
+11-25 15:18 INFO     >> Pre-Training Test accuracy: 0.6658
+11-25 15:18 INFO     Epoch: 0 Last Batch Total Loss: 0.978890 Task Loss: 1.258985 Adversarial Loss: 0.325337 
+11-25 15:18 INFO     Epoch: 1 Last Batch Total Loss: 0.951096 Task Loss: 1.219264 Adversarial Loss: 0.325373 
+11-25 15:18 INFO     Epoch: 2 Last Batch Total Loss: 0.933545 Task Loss: 1.194202 Adversarial Loss: 0.325344 
+11-25 15:18 INFO     Epoch: 3 Last Batch Total Loss: 0.937533 Task Loss: 1.199890 Adversarial Loss: 0.325364 
+11-25 15:18 INFO     Epoch: 4 Last Batch Total Loss: 0.924513 Task Loss: 1.181292 Adversarial Loss: 0.325360 
+11-25 15:18 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:18 INFO     >> Training accuracy: 0.601000
+11-25 15:18 INFO     >> Test accuracy: 0.514000
+11-25 15:18 INFO      ** Training complete **
+11-25 15:18 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:18 INFO     net 4 final test acc 0.514000
+11-25 15:18 INFO     global n_training: 782
+11-25 15:18 INFO     global n_test: 313
+11-25 15:19 INFO     >> Global Model Train accuracy: 0.690300
+11-25 15:19 INFO     >> Global Model Test accuracy: 0.680800
+11-25 15:19 INFO     in comm round:9
+11-25 15:19 INFO     Training network 0. n_training: 10000
+11-25 15:19 INFO     Training network 0
+11-25 15:19 INFO     >> Pre-Training Training accuracy: 0.6983
+11-25 15:19 INFO     >> Pre-Training Test accuracy: 0.6808
+11-25 15:19 INFO     Epoch: 0 Loss: 0.613602
+11-25 15:19 INFO     Epoch: 1 Loss: 0.576394
+11-25 15:19 INFO     Epoch: 2 Loss: 0.550922
+11-25 15:19 INFO     Epoch: 3 Loss: 0.543819
+11-25 15:19 INFO     Epoch: 4 Loss: 0.507018
+11-25 15:19 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:20 INFO     >> Training accuracy: 0.850000
+11-25 15:20 INFO     >> Test accuracy: 0.745900
+11-25 15:20 INFO      ** Training complete **
+11-25 15:20 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:20 INFO     net 0 final test acc 0.745900
+11-25 15:20 INFO     Training network 1. n_training: 10000
+11-25 15:20 INFO     Training network 1
+11-25 15:20 INFO     >> Pre-Training Training accuracy: 0.7427
+11-25 15:20 INFO     >> Pre-Training Test accuracy: 0.6808
+11-25 15:20 INFO     Epoch: 0 Loss: 0.682376
+11-25 15:20 INFO     Epoch: 1 Loss: 0.663976
+11-25 15:20 INFO     Epoch: 2 Loss: 0.671963
+11-25 15:20 INFO     Epoch: 3 Loss: 0.639306
+11-25 15:20 INFO     Epoch: 4 Loss: 0.613397
+11-25 15:20 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:20 INFO     >> Training accuracy: 0.813100
+11-25 15:20 INFO     >> Test accuracy: 0.712300
+11-25 15:20 INFO      ** Training complete **
+11-25 15:20 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:20 INFO     net 1 final test acc 0.712300
+11-25 15:20 INFO     Training network 2. n_training: 10000
+11-25 15:20 INFO     Training network 2
+11-25 15:21 INFO     >> Pre-Training Training accuracy: 0.7286
+11-25 15:21 INFO     >> Pre-Training Test accuracy: 0.6808
+11-25 15:21 INFO     Epoch: 0 Loss: 0.906944
+11-25 15:21 INFO     Epoch: 1 Loss: 0.893034
+11-25 15:21 INFO     Epoch: 2 Loss: 0.872853
+11-25 15:21 INFO     Epoch: 3 Loss: 0.870140
+11-25 15:21 INFO     Epoch: 4 Loss: 0.842301
+11-25 15:21 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:21 INFO     >> Training accuracy: 0.734500
+11-25 15:21 INFO     >> Test accuracy: 0.594500
+11-25 15:21 INFO      ** Training complete **
+11-25 15:21 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:21 INFO     net 2 final test acc 0.594500
+11-25 15:21 INFO     Training network 3. n_training: 10000
+11-25 15:21 INFO     Training network 3
+11-25 15:21 INFO     >> Pre-Training Training accuracy: 0.6171
+11-25 15:21 INFO     >> Pre-Training Test accuracy: 0.6808
+11-25 15:21 INFO     Epoch: 0 Loss: 1.094319
+11-25 15:22 INFO     Epoch: 1 Loss: 1.091863
+11-25 15:22 INFO     Epoch: 2 Loss: 1.070958
+11-25 15:22 INFO     Epoch: 3 Loss: 1.036008
+11-25 15:22 INFO     Epoch: 4 Loss: 1.040222
+11-25 15:22 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:22 INFO     >> Training accuracy: 0.674800
+11-25 15:22 INFO     >> Test accuracy: 0.574400
+11-25 15:22 INFO      ** Training complete **
+11-25 15:22 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:22 INFO     net 3 final test acc 0.574400
+11-25 15:22 INFO     Training network 4. n_training: 10000
+11-25 15:22 INFO     Training network 4
+11-25 15:22 INFO     >> Pre-Training Training accuracy: 0.4472
+11-25 15:22 INFO     >> Pre-Training Test accuracy: 0.6808
+11-25 15:22 INFO     Epoch: 0 Loss: 1.278159
+11-25 15:22 INFO     Epoch: 1 Loss: 1.250530
+11-25 15:23 INFO     Epoch: 2 Loss: 1.221424
+11-25 15:23 INFO     Epoch: 3 Loss: 1.226480
+11-25 15:23 INFO     Epoch: 4 Loss: 1.206984
+11-25 15:23 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:23 INFO     >> Training accuracy: 0.600600
+11-25 15:23 INFO     >> Test accuracy: 0.521000
+11-25 15:23 INFO      ** Training complete **
+11-25 15:23 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:23 INFO     net 4 final test acc 0.521000
+11-25 15:23 INFO     global n_training: 782
+11-25 15:23 INFO     global n_test: 313
+11-25 15:23 INFO     >> Global Model Train accuracy: 0.694160
+11-25 15:23 INFO     >> Global Model Test accuracy: 0.685100
+11-25 15:24 INFO     >> Shape of generated real samples: torch.Size([50000, 512, 1, 1])
+11-25 15:24 INFO     Getting feature maps of network 0. n_feature_maps: 10000
+11-25 15:24 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:24 INFO      ** Get feature maps complete **
+11-25 15:24 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:24 INFO     Getting feature maps of network 1. n_feature_maps: 10000
+11-25 15:24 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:24 INFO      ** Get feature maps complete **
+11-25 15:24 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:24 INFO     Getting feature maps of network 2. n_feature_maps: 10000
+11-25 15:24 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:24 INFO      ** Get feature maps complete **
+11-25 15:24 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:24 INFO     Getting feature maps of network 3. n_feature_maps: 10000
+11-25 15:24 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:24 INFO      ** Get feature maps complete **
+11-25 15:24 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:24 INFO     Getting feature maps of network 4. n_feature_maps: 10000
+11-25 15:24 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:24 INFO      ** Get feature maps complete **
+11-25 15:24 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:25 INFO     Epoch 1/1, Discriminator Loss: 0.3821, Accuracy: 95.52%
+11-25 15:25 INFO      ** Discriminator training complete **
+11-25 15:25 INFO     Training network 0. n_training: 10000
+11-25 15:25 INFO     Starting adversarial training of clients...
+11-25 15:25 INFO     >> Pre-Training Training accuracy: 0.6984
+11-25 15:25 INFO     >> Pre-Training Test accuracy: 0.6851
+11-25 15:25 INFO     Epoch: 0 Last Batch Total Loss: 0.491698 Task Loss: 0.562968 Adversarial Loss: 0.325400 
+11-25 15:25 INFO     Epoch: 1 Last Batch Total Loss: 0.432409 Task Loss: 0.478268 Adversarial Loss: 0.325403 
+11-25 15:25 INFO     Epoch: 2 Last Batch Total Loss: 0.420354 Task Loss: 0.461048 Adversarial Loss: 0.325402 
+11-25 15:25 INFO     Epoch: 3 Last Batch Total Loss: 0.398264 Task Loss: 0.429486 Adversarial Loss: 0.325413 
+11-25 15:25 INFO     Epoch: 4 Last Batch Total Loss: 0.377583 Task Loss: 0.399965 Adversarial Loss: 0.325357 
+11-25 15:25 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:25 INFO     >> Training accuracy: 0.888600
+11-25 15:25 INFO     >> Test accuracy: 0.757000
+11-25 15:25 INFO      ** Training complete **
+11-25 15:25 INFO     >> Shape of G_output_list_all_clients: torch.Size([10000, 512, 1, 1])
+11-25 15:25 INFO     net 0 final test acc 0.757000
+11-25 15:25 INFO     Training network 1. n_training: 10000
+11-25 15:25 INFO     Starting adversarial training of clients...
+11-25 15:26 INFO     >> Pre-Training Training accuracy: 0.7423
+11-25 15:26 INFO     >> Pre-Training Test accuracy: 0.6851
+11-25 15:26 INFO     Epoch: 0 Last Batch Total Loss: 0.529193 Task Loss: 0.616570 Adversarial Loss: 0.325312 
+11-25 15:26 INFO     Epoch: 1 Last Batch Total Loss: 0.502544 Task Loss: 0.578503 Adversarial Loss: 0.325306 
+11-25 15:26 INFO     Epoch: 2 Last Batch Total Loss: 0.480677 Task Loss: 0.547267 Adversarial Loss: 0.325301 
+11-25 15:26 INFO     Epoch: 3 Last Batch Total Loss: 0.485001 Task Loss: 0.553448 Adversarial Loss: 0.325290 
+11-25 15:26 INFO     Epoch: 4 Last Batch Total Loss: 0.462066 Task Loss: 0.520676 Adversarial Loss: 0.325309 
+11-25 15:26 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:26 INFO     >> Training accuracy: 0.841900
+11-25 15:26 INFO     >> Test accuracy: 0.723500
+11-25 15:26 INFO      ** Training complete **
+11-25 15:26 INFO     >> Shape of G_output_list_all_clients: torch.Size([20000, 512, 1, 1])
+11-25 15:26 INFO     net 1 final test acc 0.723500
+11-25 15:26 INFO     Training network 2. n_training: 10000
+11-25 15:26 INFO     Starting adversarial training of clients...
+11-25 15:26 INFO     >> Pre-Training Training accuracy: 0.7286
+11-25 15:26 INFO     >> Pre-Training Test accuracy: 0.6851
+11-25 15:26 INFO     Epoch: 0 Last Batch Total Loss: 0.672106 Task Loss: 0.820742 Adversarial Loss: 0.325287 
+11-25 15:27 INFO     Epoch: 1 Last Batch Total Loss: 0.676495 Task Loss: 0.827012 Adversarial Loss: 0.325289 
+11-25 15:27 INFO     Epoch: 2 Last Batch Total Loss: 0.659134 Task Loss: 0.802212 Adversarial Loss: 0.325283 
+11-25 15:27 INFO     Epoch: 3 Last Batch Total Loss: 0.642031 Task Loss: 0.777782 Adversarial Loss: 0.325279 
+11-25 15:27 INFO     Epoch: 4 Last Batch Total Loss: 0.641523 Task Loss: 0.777056 Adversarial Loss: 0.325279 
+11-25 15:27 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:27 INFO     >> Training accuracy: 0.742200
+11-25 15:27 INFO     >> Test accuracy: 0.648800
+11-25 15:27 INFO      ** Training complete **
+11-25 15:27 INFO     >> Shape of G_output_list_all_clients: torch.Size([30000, 512, 1, 1])
+11-25 15:27 INFO     net 2 final test acc 0.648800
+11-25 15:27 INFO     Training network 3. n_training: 10000
+11-25 15:27 INFO     Starting adversarial training of clients...
+11-25 15:27 INFO     >> Pre-Training Training accuracy: 0.6228
+11-25 15:27 INFO     >> Pre-Training Test accuracy: 0.6851
+11-25 15:27 INFO     Epoch: 0 Last Batch Total Loss: 0.824418 Task Loss: 1.038351 Adversarial Loss: 0.325240 
+11-25 15:27 INFO     Epoch: 1 Last Batch Total Loss: 0.803057 Task Loss: 1.007828 Adversarial Loss: 0.325259 
+11-25 15:27 INFO     Epoch: 2 Last Batch Total Loss: 0.793589 Task Loss: 0.994304 Adversarial Loss: 0.325256 
+11-25 15:28 INFO     Epoch: 3 Last Batch Total Loss: 0.781522 Task Loss: 0.977055 Adversarial Loss: 0.325280 
+11-25 15:28 INFO     Epoch: 4 Last Batch Total Loss: 0.772152 Task Loss: 0.963677 Adversarial Loss: 0.325259 
+11-25 15:28 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:28 INFO     >> Training accuracy: 0.676600
+11-25 15:28 INFO     >> Test accuracy: 0.589900
+11-25 15:28 INFO      ** Training complete **
+11-25 15:28 INFO     >> Shape of G_output_list_all_clients: torch.Size([40000, 512, 1, 1])
+11-25 15:28 INFO     net 3 final test acc 0.589900
+11-25 15:28 INFO     Training network 4. n_training: 10000
+11-25 15:28 INFO     Starting adversarial training of clients...
+11-25 15:28 INFO     >> Pre-Training Training accuracy: 0.4483
+11-25 15:28 INFO     >> Pre-Training Test accuracy: 0.6851
+11-25 15:28 INFO     Epoch: 0 Last Batch Total Loss: 0.953379 Task Loss: 1.222590 Adversarial Loss: 0.325218 
+11-25 15:28 INFO     Epoch: 1 Last Batch Total Loss: 0.933800 Task Loss: 1.194607 Adversarial Loss: 0.325250 
+11-25 15:28 INFO     Epoch: 2 Last Batch Total Loss: 0.925386 Task Loss: 1.182585 Adversarial Loss: 0.325256 
+11-25 15:28 INFO     Epoch: 3 Last Batch Total Loss: 0.921669 Task Loss: 1.177280 Adversarial Loss: 0.325243 
+11-25 15:29 INFO     Epoch: 4 Last Batch Total Loss: 0.913428 Task Loss: 1.165501 Adversarial Loss: 0.325259 
+11-25 15:29 INFO     Shape of G_output_list: torch.Size([10000, 512, 1, 1])
+11-25 15:29 INFO     >> Training accuracy: 0.616000
+11-25 15:29 INFO     >> Test accuracy: 0.544800
+11-25 15:29 INFO      ** Training complete **
+11-25 15:29 INFO     >> Shape of G_output_list_all_clients: torch.Size([50000, 512, 1, 1])
+11-25 15:29 INFO     net 4 final test acc 0.544800
+11-25 15:29 INFO     global n_training: 782
+11-25 15:29 INFO     global n_test: 313
+11-25 15:29 INFO     >> Global Model Train accuracy: 0.717440
+11-25 15:29 INFO     >> Global Model Test accuracy: 0.697500
