@@ -28,15 +28,6 @@ logging.basicConfig(
     ]
 )
 
-os.makedirs('logs', exist_ok=True)
-topo_log_name = f"logs/topology_distance-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log"
-topo_logger = logging.getLogger("topo_logger")
-topo_logger.setLevel(logging.INFO)
-fh = logging.FileHandler(topo_log_name, mode='w', encoding='utf-8')
-formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%m-%d %H:%M')
-fh.setFormatter(formatter)
-topo_logger.addHandler(fh)
-
 warnings.filterwarnings('ignore', category=UserWarning)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -197,7 +188,7 @@ def compute_feature_similarity(client, global_):
     global_mean = torch.mean(normalize_features(global_), dim=0)
     return torch.cosine_similarity(client_mean.unsqueeze(0), global_mean.unsqueeze(0))
 
-def train_client(client_id, model, train_loader, optimizer, global_features, round_idx, n_rounds, prev_train_loss=None):
+def train_client(client_id, model, train_loader, optimizer, global_features, round_idx, n_rounds, prev_train_loss=None, history=None):
     model.train()
     total_loss = 0
     total_training_loss = 0
@@ -237,9 +228,61 @@ def train_client(client_id, model, train_loader, optimizer, global_features, rou
     similarity = compute_feature_similarity(features, global_subset)
     print(f"Client {client_id}: Similarity {similarity.item():.4f}")
     
-    return avg_loss, avg_training_loss, avg_topo_loss, features
+    # 在返回前计算拓扑距离
+    with torch.no_grad():
+        distance = 1 - similarity.item()  # 使用1 - 相似度作为距离
+    
+    # 添加日志记录
+    logging.info(
+        f"Round {round_idx} Client {client_id} | "
+        f"Total Loss: {avg_loss:.4f} | "
+        f"Train Loss: {avg_training_loss:.4f} | "
+        f"Topo Loss: {avg_topo_loss:.4f} | "
+        f"Similarity: {similarity.item():.4f} | "
+        f"Distance: {distance:.4f}"
+    )
+    
+    # 在客户端训练循环中更新历史记录
+    if history is not None:
+        history['client_similarity'][client_id][round_idx] = similarity.item()
+        history['client_topo_distance'][client_id][round_idx] = distance
+    
+    return avg_loss, avg_training_loss, avg_topo_loss, features, distance
+
+def create_run_directory():
+    # 获取当前时间戳作为文件夹名
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    folder_name = f"results/{timestamp}_mnist_SimpleNet_clients4_rounds10"
+    os.makedirs(folder_name, exist_ok=True)
+
+    # 配置日志到文件夹（清空原有配置）
+    log_path = os.path.join(folder_name, 'training.log')
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # 移除所有已有处理器
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        
+    # 添加文件处理器
+    fh = logging.FileHandler(log_path, mode='w', encoding='utf-8')
+    fh.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)-8s %(message)s',
+        datefmt='%m-%d %H:%M'
+    ))
+    logger.addHandler(fh)
+    
+    # 添加控制台处理器
+    ch = logging.StreamHandler()
+    ch.setFormatter(logging.Formatter('%(message)s'))
+    logger.addHandler(ch)
+    
+    return folder_name
 
 def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0.001, lambda_topo=0.1):  
+    # 创建输出文件夹
+    run_dir = create_run_directory()
+    
     # 初始化 client_features_list 和 client_targets_list
     client_features_list = []
     client_targets_list = []
@@ -262,7 +305,8 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
         'client_training_loss': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
         'client_topo_loss': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
         'client_topo_distance': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
-        'topo_distances': []
+        'topo_distances': [],
+        'client_similarity': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
     }
 
     MAX_SAMPLES = 1000  # 定义最大样本数
@@ -271,6 +315,7 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
     # 1. 生成初始全局特征
     global_model.eval()
     global_samples = []
+    global_targets = []
     with torch.no_grad():
         global_train_loader, _, _ , _= get_dataloader(
             dataset='mnist',
@@ -279,11 +324,13 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
             test_bs=batch_size,
             dataidxs=None  # 全部数据
         )
-        for data, _ in global_train_loader:
+        for data, target in global_train_loader:
             data = data.to(device)
             features, _ = global_model(data)
             global_samples.append(features.cpu())
+            global_targets.append(target.numpy())  # 收集标签
     global_features = torch.cat(global_samples, dim=0).to(device)  # 存储为CPU张量
+    global_targets = np.concatenate(global_targets, axis=0)  # 合并标签
 
     # ---- 在 federated_learning 最开始，做一次全局 fit ----
     umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
@@ -291,6 +338,8 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
     # 从 0 到 n_rounds (包含 0)
     prev_train_loss = None
     for round_idx in range(0, n_rounds + 1):
+        global_emb = None  # 初始化 global_emb 变量
+        global_labels = None  # 初始化 global_labels 变量
         if round_idx > 0:
             # 训练代码
             print(f"\n=== Round {round_idx}/{n_rounds} ===")
@@ -315,7 +364,7 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
                 )
                 
                 optimizer = optim.Adam(client_models[client_id].parameters(), lr=lr)
-                avg_total_loss, avg_training_loss, avg_topo_loss, features = train_client(
+                avg_total_loss, avg_training_loss, avg_topo_loss, features, distance = train_client(
                     client_id=client_id,
                     model=client_models[client_id],
                     train_loader=train_dl,
@@ -323,7 +372,8 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
                     global_features=global_features,
                     round_idx=round_idx,
                     n_rounds=n_rounds,
-                    prev_train_loss=prev_train_loss
+                    prev_train_loss=prev_train_loss,
+                    history=history
                 )
 
                 print(f"Round {round_idx}, Client {client_id}: Total {avg_total_loss:.4f}, Train {avg_training_loss:.4f}, TopoLoss {avg_topo_loss:.4f}")
@@ -352,6 +402,28 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
                     features, _ = global_model(data)
                     new_global_samples.append(features.cpu())
             global_features = torch.cat(new_global_samples, dim=0).to(device)  # 更新全局特征
+
+            # 全局特征可视化
+            global_feats = global_features.cpu().numpy()
+            global_labels = global_targets.copy()  # 使用副本避免修改原始数据
+
+            if len(global_feats) > MAX_SAMPLES:
+                idx = rng.choice(len(global_feats), MAX_SAMPLES, replace=False)
+                global_feats = global_feats[idx]
+                global_labels = global_labels[idx]  # 同步下采样标签
+
+            global_emb = umap_reducer.transform(global_feats)  # 这里赋值
+            fig_global = plot_topology_analysis(global_emb, global_labels)
+            fig_global.savefig(os.path.join(run_dir, f'global_round_{round_idx}.png'))
+            plt.close(fig_global)  # 关闭图形
+            
+            # 将全局特征加入对比图
+            if global_emb is not None and global_labels is not None:  # 确保不为 None
+                all_features = client_features_list + [global_emb]
+                all_targets = client_targets_list + [global_labels]  # 使用真实标签
+                fig2 = plot_client_comparison(all_features, all_targets, n_clients + 1)
+                fig2.savefig(os.path.join(run_dir, f'comparison_round_{round_idx}.png'))
+                plt.close(fig2)  # 关闭图形
 
         # --- 无论 round_idx 是不是 0，都画图 ---
         client_features_list = []
@@ -385,22 +457,25 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
             # UMAP transform
             emb = umap_reducer.transform(feats)
             fig = plot_topology_analysis(emb, targs, client_id)
-            fig.savefig(f'client_{client_id}_round_{round_idx}.png')
+            fig.savefig(os.path.join(run_dir, f'client_{client_id}_round_{round_idx}.png'))
             plt.close(fig)
 
             # 单独保存3D特征用于对比图
             client_features_list.append(emb)  # emb已经是3D坐标
             client_targets_list.append(targs)
 
-        # 生成对比图时只使用3D视图
-        fig2 = plot_client_comparison(client_features_list, client_targets_list, n_clients)
-        fig2.savefig(f'client_comparison_round_{round_idx}.png')
-        plt.close(fig2)
+            # 生成对比图时只使用3D视图
+            if global_emb is not None and global_labels is not None:  # 确保不为 None
+                all_features = client_features_list + [global_emb]
+                all_targets = client_targets_list + [global_labels]  # 使用真实标签
+                fig = plot_client_comparison(all_features, all_targets, n_clients + 1)
+                fig.savefig(os.path.join(run_dir, f'comparison_round_{round_idx}.png'))
 
     # 最后再画一下 loss 曲线
     fig3 = plot_training_progress(history, n_clients, n_rounds)
-    fig3.savefig('training_progress.png')
-    plt.close(fig3)
+    fig3.savefig(os.path.join(run_dir, 'training_progress.png'))
+    plt.close(fig3)  # 关闭图形
+    
     return global_model, history
 
 
@@ -416,61 +491,118 @@ def prepare_point_cloud(X):
     return X
 
 def plot_training_progress(history, n_clients, n_rounds):
-    fig, axs = plt.subplots(2, 3, figsize=(20, 10))
-    xs = range(n_rounds + 1)  # include round 0
+    fig, axs = plt.subplots(3, 2, figsize=(20, 15))  # 调整为3x2布局
+    xs = range(1, n_rounds + 1)  # 从第1轮开始
+    
     # 1. 总loss
     for client_id in range(n_clients):
-        axs[0, 0].plot(xs, history['client_total_loss'][client_id], label=f'Client {client_id}')
+        axs[0, 0].plot(xs, history['client_total_loss'][client_id][1:], label=f'Client {client_id}')
     axs[0, 0].set_title('Total Loss per Client')
-    axs[0, 0].set_xlabel('Round')
-    axs[0, 0].set_ylabel('Total Loss')
-    axs[0, 0].legend()
+    
     # 2. training loss
     for client_id in range(n_clients):
-        axs[0, 1].plot(xs, history['client_training_loss'][client_id], label=f'Client {client_id}')
+        axs[0, 1].plot(xs, history['client_training_loss'][client_id][1:], label=f'Client {client_id}')
     axs[0, 1].set_title('Training Loss per Client')
-    axs[0, 1].set_xlabel('Round')
-    axs[0, 1].set_ylabel('Training Loss')
-    axs[0, 1].legend()
-    # 3. topo loss
+    
+    # 3. similarity（新增）
     for client_id in range(n_clients):
-        axs[0, 2].plot(xs, history['client_topo_loss'][client_id], label=f'Client {client_id}')
-    axs[0, 2].set_title('Topology Loss per Client')
-    axs[0, 2].set_xlabel('Round')
-    axs[0, 2].set_ylabel('Topology Loss')
-    axs[0, 2].legend()
+        axs[1, 0].plot(xs, history['client_similarity'][client_id][1:], label=f'Client {client_id}')
+    axs[1, 0].set_title('Feature Similarity')
+    
     # 4. topo distance
     for client_id in range(n_clients):
-        axs[1, 0].plot(xs, history['client_topo_distance'][client_id], label=f'Client {client_id}')
-    axs[1, 0].set_title('Topology Distance per Client')
-    axs[1, 0].set_xlabel('Round')
-    axs[1, 0].set_ylabel('Topology Distance')
-    axs[1, 0].legend()
-    # 其余子图空着或可自定义
-    axs[1, 1].axis('off')
-    axs[1, 2].axis('off')
+        axs[1, 1].plot(xs, history['client_topo_distance'][client_id][1:], label=f'Client {client_id}')
+    axs[1, 1].set_title('Topological Distance')
+    
+    # 5. topo loss
+    for client_id in range(n_clients):
+        axs[2, 0].plot(xs, history['client_topo_loss'][client_id][1:], label=f'Client {client_id}')
+    axs[2, 0].set_title('Topology Loss')
+    
+    axs[2, 1].axis('off')  # 关闭最后一个子图
+    
+    for ax in axs.flat:
+        ax.set_xlabel('Round')
+        ax.set_ylabel('Value')
+        ax.legend()
+    
     plt.tight_layout()
     return fig
 
-def plot_client_comparison(client_features_list, client_targets_list, n_clients, nrows=2, ncols=2):
-    """
-    使用3D可视化对比多个客户端
-    """
-    fig = plt.figure(figsize=(12, 12))
+def plot_3d_features(ax, features, targets, client_id=None):
+    """统一3D特征可视化函数（带边缘线）"""
+    scatter = ax.scatter(
+        features[:, 0], features[:, 1], features[:, 2],
+        c=targets, 
+        cmap=CMAP,
+        norm=NORM,
+        s=25,          # 增大点尺寸
+        edgecolors='w', # 白色边缘
+        linewidth=0.3,  # 边缘线宽
+        alpha=0.9,      # 提高透明度
+        depthshade=True # 启用深度阴影
+    )
+    ax.set_xlabel('UMAP1', fontsize=10, labelpad=8)
+    ax.set_ylabel('UMAP2', fontsize=10, labelpad=8)
+    ax.set_zlabel('UMAP3', fontsize=10, labelpad=8)
+    ax.xaxis.pane.set_alpha(0.1)  # 半透明背景
+    ax.yaxis.pane.set_alpha(0.1)
+    ax.zaxis.pane.set_alpha(0.1)
     
-    for idx, (features, targets) in enumerate(zip(client_features_list, client_targets_list)):
-        ax = fig.add_subplot(nrows, ncols, idx + 1, projection='3d')
-        scatter = ax.scatter(
-            features[:, 0], features[:, 1], features[:, 2], 
-            c=targets, cmap=CMAP, norm=NORM, s=10, edgecolors='none', alpha=0.7
-        )
-        ax.set_title(f"Client {idx} (3D)")
-        ax.set_xlabel('UMAP1')
-        ax.set_ylabel('UMAP2')
-        ax.set_zlabel('UMAP3')
-        fig.colorbar(scatter, ax=ax, label='Class')
+    title = f"Client {client_id}" if isinstance(client_id, int) else "Global"
+    ax.set_title(title, fontsize=12, pad=10)
+
+def plot_topology_analysis(features, targets, client_id=None):
+    fig = plt.figure(figsize=(18, 6))  # 增加画布宽度
+    fig.subplots_adjust(right=0.85)    # 调整右侧空间
+    
+    # 2D投影
+    ax1 = fig.add_subplot(121)
+    scatter2d = ax1.scatter(
+        features[:, 0], features[:, 1], 
+        c=targets, cmap=CMAP, norm=NORM,
+        s=15, edgecolors='none', alpha=0.8
+    )
+    title = f"Client {client_id}" if client_id is not None else "Global"
+    ax1.set_title(f"{title} (2D)", fontsize=12)
+    ax1.set_xlabel('UMAP1')
+    ax1.set_ylabel('UMAP2')
+    
+    # 3D投影
+    ax2 = fig.add_subplot(122, projection='3d')
+    plot_3d_features(ax2, features, targets, client_id)
+    
+    # 将colorbar移动到右侧独立区域
+    cax = fig.add_axes([0.88, 0.15, 0.02, 0.7])  # [left, bottom, width, height]
+    fig.colorbar(scatter2d, cax=cax, orientation='horizontal', label='Class')
     
     plt.tight_layout()
+    return fig
+
+def plot_client_comparison(client_features_list, client_targets_list, n_clients):
+    """
+    统一风格的对比图生成（优化布局）
+    """
+    nrows = int(np.ceil(np.sqrt(n_clients)))
+    ncols = int(np.ceil(n_clients / nrows))
+    
+    fig = plt.figure(figsize=(6*ncols + 4, 5*nrows))  # 增加右侧空间
+    fig.subplots_adjust(right=0.88)  # 调整整体布局
+    
+    # 绘制所有子图
+    for idx, (features, targets) in enumerate(zip(client_features_list, client_targets_list)):
+        ax = fig.add_subplot(nrows, ncols, idx+1, projection='3d')
+        plot_3d_features(ax, features, targets, client_id=idx if idx < len(client_features_list)-1 else "Global")
+    
+    # 统一颜色条（右移并优化样式）
+    sm = plt.cm.ScalarMappable(cmap=CMAP, norm=NORM)
+    sm.set_array([])
+    cax = fig.add_axes([0.92, 0.15, 0.02, 0.7])  # 调整位置到最右侧
+    cb = fig.colorbar(sm, cax=cax)
+    cb.set_label('Class Label', fontsize=12)
+    cb.ax.tick_params(labelsize=10)
+    
+    plt.tight_layout(pad=3.0)
     return fig
 
 def get_global_subset(global_features, num=256):
@@ -490,35 +622,4 @@ if __name__ == "__main__":
         batch_size=128,   # 增大批次减少采样次数
         lr=0.0005,       # 降低学习率
         lambda_topo=0.5  # 调整拓扑损失权重
-    ) 
-
-def plot_topology_analysis(features, targets, client_id):
-    """
-    特征的UMAP可视化（同时显示2D和3D）
-    """
-    fig = plt.figure(figsize=(16, 6))
-    
-    # 2D投影
-    ax1 = fig.add_subplot(121)
-    scatter2d = ax1.scatter(
-        features[:, 0], features[:, 1], c=targets, cmap=CMAP, norm=NORM, s=10, edgecolors='k', alpha=0.7
     )
-    ax1.set_title(f"Client {client_id} Feature Visualization (2D)")
-    ax1.set_xlabel('UMAP1')
-    ax1.set_ylabel('UMAP2')
-    fig.colorbar(scatter2d, ax=ax1, label='Class')
-    
-    # 3D投影
-    ax2 = fig.add_subplot(122, projection='3d')
-    scatter3d = ax2.scatter(
-        features[:, 0], features[:, 1], features[:, 2], 
-        c=targets, cmap=CMAP, norm=NORM, s=10, edgecolors='none', alpha=0.7
-    )
-    ax2.set_title(f"Client {client_id} Feature Visualization (3D)")
-    ax2.set_xlabel('UMAP1')
-    ax2.set_ylabel('UMAP2')
-    ax2.set_zlabel('UMAP3')
-    fig.colorbar(scatter3d, ax=ax2, label='Class')
-    
-    plt.tight_layout()
-    return fig 

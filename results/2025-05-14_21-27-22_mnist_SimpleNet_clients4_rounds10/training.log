@@ -1,0 +1,21 @@
+05-14 21:27 INFO     Data statistics: {0: {0: 28, 1: 3830, 2: 5498, 3: 23, 4: 4244, 5: 3, 6: 726, 7: 5778}, 1: {0: 547, 1: 2762, 2: 454, 3: 2359, 4: 345, 5: 4003, 6: 3953, 7: 336, 8: 4396}, 2: {0: 1688, 1: 6, 2: 2, 3: 18, 4: 1252, 5: 656, 6: 6, 7: 58, 8: 1335, 9: 77}, 3: {0: 3660, 1: 144, 2: 4, 3: 3731, 4: 1, 5: 759, 6: 1233, 7: 93, 8: 120, 9: 5872}}
+05-14 21:28 INFO     Round 1 Client 0 | Total Loss: 0.3420 | Train Loss: 0.3296 | Topo Loss: 0.6182 | Similarity: 0.6544 | Distance: 0.3456
+05-14 21:28 INFO     Round 1 Client 1 | Total Loss: 0.5900 | Train Loss: 0.5777 | Topo Loss: 0.6143 | Similarity: 0.6514 | Distance: 0.3486
+05-14 21:28 INFO     Round 1 Client 2 | Total Loss: 0.9723 | Train Loss: 0.9603 | Topo Loss: 0.5993 | Similarity: 0.6382 | Distance: 0.3618
+05-14 21:28 INFO     Round 1 Client 3 | Total Loss: 0.5023 | Train Loss: 0.4900 | Topo Loss: 0.6107 | Similarity: 0.6536 | Distance: 0.3464
+05-14 21:31 INFO     Round 2 Client 0 | Total Loss: 0.1873 | Train Loss: 0.1726 | Topo Loss: 0.3690 | Similarity: 0.9331 | Distance: 0.0669
+05-14 21:31 INFO     Round 2 Client 1 | Total Loss: 0.2924 | Train Loss: 0.2793 | Topo Loss: 0.3271 | Similarity: 0.9472 | Distance: 0.0528
+05-14 21:31 INFO     Round 2 Client 2 | Total Loss: 0.4124 | Train Loss: 0.3982 | Topo Loss: 0.3545 | Similarity: 0.9481 | Distance: 0.0519
+05-14 21:32 INFO     Round 2 Client 3 | Total Loss: 0.2652 | Train Loss: 0.2505 | Topo Loss: 0.3675 | Similarity: 0.9328 | Distance: 0.0672
+05-14 21:35 INFO     Round 3 Client 0 | Total Loss: 0.1398 | Train Loss: 0.1207 | Topo Loss: 0.3186 | Similarity: 0.9682 | Distance: 0.0318
+05-14 21:35 INFO     Round 3 Client 1 | Total Loss: 0.2018 | Train Loss: 0.1854 | Topo Loss: 0.2738 | Similarity: 0.9803 | Distance: 0.0197
+05-14 21:35 INFO     Round 3 Client 2 | Total Loss: 0.2715 | Train Loss: 0.2525 | Topo Loss: 0.3179 | Similarity: 0.9783 | Distance: 0.0217
+05-14 21:35 INFO     Round 3 Client 3 | Total Loss: 0.2076 | Train Loss: 0.1880 | Topo Loss: 0.3260 | Similarity: 0.9712 | Distance: 0.0288
+05-14 21:38 INFO     Round 4 Client 0 | Total Loss: 0.1154 | Train Loss: 0.0908 | Topo Loss: 0.3075 | Similarity: 0.9801 | Distance: 0.0199
+05-14 21:38 INFO     Round 4 Client 1 | Total Loss: 0.1635 | Train Loss: 0.1422 | Topo Loss: 0.2670 | Similarity: 0.9796 | Distance: 0.0204
+05-14 21:38 INFO     Round 4 Client 2 | Total Loss: 0.2081 | Train Loss: 0.1833 | Topo Loss: 0.3102 | Similarity: 0.9796 | Distance: 0.0204
+05-14 21:38 INFO     Round 4 Client 3 | Total Loss: 0.1764 | Train Loss: 0.1517 | Topo Loss: 0.3088 | Similarity: 0.9727 | Distance: 0.0273
+05-14 21:40 INFO     Round 5 Client 0 | Total Loss: 0.1077 | Train Loss: 0.0774 | Topo Loss: 0.3032 | Similarity: 0.9759 | Distance: 0.0241
+05-14 21:40 INFO     Round 5 Client 1 | Total Loss: 0.1409 | Train Loss: 0.1144 | Topo Loss: 0.2649 | Similarity: 0.9799 | Distance: 0.0201
+05-14 21:40 INFO     Round 5 Client 2 | Total Loss: 0.1801 | Train Loss: 0.1494 | Topo Loss: 0.3077 | Similarity: 0.9755 | Distance: 0.0245
+05-14 21:40 INFO     Round 5 Client 3 | Total Loss: 0.1550 | Train Loss: 0.1253 | Topo Loss: 0.2965 | Similarity: 0.9771 | Distance: 0.0229
