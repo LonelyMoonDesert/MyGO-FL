@@ -1,0 +1,61 @@
+06-13 19:56 INFO     Data statistics: {0: {0: 28, 1: 3830, 2: 5498, 3: 23, 4: 4244, 5: 3, 6: 726, 7: 5778}, 1: {0: 547, 1: 2762, 2: 454, 3: 2359, 4: 345, 5: 4003, 6: 3953, 7: 336, 8: 4396}, 2: {0: 1688, 1: 6, 2: 2, 3: 18, 4: 1252, 5: 656, 6: 6, 7: 58, 8: 1335, 9: 77}, 3: {0: 3660, 1: 144, 2: 4, 3: 3731, 4: 1, 5: 759, 6: 1233, 7: 93, 8: 120, 9: 5872}}
+06-13 19:58 INFO     === Round 1/6 ===
+06-13 19:58 INFO     Round 1, Client 0: Task loss 0.3338, Explore loss -0.2295, Entropy 2.2945
+06-13 19:58 INFO     Round 1, Client 1: Task loss 0.5826, Explore loss -0.2293, Entropy 2.2934
+06-13 19:58 INFO     Round 1, Client 2: Task loss 0.9558, Explore loss -0.2276, Entropy 2.2758
+06-13 19:58 INFO     Round 1, Client 3: Task loss 0.4817, Explore loss -0.2292, Entropy 2.2923
+06-13 19:58 INFO     Global Model Accuracy at Round 1: 80.69%
+06-13 19:59 INFO     Client 0 Model Accuracy at Round 1: 49.99%
+06-13 19:59 INFO     Client 1 Model Accuracy at Round 1: 81.96%
+06-13 19:59 INFO     Client 2 Model Accuracy at Round 1: 36.55%
+06-13 19:59 INFO     Client 3 Model Accuracy at Round 1: 53.80%
+06-13 20:02 INFO     === Round 2/6 ===
+06-13 20:02 INFO     Round 2, Client 0: Task loss 0.1717, Explore loss -0.2302, Entropy 2.3016
+06-13 20:02 INFO     Round 2, Client 1: Task loss 0.2791, Explore loss -0.2302, Entropy 2.3015
+06-13 20:02 INFO     Round 2, Client 2: Task loss 0.4023, Explore loss -0.2300, Entropy 2.3000
+06-13 20:02 INFO     Round 2, Client 3: Task loss 0.2525, Explore loss -0.2301, Entropy 2.3014
+06-13 20:03 INFO     Global Model Accuracy at Round 2: 83.78%
+06-13 20:03 INFO     Client 0 Model Accuracy at Round 2: 54.33%
+06-13 20:03 INFO     Client 1 Model Accuracy at Round 2: 84.90%
+06-13 20:03 INFO     Client 2 Model Accuracy at Round 2: 46.29%
+06-13 20:04 INFO     Client 3 Model Accuracy at Round 2: 65.79%
+06-13 20:08 INFO     === Round 3/6 ===
+06-13 20:08 INFO     Round 3, Client 0: Task loss 0.1187, Explore loss -0.2302, Entropy 2.3023
+06-13 20:08 INFO     Round 3, Client 1: Task loss 0.1876, Explore loss -0.2302, Entropy 2.3023
+06-13 20:08 INFO     Round 3, Client 2: Task loss 0.2491, Explore loss -0.2302, Entropy 2.3020
+06-13 20:09 INFO     Round 3, Client 3: Task loss 0.1830, Explore loss -0.2302, Entropy 2.3023
+06-13 20:09 INFO     Global Model Accuracy at Round 3: 84.86%
+06-13 20:09 INFO     Client 0 Model Accuracy at Round 3: 59.33%
+06-13 20:09 INFO     Client 1 Model Accuracy at Round 3: 85.10%
+06-13 20:10 INFO     Client 2 Model Accuracy at Round 3: 55.83%
+06-13 20:10 INFO     Client 3 Model Accuracy at Round 3: 68.31%
+06-13 20:15 INFO     === Round 4/6 ===
+06-13 20:15 INFO     Round 4, Client 0: Task loss 0.0947, Explore loss -0.2302, Entropy 2.3024
+06-13 20:15 INFO     Round 4, Client 1: Task loss 0.1414, Explore loss -0.2302, Entropy 2.3025
+06-13 20:15 INFO     Round 4, Client 2: Task loss 0.1828, Explore loss -0.2302, Entropy 2.3024
+06-13 20:15 INFO     Round 4, Client 3: Task loss 0.1501, Explore loss -0.2302, Entropy 2.3024
+06-13 20:15 INFO     Global Model Accuracy at Round 4: 87.62%
+06-13 20:16 INFO     Client 0 Model Accuracy at Round 4: 63.89%
+06-13 20:16 INFO     Client 1 Model Accuracy at Round 4: 85.54%
+06-13 20:16 INFO     Client 2 Model Accuracy at Round 4: 61.66%
+06-13 20:16 INFO     Client 3 Model Accuracy at Round 4: 71.42%
+06-13 20:21 INFO     === Round 5/6 ===
+06-13 20:21 INFO     Round 5, Client 0: Task loss 0.0763, Explore loss -0.2303, Entropy 2.3025
+06-13 20:21 INFO     Round 5, Client 1: Task loss 0.1142, Explore loss -0.2303, Entropy 2.3025
+06-13 20:21 INFO     Round 5, Client 2: Task loss 0.1451, Explore loss -0.2302, Entropy 2.3025
+06-13 20:21 INFO     Round 5, Client 3: Task loss 0.1261, Explore loss -0.2303, Entropy 2.3025
+06-13 20:22 INFO     Global Model Accuracy at Round 5: 90.32%
+06-13 20:22 INFO     Client 0 Model Accuracy at Round 5: 65.81%
+06-13 20:22 INFO     Client 1 Model Accuracy at Round 5: 87.26%
+06-13 20:22 INFO     Client 2 Model Accuracy at Round 5: 72.49%
+06-13 20:23 INFO     Client 3 Model Accuracy at Round 5: 72.19%
+06-13 20:27 INFO     === Round 6/6 ===
+06-13 20:27 INFO     Round 6, Client 0: Task loss 0.0650, Explore loss -0.2303, Entropy 2.3025
+06-13 20:27 INFO     Round 6, Client 1: Task loss 0.0950, Explore loss -0.2303, Entropy 2.3025
+06-13 20:27 INFO     Round 6, Client 2: Task loss 0.1240, Explore loss -0.2303, Entropy 2.3025
+06-13 20:28 INFO     Round 6, Client 3: Task loss 0.1115, Explore loss -0.2303, Entropy 2.3025
+06-13 20:28 INFO     Global Model Accuracy at Round 6: 91.56%
+06-13 20:28 INFO     Client 0 Model Accuracy at Round 6: 68.05%
+06-13 20:29 INFO     Client 1 Model Accuracy at Round 6: 86.89%
+06-13 20:29 INFO     Client 2 Model Accuracy at Round 6: 75.00%
+06-13 20:29 INFO     Client 3 Model Accuracy at Round 6: 73.53%

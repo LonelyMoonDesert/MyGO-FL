@@ -1,0 +1,6 @@
+06-13 18:18 INFO     Data statistics: {0: {0: 28, 1: 3830, 2: 5498, 3: 23, 4: 4244, 5: 3, 6: 726, 7: 5778}, 1: {0: 547, 1: 2762, 2: 454, 3: 2359, 4: 345, 5: 4003, 6: 3953, 7: 336, 8: 4396}, 2: {0: 1688, 1: 6, 2: 2, 3: 18, 4: 1252, 5: 656, 6: 6, 7: 58, 8: 1335, 9: 77}, 3: {0: 3660, 1: 144, 2: 4, 3: 3731, 4: 1, 5: 759, 6: 1233, 7: 93, 8: 120, 9: 5872}}
+06-13 18:20 INFO     === Round 1/5 ===
+06-13 18:20 INFO     Round 1, Client 0: Task loss 0.3338, Explore loss -0.2295, Entropy 2.2945
+06-13 18:20 INFO     Round 1, Client 1: Task loss 0.5826, Explore loss -0.2293, Entropy 2.2934
+06-13 18:20 INFO     Round 1, Client 2: Task loss 0.9558, Explore loss -0.2276, Entropy 2.2758
+06-13 18:20 INFO     Round 1, Client 3: Task loss 0.4817, Explore loss -0.2292, Entropy 2.2923
