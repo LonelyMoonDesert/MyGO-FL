@@ -15,6 +15,7 @@ import umap
 from matplotlib import colors
 from geomloss import SamplesLoss 
 from gudhi import representations 
+from resnetcifar import ResNet18_cifar10  # 导入 ResNet 模型
 
 
 # 主日志配置
@@ -188,7 +189,7 @@ def compute_feature_similarity(client, global_):
     global_mean = torch.mean(normalize_features(global_), dim=0)
     return torch.cosine_similarity(client_mean.unsqueeze(0), global_mean.unsqueeze(0))
 
-def train_client(client_id, model, train_loader, optimizer, global_features, round_idx, n_rounds, prev_train_loss=None, history=None):
+def train_client(client_id, model, train_loader, optimizer, global_features, round_idx, n_rounds, prev_train_loss=None, history=None, alpha=0.9, lambda_topo=0.1):
     model.train()
     total_loss = 0
     total_training_loss = 0
@@ -206,11 +207,11 @@ def train_client(client_id, model, train_loader, optimizer, global_features, rou
         
         # 计算特征对齐损失
         global_subset = get_global_subset(global_features)  # 获取全局特征子集
-        topo_loss = hybrid_alignment_loss(features, global_subset)  # 计算拓扑损失
+        topo_loss = hybrid_alignment_loss(features, global_subset, alpha=alpha)  # 计算拓扑损失
         
-        # 动态调整 topo_loss 的权重
-        lambda_topo = min(0.1 * (round_idx / n_rounds), 1.0)  # 根据训练轮次动态调整
+        # 计算总损失
         total = loss + lambda_topo * topo_loss
+        # total = loss
         
         total.backward()
         optimizer.step()
@@ -224,10 +225,14 @@ def train_client(client_id, model, train_loader, optimizer, global_features, rou
     avg_training_loss = total_training_loss / len(train_loader)
     avg_topo_loss = total_topo_loss / len(train_loader)
     
-    # 在训练日志中添加相似度输出
+    # 计算并记录精度
+    accuracy = evaluate_model(model, train_loader, device)  # 计算精度
+    logging.info(f"Client {client_id}: Accuracy {accuracy:.4f}")  # 记录精度
+
+    # 计算相似性
     similarity = compute_feature_similarity(features, global_subset)
-    print(f"Client {client_id}: Similarity {similarity.item():.4f}")
-    
+    logging.info(f"Client {client_id}: Similarity {similarity.item():.4f}")  # 记录相似度
+
     # 在返回前计算拓扑距离
     with torch.no_grad():
         distance = 1 - similarity.item()  # 使用1 - 相似度作为距离
@@ -239,6 +244,7 @@ def train_client(client_id, model, train_loader, optimizer, global_features, rou
         f"Train Loss: {avg_training_loss:.4f} | "
         f"Topo Loss: {avg_topo_loss:.4f} | "
         f"Similarity: {similarity.item():.4f} | "
+        f"Accuracy: {accuracy:.4f} | "
         f"Distance: {distance:.4f}"
     )
     
@@ -246,6 +252,7 @@ def train_client(client_id, model, train_loader, optimizer, global_features, rou
     if history is not None:
         history['client_similarity'][client_id][round_idx] = similarity.item()
         history['client_topo_distance'][client_id][round_idx] = distance
+        history['client_accuracy'][client_id][round_idx] = accuracy  # 记录精度
     
     return avg_loss, avg_training_loss, avg_topo_loss, features, distance
 
@@ -279,7 +286,7 @@ def create_run_directory():
     
     return folder_name
 
-def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0.001, lambda_topo=0.1):  
+def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0.001, lambda_topo=0.1, alpha=0.9, dataset='mnist', model=SimpleNet):  
     # 创建输出文件夹
     run_dir = create_run_directory()
     
@@ -290,16 +297,20 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
     datadir = "C:/Users/crestiny/OneDrive/RESEARCH/Code/NIID-Bench-GANFL/data/"
     logdir = "logs/"
     os.makedirs(logdir, exist_ok=True)
+    
+    # 使用传入的 dataset 参数
     X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts = partition_data(
-        dataset='mnist',
+        dataset=dataset,
         datadir=datadir,
         logdir=logdir,
         partition='noniid-labeldir',
         n_parties=n_clients,
         beta=0.4
     )
-    global_model = SimpleNet().to(device)
-    client_models = [SimpleNet().to(device) for _ in range(n_clients)]
+    
+    global_model = model().to(device)  # 创建全局模型
+    client_models = [model().to(device) for _ in range(n_clients)]  # 创建客户端模型
+    
     history = {
         'client_total_loss': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
         'client_training_loss': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
@@ -307,6 +318,7 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
         'client_topo_distance': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
         'topo_distances': [],
         'client_similarity': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
+        'client_accuracy': [[0.0] * (n_rounds + 1) for _ in range(n_clients)],
     }
 
     MAX_SAMPLES = 1000  # 定义最大样本数
@@ -318,7 +330,7 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
     global_targets = []
     with torch.no_grad():
         global_train_loader, _, _ , _= get_dataloader(
-            dataset='mnist',
+            dataset=dataset,  # 使用传入的 dataset 参数
             datadir=datadir,
             train_bs=batch_size,
             test_bs=batch_size,
@@ -341,6 +353,12 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
         global_emb = None  # 初始化 global_emb 变量
         global_labels = None  # 初始化 global_labels 变量
         if round_idx > 0:
+            # 记录当前 Round 信息
+            logging.info(f"\n=== Round {round_idx}/{n_rounds} ===")
+            logging.info(f"Current alpha: {alpha:.4f}")  # 记录 alpha
+            lambda_topo = min(0.1 * (round_idx / n_rounds), 1.0)  # 根据训练轮次动态调整
+            logging.info(f"Current lambda_topo: {lambda_topo:.4f}")  # 记录 lambda_topo
+            
             # 训练代码
             print(f"\n=== Round {round_idx}/{n_rounds} ===")
             # 同步全局模型参数到客户端
@@ -350,7 +368,7 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
             client_states = []
             for client_id in range(n_clients):
                 _, _, train_ds, _ = get_dataloader(
-                    dataset='mnist',
+                    dataset=dataset,  # 使用传入的 dataset 参数
                     datadir=datadir,
                     train_bs=batch_size,
                     test_bs=batch_size,
@@ -373,7 +391,9 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
                     round_idx=round_idx,
                     n_rounds=n_rounds,
                     prev_train_loss=prev_train_loss,
-                    history=history
+                    history=history,
+                    lambda_topo=lambda_topo,
+                    alpha=alpha
                 )
 
                 print(f"Round {round_idx}, Client {client_id}: Total {avg_total_loss:.4f}, Train {avg_training_loss:.4f}, TopoLoss {avg_topo_loss:.4f}")
@@ -425,13 +445,17 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
                 fig2.savefig(os.path.join(run_dir, f'comparison_round_{round_idx}.png'))
                 plt.close(fig2)  # 关闭图形
 
+            # 测试集评估全局模型
+            global_accuracy = evaluate_model(global_model, global_train_loader, device)
+            logging.info(f"Global Model Accuracy at Round {round_idx}: {global_accuracy * 100:.2f}%")  # 记录全局模型精度
+
         # --- 无论 round_idx 是不是 0，都画图 ---
         client_features_list = []
         client_targets_list = []
         for client_id in range(n_clients):
             # 提取这个 client 的全部特征
             _, _, ds, _ = get_dataloader(
-                dataset='mnist',
+                dataset=dataset,  # 使用传入的 dataset 参数
                 datadir=datadir,
                 train_bs=batch_size,
                 test_bs=batch_size,
@@ -609,6 +633,20 @@ def get_global_subset(global_features, num=256):
     indices = torch.randperm(len(global_features))[:num]
     return global_features[indices].to(device)
 
+def evaluate_model(model, test_loader, device):
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+            _, output = model(data)
+            _, predicted = torch.max(output, 1)
+            total += target.size(0)
+            correct += (predicted == target).sum().item()
+    accuracy = correct / total
+    return accuracy
+
 if __name__ == "__main__":
     # 设置随机种子
     torch.manual_seed(42)
@@ -621,5 +659,8 @@ if __name__ == "__main__":
         n_epochs=3,      # 减少本地训练轮次
         batch_size=128,   # 增大批次减少采样次数
         lr=0.0005,       # 降低学习率
-        lambda_topo=0.5  # 调整拓扑损失权重
+        lambda_topo=0.5,  # 调整拓扑损失权重
+        alpha=0.9,       # 设置 alpha 参数
+        dataset='cifar10',  # 设置 dataset 参数
+        model=ResNet18_cifar10  # 使用 ResNet 模型
     )
