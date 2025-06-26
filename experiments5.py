@@ -27,7 +27,8 @@ from sklearn.neighbors import KernelDensity
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='mlp', help='neural network used in training. resnet18/resnet50/vgg11/simple-cnn/')
+    parser.add_argument('--model', type=str, default='mlp',
+                        help='neural network used in training. resnet18/resnet50/vgg11/simple-cnn/')
     parser.add_argument('--resume', type=bool, default=True, help='whether to resume training')
     parser.add_argument('--ckpt_dir', type=str, default='./checkpoints', help='directory to save checkpoints')
     parser.add_argument('--dataset', type=str, default='mnist', help='dataset used for training')
@@ -40,16 +41,18 @@ def get_args():
     parser.add_argument('--epochs', type=int, default=5, help='number of local epochs')
     parser.add_argument('--epoch_G', type=int, default=5, help='number of local epochs')
     parser.add_argument('--epoch_D', type=int, default=5, help='number of local epochs')
-    parser.add_argument('--n_parties', type=int, default=2,  help='number of workers in a distributed cluster')
+    parser.add_argument('--n_parties', type=int, default=2, help='number of workers in a distributed cluster')
     parser.add_argument('--alg', type=str, default='fedavg',
-                            help='fl algorithms: fedavg/fedprox/scaffold/fednova/moon')
+                        help='fl algorithms: fedavg/fedprox/scaffold/fednova/moon')
     parser.add_argument('--training_type', type=str, default='local', help='local/adversarial')
-    parser.add_argument('--use_projection_head', type=bool, default=False, help='whether add an additional header to model or not (see MOON)')
+    parser.add_argument('--use_projection_head', type=bool, default=False,
+                        help='whether add an additional header to model or not (see MOON)')
     parser.add_argument('--out_dim', type=int, default=256, help='the output dimension for the projection layer')
     parser.add_argument('--loss', type=str, default='contrastive', help='for moon')
     parser.add_argument('--temperature', type=float, default=0.5, help='the temperature parameter for contrastive loss')
     parser.add_argument('--comm_round', type=int, default=50, help='number of maximum communication roun')
-    parser.add_argument('--is_same_initial', type=int, default=1, help='Whether initial all the models with the same parameters in fedavg')
+    parser.add_argument('--is_same_initial', type=int, default=1,
+                        help='Whether initial all the models with the same parameters in fedavg')
     parser.add_argument('--init_seed', type=int, default=0, help="Random seed")
     parser.add_argument('--dropout_p', type=float, required=False, default=0.0, help="Dropout probability. Default=0.0")
     parser.add_argument('--datadir', type=str, required=False, default="./data/", help="Data directory")
@@ -61,7 +64,8 @@ def get_args():
     parser.add_argument('--lambda_adv', type=float, default=0.3, help="adv_loss")
     parser.add_argument('--logdir', type=str, required=False, default="./logs/", help='Log directory path')
     parser.add_argument('--modeldir', type=str, required=False, default="./models/", help='Model directory path')
-    parser.add_argument('--beta', type=float, default=0.5, help='The parameter for the dirichlet distribution for data partitioning')
+    parser.add_argument('--beta', type=float, default=0.5,
+                        help='The parameter for the dirichlet distribution for data partitioning')
     parser.add_argument('--device', type=str, default='cuda:0', help='The device to run the program')
     parser.add_argument('--log_file_name', type=str, default=None, help='The log file name')
     parser.add_argument('--optimizer', type=str, default='sgd', help='the optimizer')
@@ -69,14 +73,17 @@ def get_args():
     parser.add_argument('--optimizer_D', type=str, default='amsgrad', help='the optimizer')
     parser.add_argument('--mu', type=float, default=0.001, help='the mu parameter for fedprox')
     parser.add_argument('--noise', type=float, default=0, help='how much noise we add to some party')
-    parser.add_argument('--noise_type', type=str, default='level', help='Different level of noise or different space of noise')
+    parser.add_argument('--noise_type', type=str, default='level',
+                        help='Different level of noise or different space of noise')
     parser.add_argument('--rho', type=float, default=0, help='Parameter controlling the momentum SGD')
     parser.add_argument('--sample', type=float, default=1, help='Sample ratio for each communication round')
 
     # for scheduler
     parser.add_argument('--scheduler', type=str, default='StepLR', help='Type of scheduler: StepLR, MultiStepLR, etc.')
-    parser.add_argument('--scheduler_g', type=str, default='StepLR', help='Type of scheduler: StepLR, MultiStepLR, etc.')
-    parser.add_argument('--scheduler_d', type=str, default='StepLR', help='Type of scheduler: StepLR, MultiStepLR, etc.')
+    parser.add_argument('--scheduler_g', type=str, default='StepLR',
+                        help='Type of scheduler: StepLR, MultiStepLR, etc.')
+    parser.add_argument('--scheduler_d', type=str, default='StepLR',
+                        help='Type of scheduler: StepLR, MultiStepLR, etc.')
     parser.add_argument('--gamma', type=float, default=0.01, help='Decay rate for learning rate.')
     parser.add_argument('--step_size', type=int, default=30, help='Step size for StepLR.')
     parser.add_argument('--milestones', type=str, default='30,60',
@@ -470,13 +477,13 @@ def adv_train_net(net_id, net, D, lambda_adv, train_dataloader, test_dataloader,
         epoch_task_loss = sum(epoch_task_loss_collector) / len(epoch_task_loss_collector)
         epoch_adv_loss = sum(epoch_adv_loss_collector) / len(epoch_adv_loss_collector)
 
-
         if args.l1:
             epoch_l1_loss = sum(epoch_l1_loss_collector) / len(epoch_l1_loss_collector)
-            logger.info('Epoch: %d Last Batch Total Loss: %f Task Loss: %f Adversarial Loss: %f L1 norm: %f' % (epoch, epoch_loss, epoch_task_loss, epoch_adv_loss, epoch_l1_loss))
+            logger.info('Epoch: %d Last Batch Total Loss: %f Task Loss: %f Adversarial Loss: %f L1 norm: %f' % (
+            epoch, epoch_loss, epoch_task_loss, epoch_adv_loss, epoch_l1_loss))
         else:
-            logger.info('Epoch: %d Last Batch Total Loss: %f Task Loss: %f Adversarial Loss: %f ' % (epoch, epoch_loss, epoch_task_loss, epoch_adv_loss))
-
+            logger.info('Epoch: %d Last Batch Total Loss: %f Task Loss: %f Adversarial Loss: %f ' % (
+            epoch, epoch_loss, epoch_task_loss, epoch_adv_loss))
 
     train_acc = compute_accuracy(net, train_dataloader, device=device)
     test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
@@ -847,7 +854,7 @@ def train_net_scaffold(net_id, net, global_model, c_local, c_global, train_datal
     net_para = net.state_dict()
     for key in net_para:
         c_new_para[key] = c_new_para[key] - c_global_para[key] + (global_model_para[key] - net_para[key]) / (
-                    cnt * args.lr)
+                cnt * args.lr)
         c_delta_para[key] = c_new_para[key] - c_local_para[key]
     c_local.load_state_dict(c_new_para)
 
@@ -1098,6 +1105,7 @@ def hook_fn_resnet50_cifar10(module, input, output):
     # 保存特征图
     feature_map = reduced_output
 
+
 # # 辅助函数：计算特征的熵
 # def calculate_entropy(feature_map):
 #     # 对特征图进行 softmax 操作
@@ -1142,6 +1150,8 @@ def compute_global_entropy(global_model, train_dataloader, device):
 
     # 计算并返回熵
     return compute_entropy(all_feature_maps)
+
+
 # def calculate_entropy_kde(features):
 #     """
 #     使用核密度估计（KDE）计算生成特征的熵
@@ -1222,6 +1232,7 @@ def save_checkpoint(state, checkpoint_dir, filename="checkpoint.pth.tar"):
     filepath = os.path.join(checkpoint_dir, filename)
     torch.save(state, filepath)
     print("Checkpoint saved to {}".format(filepath))
+
 
 def split_G_output_by_clients(G_output_list_all_clients, net_dataidx_map):
     client_tensors = {}
@@ -1519,7 +1530,7 @@ def local_train_net(nets, selected, args, net_dataidx_map, D, adv=False, test_dl
 
         if not adv:
             trainacc, testacc, G_output_list = train_net_fedgan(net_id, net, train_dl_local, test_dl, n_epoch, args.lr,
-                                                         args.optimizer, device=device)
+                                                                args.optimizer, device=device)
         else:
             trainacc, testacc, G_output_list = adv_train_net(net_id, net, D, args.lambda_adv, train_dl_local, test_dl,
                                                              args.epoch_G, args.lr_G, args.optimizer_G, device=device)
@@ -1542,6 +1553,10 @@ def local_train_net(nets, selected, args, net_dataidx_map, D, adv=False, test_dl
 
     nets_list = list(nets.values())
     return nets_list, G_output_list_all_clients
+
+
+def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, test_dl=None, device="cpu"):
+    pass
 
 
 def local_train_net_fedavg(nets, selected, args, net_dataidx_map, test_dl=None, device="cpu"):
@@ -1889,8 +1904,6 @@ if __name__ == '__main__':
 
     # 附加D
     # 创建判别器模型
-    # 附加D
-    # 创建判别器模型
     if args.dataset == 'mnist':
         if args.model == 'vgg9':
             D = DiscriminatorS_vgg9_mnist()
@@ -1900,7 +1913,7 @@ if __name__ == '__main__':
             D = DiscriminatorS_simplecnn_mnist()
     elif args.dataset == 'cifar10':
         if args.model == 'resnet18':
-            D = DiscriminatorS()  #              输入通道可以根据数据调整，例如灰度图使用 input_channels=1
+            D = DiscriminatorS()  # 输入通道可以根据数据调整，例如灰度图使用 input_channels=1
         elif args.model == 'resnet50':
             D = DiscriminatorS_resnet50_cifar10()
         elif args.model == 'vgg11':
@@ -1928,10 +1941,10 @@ if __name__ == '__main__':
             D = DiscriminatorS_simplecnn_mnist()
     elif args.dataset == 'imagenet':
         if args.model == 'resnet18':
-            D = DiscriminatorS()  #              输入通道可以根据数据调整，例如灰度图使用 input_channels=1
+            D = DiscriminatorS()  # 输入通道可以根据数据调整，例如灰度图使用 input_channels=1
     elif args.dataset == 'tinyimagenet':
         if args.model == 'resnet18':
-            D = DiscriminatorS()  #              输入通道可以根据数据调整，例如灰度图使用 input_channels=1
+            D = DiscriminatorS()  # 输入通道可以根据数据调整，例如灰度图使用 input_channels=1
         elif args.model == 'simple-cnn':
             D = DiscriminatorS()
     elif args.dataset == 'a9a':
@@ -1962,7 +1975,7 @@ if __name__ == '__main__':
         nets, local_model_meta_data, layer_type = init_nets(args.net_config, args.dropout_p, args.n_parties, args)
         global_models, global_model_meta_data, global_layer_type = init_nets(args.net_config, 0, 1, args)
         global_model = global_models[0]
-        print(nets[0])                                                                                                                                             
+        print(nets[0])
         global_para = global_model.state_dict()
         if args.is_same_initial:
             for net_id, net in nets.items():
@@ -2096,6 +2109,55 @@ if __name__ == '__main__':
             }
             filename = f"global_round{round}.pth"
             save_global_model(checkpoint, args.ckpt_dir, filename)
+
+
+    elif args.alg == 'fedtopo':
+        logger.info("Initializing nets")
+        nets, local_model_meta_data, layer_type = init_nets(args.net_config, args.dropout_p, args.n_parties, args)
+        global_models, global_model_meta_data, global_layer_type = init_nets(args.net_config, 0, 1, args)
+        global_model = global_models[0]
+
+        global_para = global_model.state_dict()
+        if args.is_same_initial:
+            for net_id, net in nets.items():
+                net.load_state_dict(global_para)
+
+        for round in range(args.comm_round):
+            logger.info("in comm round:" + str(round))
+
+            arr = np.arange(args.n_parties)
+            np.random.shuffle(arr)
+            selected = arr[:int(args.n_parties * args.sample)]
+
+            global_para = global_model.state_dict()
+            if round == 0:
+                if args.is_same_initial:
+                    for idx in selected:
+                        nets[idx].load_state_dict(global_para)
+            else:
+                for idx in selected:
+                    nets[idx].load_state_dict(global_para)
+
+            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, test_dl=test_dl_global, device=device)
+            global_model.to('cpu')
+            # update global model
+            total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
+            fed_avg_freqs = [len(net_dataidx_map[r]) / total_data_points for r in selected]
+            for idx in range(len(selected)):
+                net_para = nets[selected[idx]].cpu().state_dict()
+                for key in net_para:
+                    global_para[key] += net_para[key] * fed_avg_freqs[idx]
+            global_model.load_state_dict(global_para)
+            logger.info('global n_training: %d' % len(train_dl_global))
+            logger.info('global n_test: %d' % len(test_dl_global))
+            global_model.to(device)
+            train_acc = compute_accuracy(global_model, train_dl_global, device=device)
+            test_acc, conf_matrix = compute_accuracy(global_model, test_dl_global, get_confusion_matrix=True,
+                                                     device=device)
+            logger.info('>> Global Model Train accuracy: %f' % train_acc)
+            logger.info('>> Global Model Test accuracy: %f' % test_acc)
+
+
 
     elif args.alg == 'fedavg':
         logger.info("Initializing nets")
@@ -2459,5 +2521,4 @@ if __name__ == '__main__':
                                       device=device)
 
         logger.info("All in test acc: %f" % testacc)
-
 

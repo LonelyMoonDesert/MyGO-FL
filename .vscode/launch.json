@@ -4,9 +4,6 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-    
-
-    
         {
             "name": "Python 调试程序: 当前文件",
             "type": "debugpy",
@@ -14,9 +11,9 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--model", "simple-cnn",
-                "--dataset", "mnist",
-                "--alg", "fedavg",
+                "--model", "resnet18",
+                "--dataset", "cifar10",
+                "--alg", "fedtopo",
                 "--lr", "0.01",
                 "--lr_G", "0.008",
                 "--lr_D", "0.008",
@@ -31,8 +28,9 @@
                 "--mu", "0.01",
                 "--rho", "0.9",
                 "--comm_round", "10",
-                "--partition", "homo",
-                "--noise", "0.5",
+                "--partition", "noniid-labeldir",
+                "--noise", "0.0",
+                "--beta", "0.5",
                 "--device", "cuda:0",
                 "--datadir", "../NIID-Bench-GANFL/data/",
                 "--logdir", "./logs/",

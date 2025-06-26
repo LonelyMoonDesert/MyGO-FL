@@ -189,6 +189,24 @@ def compute_feature_similarity(client, global_):
     global_mean = torch.mean(normalize_features(global_), dim=0)
     return torch.cosine_similarity(client_mean.unsqueeze(0), global_mean.unsqueeze(0))
 
+def kde_entropy(features, bandwidth=0.1):
+    """
+    经验熵估计（特征空间KDE）：features为(N, d)张量
+    返回经验熵的均值
+    """
+    N, d = features.size()
+    # pairwise L2距离
+    dist = torch.cdist(features, features)
+    # 高斯核
+    kernel = torch.exp(- dist**2 / (2 * bandwidth**2))
+    # 每个点的概率密度（排除自身，避免自熵为无穷大）
+    # 通常可加个极小常数防止log(0)
+    p = (kernel.sum(dim=1) - 1) / (N - 1) + 1e-10
+    logp = torch.log(p)
+    entropy = -logp.mean()
+    return entropy
+
+
 def train_client(client_id, task_model, explore_model, train_loader, optimizer_task, optimizer_explore, global_features, round_idx, lambda_explore=0.1):
     task_model.train()
     explore_model.train()
@@ -212,13 +230,14 @@ def train_client(client_id, task_model, explore_model, train_loader, optimizer_t
         # 训练探索模型
         _, output_explore = explore_model(data)
         prob = torch.softmax(output_explore, dim=1)
-        entropy = -torch.sum(prob * torch.log(prob + 1e-10), dim=1).mean()
+        entropy = kde_entropy(normalize_features(features_explore)) # 特征归一化后防止数值爆炸
         loss_explore = -lambda_explore * entropy
         optimizer_explore.zero_grad()
         loss_explore.backward()
         optimizer_explore.step()
         total_entropy += entropy.item()  # 累加熵值
         total_explore_loss += loss_explore.item()  # 累加探索损失
+        features_explore, output_explore = explore_model(data)
 
 
     avg_entropy = total_entropy / len(train_loader)
@@ -354,6 +373,7 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
             for client_id in range(n_clients):
                 client_models[client_id].load_state_dict(global_task_model.state_dict())
                 explore_models[client_id].load_state_dict(global_explore_model.state_dict())
+
             
             client_states = []
             client_entropies = []  # 用于存储每个客户端的熵值
@@ -409,6 +429,11 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
             global_explore_state = weighted_average(explore_states, explore_weights)
             global_explore_model.load_state_dict(global_explore_state)
 
+            # 融合
+            gamma = gamma_scheduler(round_idx, n_rounds)
+            combined_state = combine_models(global_task_state, global_explore_state, gamma)
+            global_task_model.load_state_dict(combined_state)
+
             # 更新全局特征
             global_task_model.eval()
             global_explore_model.eval()
@@ -422,10 +447,15 @@ def federated_learning(n_clients=4, n_rounds=10, n_epochs=5, batch_size=32, lr=0
                     new_global_samples.append(features_explore.cpu())
             global_features = torch.cat(new_global_samples, dim=0).to(device)  # 更新全局特征
 
-            # 测试集评估
-            global_accuracy = evaluate_model(global_task_model, global_train_loader, device)
-            logger.info(f"Global Model Accuracy at Round {round_idx}: {global_accuracy * 100:.2f}%")  # 记录到日志
-            history['global_accuracy'][round_idx] = global_accuracy
+            # 测试集评估task model
+            global_task_accuracy = evaluate_model(global_task_model, global_train_loader, device)
+            logger.info(f"Global Task Model Accuracy at Round {round_idx}: {global_task_accuracy * 100:.2f}%")  # 记录到日志  
+            history['global_task_accuracy'][round_idx] = global_task_accuracy
+
+            # 测试机评估explore model
+            global_explore_accuracy = evaluate_model(global_explore_model, global_train_loader, device)
+            logger.info(f"Global Explore Model Accuracy at Round {round_idx}: {global_explore_accuracy * 100:.2f}%")  # 记录到日志
+            history['global_explore_accuracy'][round_idx] = global_explore_accuracy
 
             # 客户端评估
             for client_id in range(n_clients):

@@ -1,0 +1,87 @@
+06-26 14:24 INFO     Data statistics: {0: {0: 28, 1: 3830, 2: 5498, 3: 23, 4: 4244, 5: 3, 6: 726, 7: 5778}, 1: {0: 547, 1: 2762, 2: 454, 3: 2359, 4: 345, 5: 4003, 6: 3953, 7: 336, 8: 4396}, 2: {0: 1688, 1: 6, 2: 2, 3: 18, 4: 1252, 5: 656, 6: 6, 7: 58, 8: 1335, 9: 77}, 3: {0: 3660, 1: 144, 2: 4, 3: 3731, 4: 1, 5: 759, 6: 1233, 7: 93, 8: 120, 9: 5872}}
+06-26 14:25 INFO     
+=== Round 1/5 ===
+06-26 14:25 INFO     Current alpha: 0.9000
+06-26 14:25 INFO     Current lambda_topo: 0.0200
+06-26 14:25 INFO     Client 0: Accuracy 0.9806
+06-26 14:25 INFO     Client 0: Similarity 0.6544
+06-26 14:25 INFO     Round 1 Client 0 | Total Loss: 0.3420 | Train Loss: 0.3296 | Topo Loss: 0.6182 | Similarity: 0.6544 | Accuracy: 0.9806 | Distance: 0.3456
+06-26 14:26 INFO     Client 1: Accuracy 0.9546
+06-26 14:26 INFO     Client 1: Similarity 0.6393
+06-26 14:26 INFO     Round 1 Client 1 | Total Loss: 0.5872 | Train Loss: 0.5749 | Topo Loss: 0.6132 | Similarity: 0.6393 | Accuracy: 0.9546 | Distance: 0.3607
+06-26 14:26 INFO     Client 2: Accuracy 0.9263
+06-26 14:26 INFO     Client 2: Similarity 0.6440
+06-26 14:26 INFO     Round 1 Client 2 | Total Loss: 0.9776 | Train Loss: 0.9656 | Topo Loss: 0.5990 | Similarity: 0.6440 | Accuracy: 0.9263 | Distance: 0.3560
+06-26 14:26 INFO     Client 3: Accuracy 0.9597
+06-26 14:26 INFO     Client 3: Similarity 0.6597
+06-26 14:26 INFO     Round 1 Client 3 | Total Loss: 0.4921 | Train Loss: 0.4799 | Topo Loss: 0.6094 | Similarity: 0.6597 | Accuracy: 0.9597 | Distance: 0.3403
+06-26 14:26 INFO     Global Model Accuracy at Round 1: 80.10%
+06-26 14:27 INFO     
+=== Round 2/5 ===
+06-26 14:27 INFO     Current alpha: 0.9000
+06-26 14:27 INFO     Current lambda_topo: 0.0400
+06-26 14:27 INFO     Client 0: Accuracy 0.9855
+06-26 14:27 INFO     Client 0: Similarity 0.9361
+06-26 14:27 INFO     Round 2 Client 0 | Total Loss: 0.1891 | Train Loss: 0.1745 | Topo Loss: 0.3665 | Similarity: 0.9361 | Accuracy: 0.9855 | Distance: 0.0639
+06-26 14:27 INFO     Client 1: Accuracy 0.9736
+06-26 14:27 INFO     Client 1: Similarity 0.9512
+06-26 14:27 INFO     Round 2 Client 1 | Total Loss: 0.2894 | Train Loss: 0.2765 | Topo Loss: 0.3234 | Similarity: 0.9512 | Accuracy: 0.9736 | Distance: 0.0488
+06-26 14:28 INFO     Client 2: Accuracy 0.9575
+06-26 14:28 INFO     Client 2: Similarity 0.9357
+06-26 14:28 INFO     Round 2 Client 2 | Total Loss: 0.4135 | Train Loss: 0.3993 | Topo Loss: 0.3533 | Similarity: 0.9357 | Accuracy: 0.9575 | Distance: 0.0643
+06-26 14:28 INFO     Client 3: Accuracy 0.9770
+06-26 14:28 INFO     Client 3: Similarity 0.9323
+06-26 14:28 INFO     Round 2 Client 3 | Total Loss: 0.2684 | Train Loss: 0.2536 | Topo Loss: 0.3720 | Similarity: 0.9323 | Accuracy: 0.9770 | Distance: 0.0677
+06-26 14:28 INFO     Global Model Accuracy at Round 2: 83.59%
+06-26 14:29 INFO     
+=== Round 3/5 ===
+06-26 14:29 INFO     Current alpha: 0.9000
+06-26 14:29 INFO     Current lambda_topo: 0.0600
+06-26 14:29 INFO     Client 0: Accuracy 0.9888
+06-26 14:29 INFO     Client 0: Similarity 0.9738
+06-26 14:29 INFO     Round 3 Client 0 | Total Loss: 0.1395 | Train Loss: 0.1205 | Topo Loss: 0.3172 | Similarity: 0.9738 | Accuracy: 0.9888 | Distance: 0.0262
+06-26 14:30 INFO     Client 1: Accuracy 0.9806
+06-26 14:30 INFO     Client 1: Similarity 0.9762
+06-26 14:30 INFO     Round 3 Client 1 | Total Loss: 0.2022 | Train Loss: 0.1856 | Topo Loss: 0.2770 | Similarity: 0.9762 | Accuracy: 0.9806 | Distance: 0.0238
+06-26 14:30 INFO     Client 2: Accuracy 0.9683
+06-26 14:30 INFO     Client 2: Similarity 0.9687
+06-26 14:30 INFO     Round 3 Client 2 | Total Loss: 0.2719 | Train Loss: 0.2527 | Topo Loss: 0.3206 | Similarity: 0.9687 | Accuracy: 0.9683 | Distance: 0.0313
+06-26 14:30 INFO     Client 3: Accuracy 0.9835
+06-26 14:30 INFO     Client 3: Similarity 0.9662
+06-26 14:30 INFO     Round 3 Client 3 | Total Loss: 0.2046 | Train Loss: 0.1850 | Topo Loss: 0.3261 | Similarity: 0.9662 | Accuracy: 0.9835 | Distance: 0.0338
+06-26 14:30 INFO     Global Model Accuracy at Round 3: 85.44%
+06-26 14:31 INFO     
+=== Round 4/5 ===
+06-26 14:31 INFO     Current alpha: 0.9000
+06-26 14:31 INFO     Current lambda_topo: 0.0800
+06-26 14:31 INFO     Client 0: Accuracy 0.9919
+06-26 14:31 INFO     Client 0: Similarity 0.9817
+06-26 14:31 INFO     Round 4 Client 0 | Total Loss: 0.1198 | Train Loss: 0.0952 | Topo Loss: 0.3076 | Similarity: 0.9817 | Accuracy: 0.9919 | Distance: 0.0183
+06-26 14:32 INFO     Client 1: Accuracy 0.9824
+06-26 14:32 INFO     Client 1: Similarity 0.9814
+06-26 14:32 INFO     Round 4 Client 1 | Total Loss: 0.1647 | Train Loss: 0.1434 | Topo Loss: 0.2666 | Similarity: 0.9814 | Accuracy: 0.9824 | Distance: 0.0186
+06-26 14:32 INFO     Client 2: Accuracy 0.9790
+06-26 14:32 INFO     Client 2: Similarity 0.9687
+06-26 14:32 INFO     Round 4 Client 2 | Total Loss: 0.2056 | Train Loss: 0.1809 | Topo Loss: 0.3094 | Similarity: 0.9687 | Accuracy: 0.9790 | Distance: 0.0313
+06-26 14:32 INFO     Client 3: Accuracy 0.9872
+06-26 14:32 INFO     Client 3: Similarity 0.9726
+06-26 14:32 INFO     Round 4 Client 3 | Total Loss: 0.1697 | Train Loss: 0.1451 | Topo Loss: 0.3079 | Similarity: 0.9726 | Accuracy: 0.9872 | Distance: 0.0274
+06-26 14:32 INFO     Global Model Accuracy at Round 4: 87.67%
+06-26 14:33 INFO     
+=== Round 5/5 ===
+06-26 14:33 INFO     Current alpha: 0.9000
+06-26 14:33 INFO     Current lambda_topo: 0.1000
+06-26 14:33 INFO     Client 0: Accuracy 0.9936
+06-26 14:33 INFO     Client 0: Similarity 0.9880
+06-26 14:33 INFO     Round 5 Client 0 | Total Loss: 0.1077 | Train Loss: 0.0776 | Topo Loss: 0.3010 | Similarity: 0.9880 | Accuracy: 0.9936 | Distance: 0.0120
+06-26 14:33 INFO     Client 1: Accuracy 0.9852
+06-26 14:33 INFO     Client 1: Similarity 0.9846
+06-26 14:33 INFO     Round 5 Client 1 | Total Loss: 0.1399 | Train Loss: 0.1141 | Topo Loss: 0.2580 | Similarity: 0.9846 | Accuracy: 0.9852 | Distance: 0.0154
+06-26 14:34 INFO     Client 2: Accuracy 0.9858
+06-26 14:34 INFO     Client 2: Similarity 0.9712
+06-26 14:34 INFO     Round 5 Client 2 | Total Loss: 0.1695 | Train Loss: 0.1390 | Topo Loss: 0.3059 | Similarity: 0.9712 | Accuracy: 0.9858 | Distance: 0.0288
+06-26 14:34 INFO     Client 3: Accuracy 0.9893
+06-26 14:34 INFO     Client 3: Similarity 0.9734
+06-26 14:34 INFO     Round 5 Client 3 | Total Loss: 0.1550 | Train Loss: 0.1252 | Topo Loss: 0.2977 | Similarity: 0.9734 | Accuracy: 0.9893 | Distance: 0.0266
+06-26 14:34 INFO     Global Model Accuracy at Round 5: 90.23%
+06-26 14:35 WARNING  No artists with labels found to put in legend.  Note that artists whose label start with an underscore are ignored when legend() is called with no argument.
