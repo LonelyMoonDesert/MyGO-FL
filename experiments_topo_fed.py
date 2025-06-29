@@ -620,7 +620,7 @@ def train_net_fedgan(net_id, net, train_dataloader, test_dataloader, epochs, lr,
 
     return train_acc, test_acc, G_output_list
 
-def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr, args_optimizer, global_model, device="cpu"):
+def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr, args_optimizer, global_model, history, round, device="cpu"):
     global features
     logger.info('Training network %s' % str(net_id))
 
@@ -713,10 +713,28 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
     net.to('cpu')
     logger.info(' ** Training complete **')
 
+    # 计算相似性
+    similarity = compute_feature_similarity(local_features, global_features)
+    logging.info(f">> Similarity {similarity.item():.4f}")  # 记录相似度
+
+    # 在返回前计算拓扑距离
+    with torch.no_grad():
+        distance = 1 - similarity.item()  # 使用1 - 相似度作为距离
+
     if args.dataset != 'generated':
         entropy = compute_entropy(G_output_list)
         # 记录这次的平均熵值
         logger.info('>> Entropy: %f' % entropy)
+
+    # 更新历史记录
+    history['client_total_loss'][net_id][round] = epoch_total_loss
+    history['client_loss'][net_id][round] = epoch_loss
+    history['client_topo_loss'][net_id][round] = epoch_topo_loss
+    history['client_train_acc'][net_id][round] = train_acc
+    history['client_test_acc'][net_id][round] = test_acc
+    history['client_topo_distance'][net_id][round] = distance
+    history['client_similarity'][net_id][round] = similarity.item()
+    history['client_entropy'][net_id][round] = entropy
 
     return train_acc, test_acc
 
@@ -1229,6 +1247,11 @@ def compute_entropy(features):
     # 返回所有特征图的熵的平均值
     return torch.mean(entropy)
 
+def compute_feature_similarity(client, global_):
+    # 计算余弦相似度
+    client_mean = torch.mean(normalize_features(client), dim=0)
+    global_mean = torch.mean(normalize_features(global_), dim=0)
+    return torch.cosine_similarity(client_mean.unsqueeze(0), global_mean.unsqueeze(0))
 
 # 计算全局模型在全局数据集上的熵
 def compute_global_entropy(global_model, train_dataloader, device):
@@ -1644,7 +1667,7 @@ def local_train_net(nets, selected, args, net_dataidx_map, D, adv=False, test_dl
     return nets_list, G_output_list_all_clients
 
 
-def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, test_dl=None, device="cpu"):
+def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, test_dl=None, device="cpu"):
     avg_acc = 0.0
 
     for net_id, net in nets.items():
@@ -1672,7 +1695,7 @@ def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model,
         n_epoch = args.epochs
 
         trainacc, testacc = train_net_fedtopo(net_id, net, train_dl_local, test_dl, n_epoch, args.lr,
-                                               args.optimizer, global_model,
+                                               args.optimizer, global_model, history, round,
                                                device=device)
         logger.info("net %d final test acc %f" % (net_id, testacc))
         avg_acc += testacc
@@ -2179,6 +2202,18 @@ if __name__ == '__main__':
             for net_id, net in nets.items():
                 net.load_state_dict(global_para)
 
+        # 初始化history，用于绘图
+        history = {
+            'client_total_loss': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_loss': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_topo_loss': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_train_acc': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_test_acc': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_topo_distance': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_similarity': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_entropy': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+        }
+
         for round in range(args.comm_round):
             logger.info("in comm round:" + str(round))
 
@@ -2195,7 +2230,7 @@ if __name__ == '__main__':
                 for idx in selected:
                     nets[idx].load_state_dict(global_para)
 
-            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, test_dl=test_dl_global, device=device)
+            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, test_dl=test_dl_global, device=device)
             global_model.to('cpu')
             # update global model
             total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
@@ -2219,7 +2254,15 @@ if __name__ == '__main__':
             logger.info('>> Global Model Train accuracy: %f' % train_acc)
             logger.info('>> Global Model Test accuracy: %f' % test_acc)
 
+            # 计算全局模型在全局数据集上的熵
+            if args.dataset != 'generated':
+                entropy = compute_global_entropy(global_model, train_dl_global, device=device)
+                logger.info('>> Global Model Entropy: %f' % entropy)
 
+        # TODO: 绘制训练过程曲线
+        # fig3 = plot_training_progress(history, args.n_parties, args.comm_rounds)
+        # fig3.savefig(os.path.join(run_dir, 'training_progress.png'))
+        # plt.close(fig3)  # 关闭图形
 
     elif args.alg == 'fedavg':
         logger.info("Initializing nets")
