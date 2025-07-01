@@ -13,10 +13,11 @@ import os
 import copy
 from math import *
 import random
-
+import matplotlib.pyplot as plt
+import umap
 import datetime
 # from torch.utils.tensorboard import SummaryWriter
-
+from matplotlib import colors
 from model import *
 from utils import *
 from vggmodel import *
@@ -55,7 +56,7 @@ def get_args():
                         help='Whether initial all the models with the same parameters in fedavg')
     parser.add_argument('--init_seed', type=int, default=0, help="Random seed")
     parser.add_argument('--dropout_p', type=float, required=False, default=0.0, help="Dropout probability. Default=0.0")
-    parser.add_argument('--datadir', type=str, required=False, default="./data/", help="Data directory")
+    parser.add_argument('--datadir', type=str, required=False, default="../data/", help="Data directory")
     parser.add_argument('--reg', type=float, default=1e-4, help="L2 regularization strength")
     parser.add_argument('--l1_lambda', type=float, default=1e-4, help="L1 regularization strength")
     parser.add_argument('--l1', type=bool, default=False, help="Use L1 regularization")
@@ -1223,14 +1224,20 @@ def hook_fn_resnet50_cifar10(module, input, output):
     # 保存特征图
     features = reduced_output
 
-
-# # 辅助函数：计算特征的熵
-# def calculate_entropy(features):
-#     # 对特征图进行 softmax 操作
-#     probabilities = F.softmax(features, dim=1)  # softmax 在类的维度上
-#     log_probabilities = torch.log(probabilities + 1e-7)  # 防止 log(0) 的问题
-#     entropy = -torch.sum(probabilities * log_probabilities, dim=1)  # 对每个样本计算熵
-#     return entropy.mean().item()  # 返回熵的平均值
+# 收集全局特征的函数
+def collect_global_features(global_model, train_dl_global, device):
+    global_samples = []
+    global_targets = []
+    global_model.to(device)
+    with torch.no_grad():
+        for data, target in train_dl_global:
+            data = data.to(device)
+            out = global_model(data)
+            global_features = features
+            global_features = global_features.view(global_features.size(0), -1)
+            global_samples.append(global_features.cpu())
+            global_targets.append(target.numpy())  # 收集标签
+    return torch.cat(global_samples, dim=0).to(device), np.concatenate(global_targets, axis=0)
 
 # 计算熵的函数
 def compute_entropy(features):
@@ -1345,6 +1352,128 @@ def save_checkpoint(state, checkpoint_dir, filename="checkpoint.pth.tar"):
     torch.save(state, filepath)
     print("Checkpoint saved to {}".format(filepath))
 
+# 固定 10 个类别的颜色
+CMAP = plt.get_cmap('tab10', 10)
+NORM = colors.Normalize(vmin=0, vmax=9)
+
+# 画图
+def plot_training_progress(history, n_clients, n_rounds):
+    fig, axs = plt.subplots(3, 2, figsize=(20, 15))  # 调整为3x2布局
+    xs = range(1, n_rounds + 1)  # 从第1轮开始
+
+    # 1. 总loss
+    for client_id in range(n_clients):
+        axs[0, 0].plot(xs, history['client_total_loss'][client_id][1:], label=f'Client {client_id}')
+    axs[0, 0].set_title('Total Loss per Client')
+
+    # 2. training loss
+    for client_id in range(n_clients):
+        axs[0, 1].plot(xs, history['client_training_loss'][client_id][1:], label=f'Client {client_id}')
+    axs[0, 1].set_title('Training Loss per Client')
+
+    # 3. similarity（新增）
+    for client_id in range(n_clients):
+        axs[1, 0].plot(xs, history['client_similarity'][client_id][1:], label=f'Client {client_id}')
+    axs[1, 0].set_title('Feature Similarity')
+
+    # 4. topo distance
+    for client_id in range(n_clients):
+        axs[1, 1].plot(xs, history['client_topo_distance'][client_id][1:], label=f'Client {client_id}')
+    axs[1, 1].set_title('Topological Distance')
+
+    # 5. topo loss
+    for client_id in range(n_clients):
+        axs[2, 0].plot(xs, history['client_topo_loss'][client_id][1:], label=f'Client {client_id}')
+    axs[2, 0].set_title('Topology Loss')
+
+    axs[2, 1].axis('off')  # 关闭最后一个子图
+
+    for ax in axs.flat:
+        ax.set_xlabel('Round')
+        ax.set_ylabel('Value')
+        ax.legend()
+
+    plt.tight_layout()
+    return fig
+
+
+def plot_3d_features(ax, features, targets, client_id=None):
+    """统一3D特征可视化函数（带边缘线）"""
+    scatter = ax.scatter(
+        features[:, 0], features[:, 1], features[:, 2],
+        c=targets,
+        cmap=CMAP,
+        norm=NORM,
+        s=25,  # 增大点尺寸
+        edgecolors='w',  # 白色边缘
+        linewidth=0.3,  # 边缘线宽
+        alpha=0.9,  # 提高透明度
+        depthshade=True  # 启用深度阴影
+    )
+    ax.set_xlabel('UMAP1', fontsize=10, labelpad=8)
+    ax.set_ylabel('UMAP2', fontsize=10, labelpad=8)
+    ax.set_zlabel('UMAP3', fontsize=10, labelpad=8)
+    ax.xaxis.pane.set_alpha(0.1)  # 半透明背景
+    ax.yaxis.pane.set_alpha(0.1)
+    ax.zaxis.pane.set_alpha(0.1)
+
+    title = f"Client {client_id}" if isinstance(client_id, int) else "Global"
+    ax.set_title(title, fontsize=12, pad=10)
+
+
+def plot_topology_analysis(features, targets, client_id=None):
+    fig = plt.figure(figsize=(18, 6))  # 增加画布宽度
+    fig.subplots_adjust(right=0.85)  # 调整右侧空间
+
+    # 2D投影
+    ax1 = fig.add_subplot(121)
+    scatter2d = ax1.scatter(
+        features[:, 0], features[:, 1],
+        c=targets, cmap=CMAP, norm=NORM,
+        s=15, edgecolors='none', alpha=0.8
+    )
+    title = f"Client {client_id}" if client_id is not None else "Global"
+    ax1.set_title(f"{title} (2D)", fontsize=12)
+    ax1.set_xlabel('UMAP1')
+    ax1.set_ylabel('UMAP2')
+
+    # 3D投影
+    ax2 = fig.add_subplot(122, projection='3d')
+    plot_3d_features(ax2, features, targets, client_id)
+
+    # 将colorbar移动到右侧独立区域
+    cax = fig.add_axes([0.88, 0.15, 0.02, 0.7])  # [left, bottom, width, height]
+    fig.colorbar(scatter2d, cax=cax, orientation='horizontal', label='Class')
+
+    plt.tight_layout()
+    return fig
+
+
+def plot_client_comparison(client_features_list, client_targets_list, n_clients):
+    """
+    统一风格的对比图生成（优化布局）
+    """
+    nrows = int(np.ceil(np.sqrt(n_clients)))
+    ncols = int(np.ceil(n_clients / nrows))
+
+    fig = plt.figure(figsize=(6 * ncols + 4, 5 * nrows))  # 增加右侧空间
+    fig.subplots_adjust(right=0.88)  # 调整整体布局
+
+    # 绘制所有子图
+    for idx, (features, targets) in enumerate(zip(client_features_list, client_targets_list)):
+        ax = fig.add_subplot(nrows, ncols, idx + 1, projection='3d')
+        plot_3d_features(ax, features, targets, client_id=idx if idx < len(client_features_list) - 1 else "Global")
+
+    # 统一颜色条（右移并优化样式）
+    sm = plt.cm.ScalarMappable(cmap=CMAP, norm=NORM)
+    sm.set_array([])
+    cax = fig.add_axes([0.92, 0.15, 0.02, 0.7])  # 调整位置到最右侧
+    cb = fig.colorbar(sm, cax=cax)
+    cb.set_label('Class Label', fontsize=12)
+    cb.ax.tick_params(labelsize=10)
+
+    plt.tight_layout(pad=3.0)
+    return fig
 
 def split_G_output_by_clients(G_output_list_all_clients, net_dataidx_map):
     client_tensors = {}
@@ -1978,10 +2107,10 @@ if __name__ == '__main__':
         filename=os.path.join(args.logdir, log_path),
         # filename='/home/qinbin/test.log',
         format='%(asctime)s %(levelname)-8s %(message)s',
-        datefmt='%m-%d %H:%M', level=logging.DEBUG, filemode='w')
+        datefmt='%m-%d %H:%M', level=logging.INFO, filemode='w')
 
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     logger.info(str(args))
     logger.info(device)
 
@@ -2204,15 +2333,32 @@ if __name__ == '__main__':
 
         # 初始化history，用于绘图
         history = {
-            'client_total_loss': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
-            'client_loss': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
-            'client_topo_loss': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
-            'client_train_acc': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
-            'client_test_acc': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
-            'client_topo_distance': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
-            'client_similarity': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
-            'client_entropy': [[0.0] * (args.comm_rounds + 1) for _ in range(args.n_parties)],
+            'client_total_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_topo_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_train_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_test_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_topo_distance': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_similarity': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_entropy': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
         }
+
+        MAX_SAMPLES = 1000 # 定义最大样本数
+        rng = np.random.RandomState(42)  # 定义随机数生成器
+
+        # 初始化 client_features_list 和 client_targets_list
+        client_features_list = []
+        client_targets_list = []
+
+        # 生成初始全局特征
+        global_model.eval()
+        global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
+        if len(global_features) > MAX_SAMPLES:
+            idx = rng.choice(len(global_features), MAX_SAMPLES, replace=False)
+            global_features = global_features[idx]
+            global_targets = global_targets[idx]  # 同步下采样标签
+        # ---- 在 federated_learning 最开始，做一次全局 fit ----
+        umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
 
         for round in range(args.comm_round):
             logger.info("in comm round:" + str(round))
@@ -2231,23 +2377,25 @@ if __name__ == '__main__':
                     nets[idx].load_state_dict(global_para)
 
             local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, test_dl=test_dl_global, device=device)
-            global_model.to('cpu')
+
             # update global model
             total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
             fed_avg_freqs = [len(net_dataidx_map[r]) / total_data_points for r in selected]
+
             for idx in range(len(selected)):
                 net_para = nets[selected[idx]].cpu().state_dict()
-                for key in net_para:
-                    # 聚合前先转为 float
-                    if global_para[key].dtype != torch.float32:
-                        global_para[key] = global_para[key].float()
-                    global_para[key] = global_para[key].cpu()  # 保证 global_para[key] 也在 CPU
-                    global_para[key] += net_para[key].float() * fed_avg_freqs[idx]
-
+                if idx == 0:
+                    for key in net_para:
+                        global_para[key] = net_para[key] * fed_avg_freqs[idx]
+                else:
+                    for key in net_para:
+                        global_para[key] += net_para[key] * fed_avg_freqs[idx]
             global_model.load_state_dict(global_para)
+
             logger.info('global n_training: %d' % len(train_dl_global))
             logger.info('global n_test: %d' % len(test_dl_global))
             global_model.to(device)
+            global_model.eval()
             train_acc = compute_accuracy(global_model, train_dl_global, device=device)
             test_acc, conf_matrix = compute_accuracy(global_model, test_dl_global, get_confusion_matrix=True,
                                                      device=device)
@@ -2259,10 +2407,86 @@ if __name__ == '__main__':
                 entropy = compute_global_entropy(global_model, train_dl_global, device=device)
                 logger.info('>> Global Model Entropy: %f' % entropy)
 
-        # TODO: 绘制训练过程曲线
-        # fig3 = plot_training_progress(history, args.n_parties, args.comm_rounds)
-        # fig3.savefig(os.path.join(run_dir, 'training_progress.png'))
-        # plt.close(fig3)  # 关闭图形
+            # # 更新全局特征
+            # global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
+            #
+            # # 全局特征可视化
+            # global_feats = global_features.cpu().numpy()
+            # global_labels = global_targets.copy()  # 使用副本避免修改原始数据
+            #
+            # global_emb = umap_reducer.transform(global_feats)  # 这里赋值
+            # fig_global = plot_topology_analysis(global_emb, global_labels)
+            # fig_global.savefig(os.path.join(args.logdir, f'global_round_{round}.png'))
+            # plt.close(fig_global)  # 关闭图形
+            #
+            # # 绘制global相关特征图
+            # if global_emb is not None and global_labels is not None:  # 确保不为 None
+            #     all_features = client_features_list + [global_emb]
+            #     all_targets = client_targets_list + [global_labels]  # 使用真实标签
+            #     fig2 = plot_client_comparison(all_features, all_targets, args.n_parties + 1)
+            #     fig2.savefig(os.path.join(args.logdir, f'comparison_round_{round}.png'))
+            #     plt.close(fig2)  # 关闭图形
+            #
+            # # 绘制client相关图
+            # client_features_list = []
+            # client_targets_list = []
+            # for net_id in range(args.n_parties):
+            #     # 提取这个 client 的全部特征
+            #     dataidxs = net_dataidx_map[net_id]
+            #     if args.noise_type == 'space':
+            #         train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
+            #                                                                                       args.datadir,
+            #                                                                                       args.batch_size, 32,
+            #                                                                                       dataidxs, noise_level,
+            #                                                                                       net_id,
+            #                                                                                       args.n_parties - 1)
+            #     else:
+            #         noise_level = args.noise / (args.n_parties - 1) * net_id
+            #         train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
+            #                                                                                       args.datadir,
+            #                                                                                       args.batch_size, 32,
+            #                                                                                       dataidxs, noise_level)
+            #     feats, targs = [], []
+            #     with torch.no_grad():
+            #         nets[net_id].eval()
+            #         nets[net_id].to(device)
+            #         for x, y in train_dl_local:
+            #             out = nets[net_id](x.to(device))
+            #             f = features
+            #             f = f.view(f.size(0), -1)
+            #             feats.append(f.cpu().numpy())
+            #             targs.append(y.numpy())
+            #             feats = np.concatenate(feats, axis=0)
+            #             targs = np.concatenate(targs, axis=0)
+            #     print(feats.shape)
+            #     print(targs.shape)
+            #
+            #     # 下采样
+            #     if feats.shape[0] > MAX_SAMPLES:
+            #         idx = rng.choice(feats.shape[0], MAX_SAMPLES, replace=False)
+            #         feats = feats[idx]
+            #         targs = targs[idx]
+            #     # UMAP transform
+            #     emb = umap_reducer.transform(feats)
+            #     fig = plot_topology_analysis(emb, targs, net_id)
+            #     fig.savefig(os.path.join(args.logdir, f'client_{net_id}_round_{round}.png'))
+            #     plt.close(fig)
+            #
+            #     # 单独保存3D特征用于对比图
+            #     client_features_list.append(emb)  # emb已经是3D坐标
+            #     client_targets_list.append(targs)
+            #
+            #     # 生成对比图时只使用3D视图
+            #     if global_emb is not None and global_labels is not None:  # 确保不为 None
+            #         all_features = client_features_list + [global_emb]
+            #         all_targets = client_targets_list + [global_labels]  # 使用真实标签
+            #         fig = plot_client_comparison(all_features, all_targets, args.n_parties + 1)
+            #         fig.savefig(os.path.join(args.logdir, f'comparison_round_{round}.png'))
+
+        # 绘制训练过程曲线
+        fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
+        fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
+        plt.close(fig3)  # 关闭图形
 
     elif args.alg == 'fedavg':
         logger.info("Initializing nets")
