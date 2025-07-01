@@ -1,0 +1,176 @@
+07-01 14:49 INFO     Namespace(model='simple-cnn', resume=True, ckpt_dir='./checkpoints', dataset='mnist', net_config=None, partition='noniid-labeldir', batch_size=32, lr=0.01, lr_G=0.008, lr_D=0.008, epochs=5, epoch_G=5, epoch_D=1, n_parties=5, alg='fedtopo', training_type='local', use_projection_head=False, out_dim=256, loss='contrastive', temperature=0.5, comm_round=10, is_same_initial=1, init_seed=0, dropout_p=0.0, datadir='../data', reg=1e-05, l1_lambda=0.0001, l1=False, adv_l1_lambda=0.0001, adv_l1=False, lambda_adv=0.3, logdir='./logs/', modeldir='./models/', beta=0.5, device='cuda:0', log_file_name='experiment_log-2025-07-01-144949', optimizer='sgd', optimizer_G='sgd', optimizer_D='sgd', mu=0.01, noise=0.0, noise_type='level', rho=0.9, sample=1.0, scheduler='StepLR', scheduler_g='StepLR', scheduler_d='StepLR', gamma=0.01, step_size=30, milestones='30,60', T_max=50, factor=0.1, patience=10, base_lr=0.001, max_lr=0.01, step_size_up=2000, steps_per_epoch=1000)
+07-01 14:49 INFO     cuda:0
+07-01 14:49 INFO     ####################################################################################################
+07-01 14:49 INFO     Partitioning data
+07-01 14:49 INFO     Data statistics: {0: {0: 1337, 1: 1036, 2: 2, 3: 453, 4: 139, 5: 622, 6: 22, 7: 23, 8: 35, 9: 5300}, 1: {0: 1817, 1: 1737, 2: 1394, 3: 3964, 4: 147, 5: 207, 6: 134, 7: 121, 8: 1, 9: 205}, 2: {0: 1707, 1: 4, 2: 278, 3: 335, 4: 389, 5: 3712, 6: 5537, 7: 8, 8: 5782}, 3: {0: 528, 1: 1951, 2: 3014, 3: 473, 4: 2111, 5: 251, 6: 223, 7: 5135}, 4: {0: 534, 1: 2014, 2: 1270, 3: 906, 4: 3056, 5: 629, 6: 2, 7: 978, 8: 33, 9: 444}}
+07-01 14:49 INFO     Getting global dataset using get_dataloader.
+07-01 14:49 INFO     Initializing nets
+07-01 14:50 INFO     in comm round:0
+07-01 14:50 INFO     Training network 0. n_training: 8969
+07-01 14:50 INFO     Training network 0
+07-01 14:50 INFO     >> Pre-Training Training accuracy: 0.004013825398595161
+07-01 14:50 INFO     >> Pre-Training Test accuracy: 0.0972
+07-01 14:50 INFO     Epoch: 0 Total Loss: 0.787373 Loss: 0.778305 Topo Loss: 0.181365
+07-01 14:50 INFO     Epoch: 1 Total Loss: 0.190226 Loss: 0.178043 Topo Loss: 0.243652
+07-01 14:50 INFO     Epoch: 2 Total Loss: 0.136766 Loss: 0.122760 Topo Loss: 0.280119
+07-01 14:50 INFO     Epoch: 3 Total Loss: 0.102482 Loss: 0.088147 Topo Loss: 0.286702
+07-01 14:50 INFO     Epoch: 4 Total Loss: 0.085061 Loss: 0.070107 Topo Loss: 0.299073
+07-01 14:50 INFO     >> Training accuracy: 0.985729
+07-01 14:50 INFO     >> Test accuracy: 0.727900
+07-01 14:50 INFO      ** Training complete **
+07-01 14:50 INFO     >> Similarity 0.7837
+07-01 14:50 INFO     >> Entropy: 6.922846
+07-01 14:50 INFO     net 0 final test acc 0.727900
+07-01 14:50 INFO     Training network 1. n_training: 9727
+07-01 14:50 INFO     Training network 1
+07-01 14:50 INFO     >> Pre-Training Training accuracy: 0.00010280662074637607
+07-01 14:50 INFO     >> Pre-Training Test accuracy: 0.0972
+07-01 14:50 INFO     Epoch: 0 Total Loss: 0.869748 Loss: 0.859101 Topo Loss: 0.212929
+07-01 14:50 INFO     Epoch: 1 Total Loss: 0.179301 Loss: 0.164170 Topo Loss: 0.302607
+07-01 14:51 INFO     Epoch: 2 Total Loss: 0.105593 Loss: 0.090433 Topo Loss: 0.303197
+07-01 14:51 INFO     Epoch: 3 Total Loss: 0.083243 Loss: 0.067804 Topo Loss: 0.308792
+07-01 14:51 INFO     Epoch: 4 Total Loss: 0.074017 Loss: 0.058512 Topo Loss: 0.310117
+07-01 14:51 INFO     >> Training accuracy: 0.987663
+07-01 14:51 INFO     >> Test accuracy: 0.849000
+07-01 14:51 INFO      ** Training complete **
+07-01 14:51 INFO     >> Similarity 0.7951
+07-01 14:51 INFO     >> Entropy: 6.923025
+07-01 14:51 INFO     net 1 final test acc 0.849000
+07-01 14:51 INFO     Training network 2. n_training: 17752
+07-01 14:51 INFO     Training network 2
+07-01 14:51 INFO     >> Pre-Training Training accuracy: 0.325597115817936
+07-01 14:51 INFO     >> Pre-Training Test accuracy: 0.0972
+07-01 14:51 INFO     Epoch: 0 Total Loss: 0.582957 Loss: 0.570812 Topo Loss: 0.242888
+07-01 14:51 INFO     Epoch: 1 Total Loss: 0.110599 Loss: 0.094169 Topo Loss: 0.328606
+07-01 14:52 INFO     Epoch: 2 Total Loss: 0.074962 Loss: 0.060074 Topo Loss: 0.297746
+07-01 14:52 INFO     Epoch: 3 Total Loss: 0.060803 Loss: 0.045965 Topo Loss: 0.296749
+07-01 14:52 INFO     Epoch: 4 Total Loss: 0.052017 Loss: 0.037930 Topo Loss: 0.281739
+07-01 14:52 INFO     >> Training accuracy: 0.992057
+07-01 14:52 INFO     >> Test accuracy: 0.691400
+07-01 14:52 INFO      ** Training complete **
+07-01 14:52 INFO     >> Similarity 0.8254
+07-01 14:52 INFO     >> Entropy: 6.922354
+07-01 14:52 INFO     net 2 final test acc 0.691400
+07-01 14:52 INFO     Training network 3. n_training: 13686
+07-01 14:52 INFO     Training network 3
+07-01 14:52 INFO     >> Pre-Training Training accuracy: 0.0
+07-01 14:52 INFO     >> Pre-Training Test accuracy: 0.0972
+07-01 14:52 INFO     Epoch: 0 Total Loss: 0.650729 Loss: 0.639589 Topo Loss: 0.222805
+07-01 14:52 INFO     Epoch: 1 Total Loss: 0.120795 Loss: 0.106156 Topo Loss: 0.292786
+07-01 14:53 INFO     Epoch: 2 Total Loss: 0.094552 Loss: 0.079639 Topo Loss: 0.298256
+07-01 14:53 INFO     Epoch: 3 Total Loss: 0.074845 Loss: 0.059894 Topo Loss: 0.299025
+07-01 14:53 INFO     Epoch: 4 Total Loss: 0.060372 Loss: 0.046140 Topo Loss: 0.284642
+07-01 14:53 INFO     >> Training accuracy: 0.988309
+07-01 14:53 INFO     >> Test accuracy: 0.778600
+07-01 14:53 INFO      ** Training complete **
+07-01 14:53 INFO     >> Similarity 0.8234
+07-01 14:53 INFO     >> Entropy: 6.923383
+07-01 14:53 INFO     net 3 final test acc 0.778600
+07-01 14:53 INFO     Training network 4. n_training: 9866
+07-01 14:53 INFO     Training network 4
+07-01 14:53 INFO     >> Pre-Training Training accuracy: 0.0033448205959862153
+07-01 14:53 INFO     >> Pre-Training Test accuracy: 0.0972
+07-01 14:53 INFO     Epoch: 0 Total Loss: 1.086252 Loss: 1.076043 Topo Loss: 0.204184
+07-01 14:53 INFO     Epoch: 1 Total Loss: 0.181496 Loss: 0.165031 Topo Loss: 0.329304
+07-01 14:54 INFO     Epoch: 2 Total Loss: 0.123319 Loss: 0.106894 Topo Loss: 0.328485
+07-01 14:54 INFO     Epoch: 3 Total Loss: 0.096559 Loss: 0.080197 Topo Loss: 0.327253
+07-01 14:54 INFO     Epoch: 4 Total Loss: 0.083244 Loss: 0.067297 Topo Loss: 0.318925
+07-01 14:54 INFO     >> Training accuracy: 0.974356
+07-01 14:54 INFO     >> Test accuracy: 0.792800
+07-01 14:54 INFO      ** Training complete **
+07-01 14:54 INFO     >> Similarity 0.7815
+07-01 14:54 INFO     >> Entropy: 6.923343
+07-01 14:54 INFO     net 4 final test acc 0.792800
+07-01 14:54 INFO     global n_training: 1875
+07-01 14:54 INFO     global n_test: 313
+07-01 14:54 INFO     >> Global Model Train accuracy: 0.765367
+07-01 14:54 INFO     >> Global Model Test accuracy: 0.767200
+07-01 14:54 INFO     >> Global Model Entropy: 4.590033
+07-01 14:54 INFO     in comm round:1
+07-01 14:54 INFO     Training network 0. n_training: 8969
+07-01 14:54 INFO     Training network 0
+07-01 14:54 INFO     >> Pre-Training Training accuracy: 0.392462927862638
+07-01 14:54 INFO     >> Pre-Training Test accuracy: 0.7672
+07-01 14:54 INFO     Epoch: 0 Total Loss: 0.127671 Loss: 0.125960 Topo Loss: 0.034205
+07-01 14:54 INFO     Epoch: 1 Total Loss: 0.069374 Loss: 0.067046 Topo Loss: 0.046555
+07-01 14:55 INFO     Epoch: 2 Total Loss: 0.047173 Loss: 0.044809 Topo Loss: 0.047291
+07-01 14:55 INFO     Epoch: 3 Total Loss: 0.038599 Loss: 0.036159 Topo Loss: 0.048789
+07-01 14:55 INFO     Epoch: 4 Total Loss: 0.031308 Loss: 0.028758 Topo Loss: 0.051005
+07-01 14:55 INFO     >> Training accuracy: 0.994871
+07-01 14:55 INFO     >> Test accuracy: 0.829800
+07-01 14:55 INFO      ** Training complete **
+07-01 14:55 INFO     >> Similarity 0.9834
+07-01 14:55 INFO     >> Entropy: 4.540525
+07-01 14:55 INFO     net 0 final test acc 0.829800
+07-01 14:55 INFO     Training network 1. n_training: 9727
+07-01 14:55 INFO     Training network 1
+07-01 14:55 INFO     >> Pre-Training Training accuracy: 0.938213220931428
+07-01 14:55 INFO     >> Pre-Training Test accuracy: 0.7672
+07-01 14:55 INFO     Epoch: 0 Total Loss: 0.100107 Loss: 0.098432 Topo Loss: 0.033495
+07-01 14:55 INFO     Epoch: 1 Total Loss: 0.064155 Loss: 0.062305 Topo Loss: 0.036993
+07-01 14:55 INFO     Epoch: 2 Total Loss: 0.046478 Loss: 0.044454 Topo Loss: 0.040475
+07-01 14:55 INFO     Epoch: 3 Total Loss: 0.036254 Loss: 0.034258 Topo Loss: 0.039928
+07-01 14:55 INFO     Epoch: 4 Total Loss: 0.026926 Loss: 0.024929 Topo Loss: 0.039942
+07-01 14:55 INFO     >> Training accuracy: 0.993626
+07-01 14:55 INFO     >> Test accuracy: 0.853200
+07-01 14:55 INFO      ** Training complete **
+07-01 14:55 INFO     >> Similarity 0.9919
+07-01 14:55 INFO     >> Entropy: 4.585432
+07-01 14:55 INFO     net 1 final test acc 0.853200
+07-01 14:55 INFO     Training network 2. n_training: 17752
+07-01 14:55 INFO     Training network 2
+07-01 14:55 INFO     >> Pre-Training Training accuracy: 0.6377872915727806
+07-01 14:55 INFO     >> Pre-Training Test accuracy: 0.7672
+07-01 14:56 INFO     Epoch: 0 Total Loss: 0.090256 Loss: 0.088221 Topo Loss: 0.040700
+07-01 14:56 INFO     Epoch: 1 Total Loss: 0.049978 Loss: 0.047672 Topo Loss: 0.046138
+07-01 14:56 INFO     Epoch: 2 Total Loss: 0.037350 Loss: 0.035136 Topo Loss: 0.044278
+07-01 14:56 INFO     Epoch: 3 Total Loss: 0.029486 Loss: 0.027192 Topo Loss: 0.045869
+07-01 14:56 INFO     Epoch: 4 Total Loss: 0.023519 Loss: 0.021328 Topo Loss: 0.043825
+07-01 14:56 INFO     >> Training accuracy: 0.996057
+07-01 14:56 INFO     >> Test accuracy: 0.830200
+07-01 14:56 INFO      ** Training complete **
+07-01 14:56 INFO     >> Similarity 0.9867
+07-01 14:56 INFO     >> Entropy: 4.556485
+07-01 14:56 INFO     net 2 final test acc 0.830200
+07-01 14:56 INFO     Training network 3. n_training: 13686
+07-01 14:56 INFO     Training network 3
+07-01 14:57 INFO     >> Pre-Training Training accuracy: 0.9406692970919187
+07-01 14:57 INFO     >> Pre-Training Test accuracy: 0.7672
+07-01 14:57 INFO     Epoch: 0 Total Loss: 0.085095 Loss: 0.083434 Topo Loss: 0.033202
+07-01 14:57 INFO     Epoch: 1 Total Loss: 0.052193 Loss: 0.050238 Topo Loss: 0.039101
+07-01 14:57 INFO     Epoch: 2 Total Loss: 0.038191 Loss: 0.036005 Topo Loss: 0.043730
+07-01 14:57 INFO     Epoch: 3 Total Loss: 0.033626 Loss: 0.031383 Topo Loss: 0.044844
+07-01 14:57 INFO     Epoch: 4 Total Loss: 0.028224 Loss: 0.026046 Topo Loss: 0.043547
+07-01 14:57 INFO     >> Training accuracy: 0.994301
+07-01 14:57 INFO     >> Test accuracy: 0.788200
+07-01 14:57 INFO      ** Training complete **
+07-01 14:57 INFO     >> Similarity 0.9823
+07-01 14:57 INFO     >> Entropy: 4.574800
+07-01 14:57 INFO     net 3 final test acc 0.788200
+07-01 14:57 INFO     Training network 4. n_training: 9866
+07-01 14:57 INFO     Training network 4
+07-01 14:57 INFO     >> Pre-Training Training accuracy: 0.920332454895601
+07-01 14:57 INFO     >> Pre-Training Test accuracy: 0.7672
+07-01 14:58 INFO     Epoch: 0 Total Loss: 0.127627 Loss: 0.125633 Topo Loss: 0.039891
+07-01 14:58 INFO     Epoch: 1 Total Loss: 0.081373 Loss: 0.078868 Topo Loss: 0.050102
+07-01 14:58 INFO     Epoch: 2 Total Loss: 0.057245 Loss: 0.054804 Topo Loss: 0.048823
+07-01 14:58 INFO     Epoch: 3 Total Loss: 0.048306 Loss: 0.045636 Topo Loss: 0.053398
+07-01 14:58 INFO     Epoch: 4 Total Loss: 0.040890 Loss: 0.038177 Topo Loss: 0.054259
+07-01 14:58 INFO     >> Training accuracy: 0.994628
+07-01 14:58 INFO     >> Test accuracy: 0.899300
+07-01 14:58 INFO      ** Training complete **
+07-01 14:58 INFO     >> Similarity 0.9801
+07-01 14:58 INFO     >> Entropy: 4.721068
+07-01 14:58 INFO     net 4 final test acc 0.899300
+07-01 14:58 INFO     global n_training: 1875
+07-01 14:58 INFO     global n_test: 313
+07-01 14:58 INFO     >> Global Model Train accuracy: 0.892283
+07-01 14:58 INFO     >> Global Model Test accuracy: 0.891400
+07-01 14:58 INFO     >> Global Model Entropy: 3.530455
+07-01 14:58 INFO     in comm round:2
+07-01 14:58 INFO     Training network 0. n_training: 8969
+07-01 14:58 INFO     Training network 0
+07-01 14:58 INFO     >> Pre-Training Training accuracy: 0.641097112275616
+07-01 14:58 INFO     >> Pre-Training Test accuracy: 0.8914
+07-01 14:59 INFO     Epoch: 0 Total Loss: 0.071577 Loss: 0.070199 Topo Loss: 0.027562
+07-01 14:59 INFO     Epoch: 1 Total Loss: 0.033243 Loss: 0.032028 Topo Loss: 0.024302
