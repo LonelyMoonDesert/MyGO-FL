@@ -16,7 +16,6 @@ import random
 import matplotlib.pyplot as plt
 import umap
 import datetime
-# from torch.utils.tensorboard import SummaryWriter
 from matplotlib import colors
 from model import *
 from utils import *
@@ -25,6 +24,18 @@ from resnetcifar import *
 from pytorch_pretrained_vit import ViT
 from sklearn.neighbors import KernelDensity
 from geomloss import SamplesLoss
+from gudhi.representations import PersistenceImage
+import gc
+import psutil
+
+from sklearn.decomposition import PCA
+import gudhi
+import torch.nn.functional as F
+from torch import nn
+
+
+pi = PersistenceImage()  # 可以指定分辨率等参数
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -621,15 +632,12 @@ def train_net_fedgan(net_id, net, train_dataloader, test_dataloader, epochs, lr,
 
     return train_acc, test_acc, G_output_list
 
-def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr, args_optimizer, global_model, history, round, device="cpu"):
-    global features
-    logger.info('Training network %s' % str(net_id))
-
-    train_acc = compute_accuracy(net, train_dataloader, device=device)
-    test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
-
-    logger.info('>> Pre-Training Training accuracy: {}'.format(train_acc))
-    logger.info('>> Pre-Training Test accuracy: {}'.format(test_acc))
+def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr, args_optimizer,
+                      global_model, history, round, device="cpu", pi=None, K=8, pool_size=32, alpha=0.3):
+    """
+    FedTopo 训练核心新实现！彻底避免特征“短路”，使用PI signature欧氏loss。
+    pi: gudhi.representations.PersistenceImage 实例, K: PCA分量数, alpha: topo loss权重
+    """
 
     if args_optimizer == 'adam':
         optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=lr, weight_decay=args.reg)
@@ -641,100 +649,111 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                               weight_decay=args.reg)
     criterion = nn.CrossEntropyLoss().to(device)
 
-    cnt = 0
-    if type(train_dataloader) == type([1]):
-        pass
-    else:
+    logger.info('Training network %s' % str(net_id))
+
+    train_acc = compute_accuracy(net, train_dataloader, device=device)
+    test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
+    logger.info('>> Pre-Training Training accuracy: {}'.format(train_acc))
+    logger.info('>> Pre-Training Test accuracy: {}'.format(test_acc))
+
+    if type(train_dataloader) != type([1]):
         train_dataloader = [train_dataloader]
 
-    # writer = SummaryWriter()
-    G_output_list = None
     for epoch in range(epochs):
-        epoch_total_loss_collector = []
-        epoch_loss_collector = []
-        epoch_topo_loss_collector = []
-
+        total_loss_collector, ce_loss_collector, topo_loss_collector = [], [], []
+        last_local_pi, last_global_pi, last_out = None, None, None
         for tmp in train_dataloader:
-            for batch_idx, (x, target) in enumerate(tmp):
+            for x, target in tmp:
                 x, target = x.to(device), target.to(device)
-
                 optimizer.zero_grad()
-                x.requires_grad = True
+                x.requires_grad = False
                 target.requires_grad = False
                 target = target.long()
 
+                # === 1. forward 得到 local/global PI 向量 ===
+                local_feat  = extract_layer_features(net, x,  layer_name='layer3', pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name='layer3', pool_size=pool_size, device=device)
+                local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
+                global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
+
+                # print("local_pi:", local_pi[:2, :5])  # 打印前两个样本的前5维
+                # print("global_pi:", global_pi[:2, :5])
+                # print("local_pi var:", local_pi.var(dim=1))
+                # print("global_pi var:", global_pi.var(dim=1))
+
+                # === 2. Loss ===
                 out = net(x)
-                if features.dim() > 2:
-                    features = features.view(features.size(0), -1)
-                local_features = features
-
-                global_out = global_model(x)
-                if features.dim() > 2:
-                    features = features.view(features.size(0), -1)
-                global_features = features
-                # 在最后一个 epoch 记录下 G_output
-                if epoch == epochs - 1:
-                    # features = features.cpu()  # Ensure features is on CPU
-                    if G_output_list is None:
-                        G_output_list = features  # Initialize with the first feature map
-                    else:
-                        # Concatenate along the batch dimension
-                        G_output_list = torch.cat((G_output_list, features), dim=0)
-
-                # 打印features的形状
-                # print('Shape of features: {}'.format(features.shape))   # torch.Size([64, 64, 4, 4])
-                # print('Shape of global_features: {}'.format(global_features.shape)) # torch.Size([64, 64, 4, 4])
-                # 计算topo loss
-                topo_loss = hybrid_alignment_loss(local_features, global_features, alpha=0.9)  # 计算拓扑损失
-
-                loss = criterion(out, target)
-
-                # 计算总损失
-                total_loss = loss + 0.05 * topo_loss
+                ce_loss = criterion(out, target)
+                topo_loss = torch.norm(local_pi - global_pi, p=2) / x.shape[0]
+                total_loss = ce_loss + alpha * topo_loss
 
                 total_loss.backward()
                 optimizer.step()
 
-                cnt += 1
-                epoch_total_loss_collector.append(total_loss.item())
-                epoch_loss_collector.append(loss.item())
-                epoch_topo_loss_collector.append(topo_loss.item())
+                total_loss_collector.append(total_loss.item())
+                ce_loss_collector.append(ce_loss.item())
+                topo_loss_collector.append(topo_loss.item())
 
-        epoch_total_loss = sum(epoch_total_loss_collector) / len(epoch_total_loss_collector)
-        epoch_loss = sum(epoch_loss_collector) / len(epoch_loss_collector)
-        epoch_topo_loss = sum(epoch_topo_loss_collector) / len(epoch_topo_loss_collector)
-        logger.info('Epoch: %d Total Loss: %f Loss: %f Topo Loss: %f' % (epoch, epoch_total_loss, epoch_loss, epoch_topo_loss))
+                # 只记录最后一个batch的特征和输出
+                last_local_pi = local_pi.detach()
+                last_global_pi = global_pi.detach()
+                last_out = out.detach()
 
+        epoch_total_loss = np.mean(total_loss_collector)
+        epoch_ce_loss = np.mean(ce_loss_collector)
+        epoch_topo_loss = np.mean(topo_loss_collector)
+        logger.info(f'Epoch: {epoch} Total: {epoch_total_loss:.4f} CE: {epoch_ce_loss:.4f} Topo: {epoch_topo_loss:.4f}')
+
+    # 结尾照常统计 acc/记录 history ...
     train_acc = compute_accuracy(net, train_dataloader, device=device)
     test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
-
     logger.info('>> Training accuracy: %f' % train_acc)
     logger.info('>> Test accuracy: %f' % test_acc)
-
     net.to('cpu')
     logger.info(' ** Training complete **')
 
-    # 计算相似性
-    similarity = compute_feature_similarity(local_features, global_features)
-    logging.info(f">> Similarity {similarity.item():.4f}")  # 记录相似度
+    # # 计算相似性
+    # similarity = compute_feature_similarity(local_feat, global_feat)
+    # logging.info(f">> Similarity {similarity.item():.4f}")  # 记录相似度
+    #
+    # # 在返回前计算拓扑距离
+    # with torch.no_grad():
+    #     distance = 1 - similarity.item()  # 使用1 - 相似度作为距离
+    #
+    # if args.dataset != 'generated':
+    #     entropy = compute_entropy(G_output_list)
+    #     # 记录这次的平均熵值
+    #     logger.info('>> Entropy: %f' % entropy)
 
-    # 在返回前计算拓扑距离
-    with torch.no_grad():
-        distance = 1 - similarity.item()  # 使用1 - 相似度作为距离
+    # === 用最后一个batch的local_pi/global_pi和out统计指标 ===
+    # 1. 特征相似性（以欧氏距离为例，或者你可以换成别的指标）
+    if last_local_pi is not None and last_global_pi is not None:
+        similarity = torch.nn.functional.cosine_similarity(
+            last_local_pi.flatten(1), last_global_pi.flatten(1)
+        ).mean().item()
+        distance = torch.norm(last_local_pi - last_global_pi, p=2).item() / last_local_pi.shape[0]
+    else:
+        similarity = 0.0
+        distance = 0.0
+    logger.info(f">> Last-batch PI Similarity: {similarity:.4f}")
+    logger.info(f">> Last-batch Topo Distance: {distance:.4f}")
 
-    if args.dataset != 'generated':
-        entropy = compute_entropy(G_output_list)
-        # 记录这次的平均熵值
-        logger.info('>> Entropy: %f' % entropy)
-
+    # 2. 用最后一个batch的logits算熵
+    if last_out is not None:
+        probs = torch.nn.functional.softmax(last_out, dim=1)
+        log_probs = torch.log(probs + 1e-7)
+        entropy = -torch.sum(probs * log_probs, dim=1).mean().item()
+        logger.info('>> Last-batch Entropy: %f' % entropy)
+    else:
+        entropy = 0.0
     # 更新历史记录
     history['client_total_loss'][net_id][round] = epoch_total_loss
-    history['client_loss'][net_id][round] = epoch_loss
+    history['client_ce_loss'][net_id][round] = epoch_ce_loss
     history['client_topo_loss'][net_id][round] = epoch_topo_loss
     history['client_train_acc'][net_id][round] = train_acc
     history['client_test_acc'][net_id][round] = test_acc
     history['client_topo_distance'][net_id][round] = distance
-    history['client_similarity'][net_id][round] = similarity.item()
+    history['client_similarity'][net_id][round] = similarity
     history['client_entropy'][net_id][round] = entropy
 
     return train_acc, test_acc
@@ -1331,6 +1350,101 @@ def hybrid_alignment_loss(client_features, global_features, alpha=0.9):
     geometric_loss = compute_geometric_alignment_loss(client_features, global_features)  # 新几何损失
     return alpha * geometric_loss + (1 - alpha) * statistical_loss
 
+def extract_layer_features(model, x, layer_name='layer3', pool_size=32, device='cuda'):
+    """
+    获取某模型某一层的输出，并池化到 pool_size×pool_size。
+    返回: tensor, shape [B, C, pool_size, pool_size]
+    """
+    feats = []
+    def hook_fn(module, input, output):
+        feats.append(output.detach())
+    # 找到目标层
+    layer = dict([*model.named_modules()])[layer_name]
+    handle = layer.register_forward_hook(hook_fn)
+    _ = model(x.to(device))
+    handle.remove()
+    feat = feats[0]
+    feat = nn.functional.adaptive_avg_pool2d(feat, pool_size)
+    # print('pooled feat', feat.shape)    # pooled feat torch.Size([32, 256, 8, 8])
+    # print('first image, first channel', feat[0, 0])
+    # print('second image, first channel', feat[1, 0])
+    # print('mean diff', (feat[0] - feat[1]).abs().mean())
+    return feat
+
+def batch_channel_pi(feat_bchw, K=8, pi=None):
+    B, C, H, W = feat_bchw.shape
+    pi_vecs = []
+    feat_cpu = feat_bchw.cpu().detach()
+    for i in range(B):
+        vlist = []
+        for k in range(min(K, C)):
+            # 检查arr内容
+            arr = feat_cpu[i, k].numpy()
+            # print(f"batch {i}, channel {k}, arr mean/std:", arr.mean(), arr.std(), "max/min", arr.max(), arr.min())
+            cc = gudhi.CubicalComplex(dimensions=arr.shape, top_dimensional_cells=arr.ravel())
+            bars = cc.persistence()
+            # 只取条形码 birth-death 二元组
+            bars_pd = [pair[1] for pair in bars if len(pair) > 1 and pair[1][1] > pair[1][0]]
+            if len(bars_pd) == 0:
+                bars_pd = np.zeros((0, 2), dtype=np.float32)  # 空 shape
+            else:
+                bars_pd = np.array(bars_pd, dtype=np.float32).reshape(-1, 2)
+            try:
+                v = pi.transform([bars_pd]).ravel()
+            except Exception:
+                # 兼容 PI transform 的各版本行为
+                v = np.zeros(pi.fit([np.array([[0, 0]])]).transform([np.array([[0, 0]])]).shape[1], dtype=np.float32)
+            vlist.append(v)
+        vlist = np.stack(vlist, 0)
+        pi_vecs.append(vlist.mean(axis=0))
+    pi_vecs = torch.tensor(np.stack(pi_vecs, 0), device=feat_bchw.device, dtype=torch.float32)
+    return pi_vecs
+
+def fit_persistence_image_from_loader(model, dataloader, device, layer_name='layer3', pool_size=8, K=2, max_batches=20):
+    from gudhi.representations import PersistenceImage
+    pi = PersistenceImage()
+    all_barcodes = []
+    batch_count = 0
+
+    for x, _ in dataloader:
+        x = x.to(device)
+        with torch.no_grad():
+            feat = extract_layer_features(model, x, layer_name=layer_name, pool_size=pool_size, device=device)
+        B, C, H, W = feat.shape
+        feat_cpu = feat.cpu().detach()
+        for i in range(B):
+            for k in range(min(K, C)):
+                arr = feat_cpu[i, k].numpy()
+                cc = gudhi.CubicalComplex(dimensions=arr.shape, top_dimensional_cells=arr.ravel())
+                bars = cc.persistence()
+                bars_pd = [pair[1] for pair in bars if len(pair) > 1 and pair[1][1] > pair[1][0]]
+                if len(bars_pd) == 0:
+                    bars_pd = np.zeros((0, 2), dtype=np.float32)
+                else:
+                    bars_pd = np.array(bars_pd, dtype=np.float32).reshape(-1, 2)
+                all_barcodes.append(bars_pd)
+        batch_count += 1
+        if batch_count >= max_batches:
+            break
+
+    # ----------- 关键：只保留有限数 ----------
+    valid_barcodes = []
+    for bars in all_barcodes:
+        if bars.shape[0] == 0:
+            continue
+        finite_mask = np.isfinite(bars).all(axis=1)
+        bars = bars[finite_mask]
+        # 你可以顺便过滤 death-birth<1e-7 这样的空条
+        nonzero_mask = (np.abs(bars[:, 1] - bars[:, 0]) > 1e-7)
+        bars = bars[nonzero_mask]
+        if bars.shape[0] > 0:
+            valid_barcodes.append(bars)
+    if len(valid_barcodes) == 0:
+        valid_barcodes.append(np.array([[0, 0]], dtype=np.float32))
+
+    pi.fit(valid_barcodes)
+    return pi
+
 def save_global_model(global_model_checkpoint, directory, filename="global_model.pth"):
     """
     Save the global model state to a specified directory with a consistent filename format.
@@ -1796,7 +1910,7 @@ def local_train_net(nets, selected, args, net_dataidx_map, D, adv=False, test_dl
     return nets_list, G_output_list_all_clients
 
 
-def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, test_dl=None, device="cpu"):
+def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, test_dl=None, device="cpu"):
     avg_acc = 0.0
 
     for net_id, net in nets.items():
@@ -1823,11 +1937,19 @@ def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model,
         train_dl_global, test_dl_global, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32)
         n_epoch = args.epochs
 
-        trainacc, testacc = train_net_fedtopo(net_id, net, train_dl_local, test_dl, n_epoch, args.lr,
-                                               args.optimizer, global_model, history, round,
-                                               device=device)
+        # trainacc, testacc = train_net_fedtopo(net_id, net, train_dl_local, test_dl, n_epoch, args.lr,
+        #                                        args.optimizer, global_model, history, round,
+        #                                        device=device)
+        # 轮数越大，alpha越大（可控上线）
+        alpha = min(0.05 + round * 0.01, 0.5)  # 最高到0.5
+
+        trainacc, testacc = train_net_fedtopo(
+            net_id, net, train_dl_local, test_dl, n_epoch, args.lr, args.optimizer,
+            global_model, history, round, device=device, pi=pi, K=2, pool_size=8, alpha=alpha)
         logger.info("net %d final test acc %f" % (net_id, testacc))
         avg_acc += testacc
+        gc.collect()
+        torch.cuda.empty_cache()
     avg_acc /= len(selected)
     if args.alg == 'local_training':
         logger.info("avg test acc %f" % avg_acc)
@@ -2334,7 +2456,7 @@ if __name__ == '__main__':
         # 初始化history，用于绘图
         history = {
             'client_total_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_ce_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_topo_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_train_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_test_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
@@ -2360,7 +2482,17 @@ if __name__ == '__main__':
         # ---- 在 federated_learning 最开始，做一次全局 fit ----
         umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
 
+
+        # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
+        print("Fitting PersistenceImage on global_model + train_dl_global ...")
+        pi = fit_persistence_image_from_loader(
+            global_model, train_dl_global, device,
+            layer_name='layer3', pool_size=8, K=2, max_batches=20  # 按你需求可调参数
+        )
+        print("Done fitting PersistenceImage.")
+
         for round in range(args.comm_round):
+            print(f"[进程实际内存] {(psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024):.1f} MB")
             logger.info("in comm round:" + str(round))
 
             arr = np.arange(args.n_parties)
@@ -2376,7 +2508,7 @@ if __name__ == '__main__':
                 for idx in selected:
                     nets[idx].load_state_dict(global_para)
 
-            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, test_dl=test_dl_global, device=device)
+            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, test_dl=test_dl_global, device=device)
 
             # update global model
             total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
@@ -2406,6 +2538,8 @@ if __name__ == '__main__':
             if args.dataset != 'generated':
                 entropy = compute_global_entropy(global_model, train_dl_global, device=device)
                 logger.info('>> Global Model Entropy: %f' % entropy)
+
+
 
             # # 更新全局特征
             # global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
@@ -2482,7 +2616,10 @@ if __name__ == '__main__':
             #         all_targets = client_targets_list + [global_labels]  # 使用真实标签
             #         fig = plot_client_comparison(all_features, all_targets, args.n_parties + 1)
             #         fig.savefig(os.path.join(args.logdir, f'comparison_round_{round}.png'))
-        # 绘制训练过程曲线
+            gc.collect()
+            torch.cuda.empty_cache()
+
+        # 最后再画一下 loss 曲线
         fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
         fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
         plt.close(fig3)  # 关闭图形
