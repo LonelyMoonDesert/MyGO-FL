@@ -1472,7 +1472,7 @@ NORM = colors.Normalize(vmin=0, vmax=9)
 
 # 画图
 def plot_training_progress(history, n_clients, n_rounds):
-    fig, axs = plt.subplots(3, 2, figsize=(20, 15))  # 调整为3x2布局
+    fig, axs = plt.subplots(3, 3, figsize=(20, 15))  # 调整为3x2布局
     xs = range(1, n_rounds + 1)  # 从第1轮开始
 
     # 1. 总loss
@@ -1482,25 +1482,40 @@ def plot_training_progress(history, n_clients, n_rounds):
 
     # 2. training loss
     for client_id in range(n_clients):
-        axs[0, 1].plot(xs, history['client_training_loss'][client_id][1:], label=f'Client {client_id}')
+        axs[0, 1].plot(xs, history['client_ce_loss'][client_id][1:], label=f'Client {client_id}')
     axs[0, 1].set_title('Training Loss per Client')
 
-    # 3. similarity（新增）
+    # 3. topo loss
     for client_id in range(n_clients):
-        axs[1, 0].plot(xs, history['client_similarity'][client_id][1:], label=f'Client {client_id}')
-    axs[1, 0].set_title('Feature Similarity')
+        axs[0, 2].plot(xs, history['client_topo_loss'][client_id][1:], label=f'Client {client_id}')
+    axs[0, 2].set_title('Topo Loss per Client')
 
-    # 4. topo distance
+    # 4. train acc
     for client_id in range(n_clients):
-        axs[1, 1].plot(xs, history['client_topo_distance'][client_id][1:], label=f'Client {client_id}')
-    axs[1, 1].set_title('Topological Distance')
+        axs[1, 0].plot(xs, history['client_train_acc'][client_id][1:], label=f'Client {client_id}')
+    axs[1, 0].set_title('Train Acc per Client')
 
-    # 5. topo loss
+    # 5. test acc
     for client_id in range(n_clients):
-        axs[2, 0].plot(xs, history['client_topo_loss'][client_id][1:], label=f'Client {client_id}')
-    axs[2, 0].set_title('Topology Loss')
+        axs[1, 1].plot(xs, history['client_test_acc'][client_id][1:], label=f'Client {client_id}')
+    axs[1, 1].set_title('Test Acc per Client')
 
-    axs[2, 1].axis('off')  # 关闭最后一个子图
+    # 6. topo distance
+    for client_id in range(n_clients):
+        axs[1, 2].plot(xs, history['client_topo_distance'][client_id][1:], label=f'Client {client_id}')
+    axs[1, 2].set_title('Topological Distance')
+
+    # 7. similarity（新增）
+    for client_id in range(n_clients):
+        axs[2, 0].plot(xs, history['client_similarity'][client_id][1:], label=f'Client {client_id}')
+    axs[2, 0].set_title('Feature Similarity')
+
+    # 8. entropy
+    for client_id in range(n_clients):
+        axs[2, 1].plot(xs, history['client_entropy'][client_id][1:], label=f'Client {client_id}')
+    axs[2, 1].set_title('Entropy')
+
+    axs[2, 2].axis('off')  # 关闭最后一个子图
 
     for ax in axs.flat:
         ax.set_xlabel('Round')
