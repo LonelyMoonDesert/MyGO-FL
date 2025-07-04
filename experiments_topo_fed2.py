@@ -32,7 +32,7 @@ from sklearn.decomposition import PCA
 import gudhi
 import torch.nn.functional as F
 from torch import nn
-
+import seaborn as sns
 
 pi = PersistenceImage()  # 可以指定分辨率等参数
 
@@ -1472,59 +1472,33 @@ NORM = colors.Normalize(vmin=0, vmax=9)
 
 # 画图
 def plot_training_progress(history, n_clients, n_rounds):
-    fig, axs = plt.subplots(3, 3, figsize=(20, 15))  # 调整为3x2布局
-    xs = range(1, n_rounds + 1)  # 从第1轮开始
+    fig, axs = plt.subplots(3, 3, figsize=(20, 15))
+    xs = range(1, n_rounds + 1)  # 1~n_rounds
+    round_labels = [str(r) for r in xs]
 
-    # 1. 总loss
+    # 只取实际存储过的数据：history[client_id][0:n_rounds]
     for client_id in range(n_clients):
-        axs[0, 0].plot(xs, history['client_total_loss'][client_id][1:], label=f'Client {client_id}')
-    axs[0, 0].set_title('Total Loss per Client')
+        axs[0, 0].plot(xs, history['client_total_loss'][client_id][:n_rounds], label=f'Client {client_id}')
+        axs[0, 1].plot(xs, history['client_ce_loss'][client_id][:n_rounds], label=f'Client {client_id}')
+        axs[0, 2].plot(xs, history['client_topo_loss'][client_id][:n_rounds], label=f'Client {client_id}')
+        axs[1, 0].plot(xs, history['client_train_acc'][client_id][:n_rounds], label=f'Client {client_id}')
+        axs[1, 1].plot(xs, history['client_test_acc'][client_id][:n_rounds], label=f'Client {client_id}')
+        axs[1, 2].plot(xs, history['client_topo_distance'][client_id][:n_rounds], label=f'Client {client_id}')
+        axs[2, 0].plot(xs, history['client_similarity'][client_id][:n_rounds], label=f'Client {client_id}')
+        axs[2, 1].plot(xs, history['client_entropy'][client_id][:n_rounds], label=f'Client {client_id}')
 
-    # 2. training loss
-    for client_id in range(n_clients):
-        axs[0, 1].plot(xs, history['client_ce_loss'][client_id][1:], label=f'Client {client_id}')
-    axs[0, 1].set_title('Training Loss per Client')
-
-    # 3. topo loss
-    for client_id in range(n_clients):
-        axs[0, 2].plot(xs, history['client_topo_loss'][client_id][1:], label=f'Client {client_id}')
-    axs[0, 2].set_title('Topo Loss per Client')
-
-    # 4. train acc
-    for client_id in range(n_clients):
-        axs[1, 0].plot(xs, history['client_train_acc'][client_id][1:], label=f'Client {client_id}')
-    axs[1, 0].set_title('Train Acc per Client')
-
-    # 5. test acc
-    for client_id in range(n_clients):
-        axs[1, 1].plot(xs, history['client_test_acc'][client_id][1:], label=f'Client {client_id}')
-    axs[1, 1].set_title('Test Acc per Client')
-
-    # 6. topo distance
-    for client_id in range(n_clients):
-        axs[1, 2].plot(xs, history['client_topo_distance'][client_id][1:], label=f'Client {client_id}')
-    axs[1, 2].set_title('Topological Distance')
-
-    # 7. similarity（新增）
-    for client_id in range(n_clients):
-        axs[2, 0].plot(xs, history['client_similarity'][client_id][1:], label=f'Client {client_id}')
-    axs[2, 0].set_title('Feature Similarity')
-
-    # 8. entropy
-    for client_id in range(n_clients):
-        axs[2, 1].plot(xs, history['client_entropy'][client_id][1:], label=f'Client {client_id}')
-    axs[2, 1].set_title('Entropy')
-
-    axs[2, 2].axis('off')  # 关闭最后一个子图
+    axs[2, 2].axis('off')
 
     for ax in axs.flat:
         ax.set_xlabel('Round')
         ax.set_ylabel('Value')
         ax.legend()
+        ax.set_xticks(xs)
+        ax.set_xticklabels(round_labels)
+        ax.set_xlim(xs[0], xs[-1])  # 保证只显示1~n_rounds
 
     plt.tight_layout()
     return fig
-
 
 def plot_3d_features(ax, features, targets, client_id=None):
     """统一3D特征可视化函数（带边缘线）"""
@@ -2497,6 +2471,9 @@ if __name__ == '__main__':
         # ---- 在 federated_learning 最开始，做一次全局 fit ----
         umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
 
+        # 设置需要保存PI的轮次
+        key_rounds = [0,  args.comm_round // 4, args.comm_round // 2, (3 * args.comm_round - 2) // 4, args.comm_round - 1]
+        pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
 
         # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
         print("Fitting PersistenceImage on global_model + train_dl_global ...")
@@ -2554,87 +2531,47 @@ if __name__ == '__main__':
                 entropy = compute_global_entropy(global_model, train_dl_global, device=device)
                 logger.info('>> Global Model Entropy: %f' % entropy)
 
+            if round in key_rounds:
+                pi_records[round] = {}
+                # --- 每个客户端 ---
+                for net_id, net in nets.items():
+                    net = net.to(args.device)  # 新增：把模型放到同一个 device 上
+                    net.eval()
+                    # 采样一批本地数据
+                    dataidxs = net_dataidx_map[net_id]
+                    if args.noise_type == 'space':
+                        train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir,
+                                                                             args.batch_size, 32,
+                                                                             dataidxs, noise_level, net_id,
+                                                                             args.n_parties - 1)
+                    else:
+                        noise_level = args.noise / (args.n_parties - 1) * net_id
+                        train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir,
+                                                                             args.batch_size, 32,
+                                                                             dataidxs, noise_level)
+                    x, _ = next(iter(train_dl_local))
+                    x = x[:32].to(args.device)  # 可设batch大小
+                    feat = extract_layer_features(net, x, layer_name='layer3', pool_size=8, device=args.device)
+                    pi_vec = batch_channel_pi(feat, K=8, pi=pi)
+                    pi_records[round][net_id] = pi_vec.cpu().numpy()
+                # --- 全局模型 ---
+                global_model = global_model.to(args.device)  # 保证全局模型也在对的设备
+                global_model.eval()
+                x, _ = next(iter(train_dl_global))
+                x = x[:32].to(args.device)
+                feat = extract_layer_features(global_model, x, layer_name='layer3', pool_size=8, device=args.device)
+                pi_vec = batch_channel_pi(feat, K=8, pi=pi)
+                pi_records[round]['global'] = pi_vec.cpu().numpy()
+                print(f"[INFO] Collected PI for round {round}")
 
-
-            # # 更新全局特征
-            # global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
-            #
-            # # 全局特征可视化
-            # global_feats = global_features.cpu().numpy()
-            # global_labels = global_targets.copy()  # 使用副本避免修改原始数据
-            #
-            # global_emb = umap_reducer.transform(global_feats)  # 这里赋值
-            # fig_global = plot_topology_analysis(global_emb, global_labels)
-            # fig_global.savefig(os.path.join(args.logdir, f'global_round_{round}.png'))
-            # plt.close(fig_global)  # 关闭图形
-            #
-            # # 绘制global相关特征图
-            # if global_emb is not None and global_labels is not None:  # 确保不为 None
-            #     all_features = client_features_list + [global_emb]
-            #     all_targets = client_targets_list + [global_labels]  # 使用真实标签
-            #     fig2 = plot_client_comparison(all_features, all_targets, args.n_parties + 1)
-            #     fig2.savefig(os.path.join(args.logdir, f'comparison_round_{round}.png'))
-            #     plt.close(fig2)  # 关闭图形
-            #
-            # # 绘制client相关图
-            # client_features_list = []
-            # client_targets_list = []
-            # for net_id in range(args.n_parties):
-            #     # 提取这个 client 的全部特征
-            #     dataidxs = net_dataidx_map[net_id]
-            #     if args.noise_type == 'space':
-            #         train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
-            #                                                                                       args.datadir,
-            #                                                                                       args.batch_size, 32,
-            #                                                                                       dataidxs, noise_level,
-            #                                                                                       net_id,
-            #                                                                                       args.n_parties - 1)
-            #     else:
-            #         noise_level = args.noise / (args.n_parties - 1) * net_id
-            #         train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
-            #                                                                                       args.datadir,
-            #                                                                                       args.batch_size, 32,
-            #                                                                                       dataidxs, noise_level)
-            #     feats, targs = [], []
-            #     with torch.no_grad():
-            #         nets[net_id].eval()
-            #         nets[net_id].to(device)
-            #         for x, y in train_dl_local:
-            #             out = nets[net_id](x.to(device))
-            #             f = features
-            #             f = f.view(f.size(0), -1)
-            #             feats.append(f.cpu().numpy())
-            #             targs.append(y.numpy())
-            #             feats = np.concatenate(feats, axis=0)
-            #             targs = np.concatenate(targs, axis=0)
-            #     print(feats.shape)
-            #     print(targs.shape)
-            #
-            #     # 下采样
-            #     if feats.shape[0] > MAX_SAMPLES:
-            #         idx = rng.choice(feats.shape[0], MAX_SAMPLES, replace=False)
-            #         feats = feats[idx]
-            #         targs = targs[idx]
-            #     # UMAP transform
-            #     emb = umap_reducer.transform(feats)
-            #     fig = plot_topology_analysis(emb, targs, net_id)
-            #     fig.savefig(os.path.join(args.logdir, f'client_{net_id}_round_{round}.png'))
-            #     plt.close(fig)
-            #
-            #     # 单独保存3D特征用于对比图
-            #     client_features_list.append(emb)  # emb已经是3D坐标
-            #     client_targets_list.append(targs)
-            #
-            #     # 生成对比图时只使用3D视图
-            #     if global_emb is not None and global_labels is not None:  # 确保不为 None
-            #         all_features = client_features_list + [global_emb]
-            #         all_targets = client_targets_list + [global_labels]  # 使用真实标签
-            #         fig = plot_client_comparison(all_features, all_targets, args.n_parties + 1)
-            #         fig.savefig(os.path.join(args.logdir, f'comparison_round_{round}.png'))
             gc.collect()
             torch.cuda.empty_cache()
 
+        np.savez("logs/resnet18-cifar10/label-beta0.1/topo-vis/topo_PI_records.npz", **{f"round{r}": pi_records[r] for r in pi_records})
+        print("Saved all PI vectors to topo_PI_records.npz")
+
         # 最后再画一下 loss 曲线
+        # TODO: 去掉最后的10
         fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
         fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
         plt.close(fig3)  # 关闭图形
