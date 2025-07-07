@@ -676,11 +676,6 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
                 global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
-                # print("local_pi:", local_pi[:2, :5])  # 打印前两个样本的前5维
-                # print("global_pi:", global_pi[:2, :5])
-                # print("local_pi var:", local_pi.var(dim=1))
-                # print("global_pi var:", global_pi.var(dim=1))
-
                 # === 2. Loss ===
                 out = net(x)
                 ce_loss = criterion(out, target)
@@ -711,19 +706,6 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
     logger.info('>> Test accuracy: %f' % test_acc)
     net.to('cpu')
     logger.info(' ** Training complete **')
-
-    # # 计算相似性
-    # similarity = compute_feature_similarity(local_feat, global_feat)
-    # logging.info(f">> Similarity {similarity.item():.4f}")  # 记录相似度
-    #
-    # # 在返回前计算拓扑距离
-    # with torch.no_grad():
-    #     distance = 1 - similarity.item()  # 使用1 - 相似度作为距离
-    #
-    # if args.dataset != 'generated':
-    #     entropy = compute_entropy(G_output_list)
-    #     # 记录这次的平均熵值
-    #     logger.info('>> Entropy: %f' % entropy)
 
     # === 用最后一个batch的local_pi/global_pi和out统计指标 ===
     # 1. 特征相似性（以欧氏距离为例，或者你可以换成别的指标）
@@ -1899,7 +1881,7 @@ def local_train_net(nets, selected, args, net_dataidx_map, D, adv=False, test_dl
     return nets_list, G_output_list_all_clients
 
 
-def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, test_dl=None, device="cpu"):
+def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, nets_train_dl_local, test_dl=None, device="cpu"):
     avg_acc = 0.0
 
     for net_id, net in nets.items():
@@ -1912,28 +1894,13 @@ def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model,
         net.to(device)
         global_model.to(device)
 
-        noise_level = args.noise
-        if net_id == args.n_parties - 1:
-            noise_level = 0
-
-        if args.noise_type == 'space':
-            train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32,
-                                                                 dataidxs, noise_level, net_id, args.n_parties - 1)
-        else:
-            noise_level = args.noise / (args.n_parties - 1) * net_id
-            train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32,
-                                                                 dataidxs, noise_level)
-        train_dl_global, test_dl_global, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32)
         n_epoch = args.epochs
 
-        # trainacc, testacc = train_net_fedtopo(net_id, net, train_dl_local, test_dl, n_epoch, args.lr,
-        #                                        args.optimizer, global_model, history, round,
-        #                                        device=device)
         # 轮数越大，alpha越大（可控上线）
         alpha = min(0.05 + round * 0.01, 0.5)  # 最高到0.5
 
         trainacc, testacc = train_net_fedtopo(
-            net_id, net, train_dl_local, test_dl, n_epoch, args.lr, args.optimizer,
+            net_id, net, nets_train_dl_local[net_id], test_dl, n_epoch, args.lr, args.optimizer,
             global_model, history, round, device=device, pi=pi, K=2, pool_size=8, alpha=alpha)
         logger.info("net %d final test acc %f" % (net_id, testacc))
         avg_acc += testacc
@@ -2236,19 +2203,12 @@ if __name__ == '__main__':
 
     n_classes = len(np.unique(y_train))
 
-    train_dl_global, test_dl_global, train_ds_global, test_ds_global = get_dataloader(args.dataset,
-                                                                                      args.datadir,
-                                                                                      args.batch_size,
-                                                                                      32)
-
-    print("len train_dl_global:", len(train_ds_global))
-
-    data_size = len(test_ds_global)
-
     # test_dl = data.DataLoader(dataset=test_ds_global, batch_size=32, shuffle=False)
 
     train_all_in_list = []
     test_all_in_list = []
+    nets_train_dl_local = {}  # ⬅️ 新增的映射关系字典
+
     if args.noise > 0:
         for party_id in range(args.n_parties):
             dataidxs = net_dataidx_map[party_id]
@@ -2270,6 +2230,7 @@ if __name__ == '__main__':
                                                                                               args.datadir,
                                                                                               args.batch_size, 32,
                                                                                               dataidxs, noise_level)
+            nets_train_dl_local[party_id] = train_dl_local # 新增的变量，可以避免之后多次加载数据集
             train_all_in_list.append(train_ds_local)
             test_all_in_list.append(test_ds_local)
         train_all_in_ds = data.ConcatDataset(train_all_in_list)
@@ -2278,17 +2239,33 @@ if __name__ == '__main__':
         test_dl_global = data.DataLoader(dataset=test_all_in_ds, batch_size=32, shuffle=False)
         logger.info("Getting global dataset using ConcatDataset.")
     else:
+        for party_id in range(args.n_parties):
+            dataidxs = net_dataidx_map[party_id]
+
+            noise_level = args.noise
+            if party_id == args.n_parties - 1:
+                noise_level = 0
+
+            if args.noise_type == 'space':
+                train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
+                                                                                              args.datadir,
+                                                                                              args.batch_size, 32,
+                                                                                              dataidxs, noise_level,
+                                                                                              party_id,
+                                                                                              args.n_parties - 1)
+            else:
+                noise_level = args.noise / (args.n_parties - 1) * party_id
+                train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
+                                                                                              args.datadir,
+                                                                                              args.batch_size, 32,
+                                                                                              dataidxs, noise_level)
+            nets_train_dl_local[party_id] = train_dl_local # 新增的变量，可以避免之后多次加载数据集
+
         train_dl_global, test_dl_global, train_ds_global, test_ds_global = get_dataloader(args.dataset,
                                                                                           args.datadir,
                                                                                           args.batch_size,
                                                                                           32)
         logger.info("Getting global dataset using get_dataloader.")
-
-    # 现在我们强制使用比较纯净（只加了noise，我也说不清）的数据集，虽然不确定会带来什么影响……
-    train_dl_global, test_dl_global, train_ds_global, test_ds_global = get_dataloader(args.dataset,
-                                                                                      args.datadir,
-                                                                                      args.batch_size,
-                                                                                      32)
 
     if args.alg == 'fedgan':
         logger.info("Initializing nets")
@@ -2500,7 +2477,7 @@ if __name__ == '__main__':
                 for idx in selected:
                     nets[idx].load_state_dict(global_para)
 
-            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, test_dl=test_dl_global, device=device)
+            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, nets_train_dl_local, test_dl=test_dl_global, device=device)
 
             # update global model
             total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
@@ -2567,7 +2544,7 @@ if __name__ == '__main__':
             gc.collect()
             torch.cuda.empty_cache()
 
-        np.savez("logs/resnet18-cifar10/label-beta0.1/topo-vis/topo_PI_records.npz", **{f"round{r}": pi_records[r] for r in pi_records})
+        np.savez("logs/topo_PI_records.npz", **{f"round{r}": pi_records[r] for r in pi_records})
         print("Saved all PI vectors to topo_PI_records.npz")
 
         # 最后再画一下 loss 曲线

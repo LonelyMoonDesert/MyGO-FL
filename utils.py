@@ -29,6 +29,7 @@ from sklearn.datasets import load_svmlight_file
 
 from torchvision.datasets.utils import download_url
 import zipfile
+from torch.utils.data import Subset
 
 logging.basicConfig()
 logger = logging.getLogger()
@@ -832,6 +833,20 @@ def get_dataloader(dataset, datadir, train_bs, test_bs, dataidxs=None, noise_lev
 
     return train_dl, test_dl, train_ds, test_ds
 
+
+def get_dataloader_idxs(full_train, full_test, train_bs, test_bs, dataidxs=None):
+    """
+    full_train, full_test: 全量数据集对象
+    dataidxs: 当前client的数据索引（int数组）
+    """
+    if dataidxs is not None:
+        train_ds = Subset(full_train, dataidxs)
+    else:
+        train_ds = full_train
+    test_ds = full_test
+    train_dl = DataLoader(train_ds, batch_size=train_bs, shuffle=True, drop_last=False)
+    test_dl = DataLoader(test_ds, batch_size=test_bs, shuffle=False, drop_last=False)
+    return train_dl, test_dl, train_ds, test_ds
 
 def weights_init(m):
     """
