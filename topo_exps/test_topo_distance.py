@@ -56,7 +56,7 @@ except ImportError:
 
 # ---------- 0. CONFIG --------------
 DEVICE        = "cuda" if torch.cuda.is_available() else "cpu"
-DATA_ROOT     = os.path.expanduser("../data/")
+DATA_ROOT     = os.path.expanduser("../../data/")
 N_PER_CLASS   = 20      # images per CIFAR‑10 class
 N_PAIRS       = 1_000   # pos & neg pairs each
 DOWN_SIZE     = 32      # H,W fed to PH

@@ -3,12 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import numpy as np
-from topo_data import plot_topology_analysis, plot_client_comparison, plot_training_progress
+from topo_exps.topo_data import plot_topology_analysis, plot_client_comparison, plot_training_progress
 import matplotlib.pyplot as plt
 import warnings
 from utils import partition_data, get_dataloader
 import os
-from sklearn.decomposition import PCA
 import logging
 from datetime import datetime
 import umap

@@ -671,8 +671,8 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 target = target.long()
 
                 # === 1. forward 得到 local/global PI 向量 ===
-                local_feat  = extract_layer_features(net, x,  layer_name='layer3', pool_size=pool_size, device=device)
-                global_feat = extract_layer_features(global_model, x, layer_name='layer3', pool_size=pool_size, device=device)
+                local_feat  = extract_layer_features(net, x,  layer_name='conv1', pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name='conv1', pool_size=pool_size, device=device)
                 local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
                 global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
@@ -719,6 +719,9 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
         distance = 0.0
     logger.info(f">> Last-batch PI Similarity: {similarity:.4f}")
     logger.info(f">> Last-batch Topo Distance: {distance:.4f}")
+    cka_val = cka(local_feat, global_feat)
+    history['client_cka'][net_id][round] = 1 - cka_val  # 越小越相似
+    logger.info(f'>> Last-batch 1-CKA: {1 - cka_val:.4f}')
 
     # 2. 用最后一个batch的logits算熵
     if last_out is not None:
@@ -737,6 +740,13 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
     history['client_topo_distance'][net_id][round] = distance
     history['client_similarity'][net_id][round] = similarity
     history['client_entropy'][net_id][round] = entropy
+    delta = distance - history['client_topo_distance'][net_id][round - 1] if round > 0 else 0.0
+    history['client_delta_topo_dist'][net_id][round] = delta
+    dists = [history['client_topo_distance'][net_id][round] for cid in range(args.n_parties)]
+    history['round_var'][round] = float(np.var(dists))
+    swd_val = swd(last_local_pi, last_global_pi)
+    history['client_swd'][net_id][round] = swd_val
+    logger.info(f'>> Last-batch SWD: {swd_val:.4f}')
 
     return train_acc, test_acc
 
@@ -1427,6 +1437,22 @@ def fit_persistence_image_from_loader(model, dataloader, device, layer_name='lay
     pi.fit(valid_barcodes)
     return pi
 
+def cka(X, Y):
+    X = X.flatten(1); Y = Y.flatten(1)
+    hsic = (X @ Y.T).pow(2).mean()
+    norm = (X @ X.T).pow(2).mean().sqrt() * (Y @ Y.T).pow(2).mean().sqrt()
+    return (hsic / (norm + 1e-8)).item()
+
+def swd(u, v, n_proj=64):
+    d = u.numel()
+    u = u.flatten(); v = v.flatten()
+    proj = torch.randn(d, n_proj, device=u.device)
+    proj /= (proj.norm(dim=0, keepdim=True) + 1e-8)
+    u_proj = torch.sort(u @ proj)[0]
+    v_proj = torch.sort(v @ proj)[0]
+    return torch.mean((u_proj - v_proj).abs()).item()
+
+
 def save_global_model(global_model_checkpoint, directory, filename="global_model.pth"):
     """
     Save the global model state to a specified directory with a consistent filename format.
@@ -1454,30 +1480,60 @@ NORM = colors.Normalize(vmin=0, vmax=9)
 
 # 画图
 def plot_training_progress(history, n_clients, n_rounds):
-    fig, axs = plt.subplots(3, 3, figsize=(20, 15))
-    xs = range(1, n_rounds + 1)  # 1~n_rounds
+    """
+    绘制 FedTopo 训练过程的 10 个关键指标：
+    ┌──────────┬──────────┬──────────┬──────────────┐
+    │TotalLoss │CELoss    │TopoLoss  │Δ-Topo Dist   │
+    ├──────────┼──────────┼──────────┼──────────────┤
+    │TrainAcc  │TestAcc   │TopoDist  │Similarity    │
+    ├──────────┼──────────┼──────────┼──────────────┤
+    │Entropy   │Round Var │          │              │
+    └──────────┴──────────┴──────────┴──────────────┘
+    """
+    # ----------- 布局 ----------
+    fig, axs = plt.subplots(3, 4, figsize=(24, 15))
+    xs = np.arange(1, n_rounds + 1)  # 1~n_rounds
     round_labels = [str(r) for r in xs]
 
-    # 只取实际存储过的数据：history[client_id][0:n_rounds]
-    for client_id in range(n_clients):
-        axs[0, 0].plot(xs, history['client_total_loss'][client_id][:n_rounds], label=f'Client {client_id}')
-        axs[0, 1].plot(xs, history['client_ce_loss'][client_id][:n_rounds], label=f'Client {client_id}')
-        axs[0, 2].plot(xs, history['client_topo_loss'][client_id][:n_rounds], label=f'Client {client_id}')
-        axs[1, 0].plot(xs, history['client_train_acc'][client_id][:n_rounds], label=f'Client {client_id}')
-        axs[1, 1].plot(xs, history['client_test_acc'][client_id][:n_rounds], label=f'Client {client_id}')
-        axs[1, 2].plot(xs, history['client_topo_distance'][client_id][:n_rounds], label=f'Client {client_id}')
-        axs[2, 0].plot(xs, history['client_similarity'][client_id][:n_rounds], label=f'Client {client_id}')
-        axs[2, 1].plot(xs, history['client_entropy'][client_id][:n_rounds], label=f'Client {client_id}')
+    # ----------- 每个客户端曲线 ----------
+    for cid in range(n_clients):
+        axs[0, 0].plot(xs, history['client_total_loss'][cid][:n_rounds],   label=f'C{cid}')
+        axs[0, 1].plot(xs, history['client_ce_loss'][cid][:n_rounds])
+        axs[0, 2].plot(xs, history['client_topo_loss'][cid][:n_rounds])
+        axs[0, 3].plot(xs, history['client_delta_topo_dist'][cid][:n_rounds])
 
-    axs[2, 2].axis('off')
+        axs[1, 0].plot(xs, history['client_train_acc'][cid][:n_rounds])
+        axs[1, 1].plot(xs, history['client_test_acc'][cid][:n_rounds])
+        axs[1, 2].plot(xs, history['client_topo_distance'][cid][:n_rounds])
+        axs[1, 3].plot(xs, history['client_similarity'][cid][:n_rounds])
 
-    for ax in axs.flat:
-        ax.set_xlabel('Round')
-        ax.set_ylabel('Value')
-        ax.legend()
-        ax.set_xticks(xs)
-        ax.set_xticklabels(round_labels)
-        ax.set_xlim(xs[0], xs[-1])  # 保证只显示1~n_rounds
+        axs[2, 0].plot(xs, history['client_entropy'][cid][:n_rounds])
+        axs[2, 2].plot(xs, history['client_cka'][cid][:n_rounds])
+        axs[2, 3].plot(xs, history['client_swd'][cid][:n_rounds])
+
+    # ----------- 全局（单条线） ----------
+    axs[2, 1].plot(xs, history['round_var'][:n_rounds], color='black', linewidth=2)
+
+    # ----------- 子图标题 ----------
+    titles = [
+        "Total Loss", "Cross-Entropy Loss", "Topo Loss", "Δ-Topo Distance",
+        "Train Accuracy", "Test Accuracy", "Topo Distance", "Similarity (1-CKA or Cos)",
+        "Persistence Entropy", "Client CKA", "Client SWD", "Between-Client Variance"
+    ]
+    # 映射到 3×4 网格位置
+    for ax, title in zip(axs.flatten()[:10], titles):
+        ax.set_title(title, fontsize=13)
+
+    # ----------- 统一坐标轴/刻度 ----------
+    for r, row in enumerate(axs):
+        for c, ax in enumerate(row):
+            ax.set_xlabel("Communication Round")
+            ax.set_xlim(xs[0], xs[-1])
+            ax.set_xticks(xs)
+            ax.set_xticklabels(round_labels, rotation=45)
+            # 只有含多条线的图放 legend（第一张即可）
+            if (r, c) == (0, 0):
+                ax.legend(loc='upper right', ncol=2, fontsize=9)
 
     plt.tight_layout()
     return fig
@@ -2429,6 +2485,10 @@ if __name__ == '__main__':
             'client_topo_distance': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_similarity': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_entropy': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_delta_topo_dist': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'round_var': [0.0] * (args.comm_round + 1),
+            'client_cka': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_swd': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
         }
 
         MAX_SAMPLES = 1000 # 定义最大样本数
@@ -2456,7 +2516,7 @@ if __name__ == '__main__':
         print("Fitting PersistenceImage on global_model + train_dl_global ...")
         pi = fit_persistence_image_from_loader(
             global_model, train_dl_global, device,
-            layer_name='layer3', pool_size=8, K=2, max_batches=20  # 按你需求可调参数
+            layer_name='conv1', pool_size=8, K=2, max_batches=20  # 按你需求可调参数
         )
         print("Done fitting PersistenceImage.")
 
@@ -2528,7 +2588,7 @@ if __name__ == '__main__':
                                                                              dataidxs, noise_level)
                     x, _ = next(iter(train_dl_local))
                     x = x[:32].to(args.device)  # 可设batch大小
-                    feat = extract_layer_features(net, x, layer_name='layer3', pool_size=8, device=args.device)
+                    feat = extract_layer_features(net, x, layer_name='conv1', pool_size=8, device=args.device)
                     pi_vec = batch_channel_pi(feat, K=8, pi=pi)
                     pi_records[round][net_id] = pi_vec.cpu().numpy()
                 # --- 全局模型 ---
@@ -2536,7 +2596,7 @@ if __name__ == '__main__':
                 global_model.eval()
                 x, _ = next(iter(train_dl_global))
                 x = x[:32].to(args.device)
-                feat = extract_layer_features(global_model, x, layer_name='layer3', pool_size=8, device=args.device)
+                feat = extract_layer_features(global_model, x, layer_name='conv1', pool_size=8, device=args.device)
                 pi_vec = batch_channel_pi(feat, K=8, pi=pi)
                 pi_records[round]['global'] = pi_vec.cpu().numpy()
                 print(f"[INFO] Collected PI for round {round}")
