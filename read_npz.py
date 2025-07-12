@@ -6,7 +6,7 @@ import os
 import itertools
 
 # ====== 配置参数 ======
-PI_NPY_FILE = 'logs/topo_PI_records.npz'  # 你的 npz 路径
+PI_NPY_FILE = 'logs/resnet18-cifar10/label#5-beta0.5/fedtopo-vis/topo_PI_records.npz'  # 你的 npz 路径
 N_CLIENTS = 5                           # 客户端数量，需与训练一致
 PI_SHAPE = (20, 20)                     # Persistence Image 分辨率，如 10x10
 SAVE_DIR = './topo_vis_results'         # 图片保存目录
