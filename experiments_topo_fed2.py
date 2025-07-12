@@ -24,7 +24,9 @@ from resnetcifar import *
 from pytorch_pretrained_vit import ViT
 from sklearn.neighbors import KernelDensity
 from geomloss import SamplesLoss
+from gudhi import CubicalComplex
 from gudhi.representations import PersistenceImage
+from gudhi import plot_persistence_barcode
 import gc
 import psutil
 
@@ -111,6 +113,8 @@ def get_args():
                         help='Number of training iterations in the increasing half of a cycle. CyclicLR.')
     parser.add_argument('--steps_per_epoch', type=int, default=1000,
                         help='Number of steps per epoch, used for OneCycleLR.')
+    # ‘conv1’-simplecnn, 'layer3'-resnet18
+    parser.add_argument('--feature_layer', type=str, default='conv1', help='用于特征提取和拓扑分析的层名（如conv1/layer3等）')
 
     args = parser.parse_args()
     return args
@@ -671,8 +675,8 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 target = target.long()
 
                 # === 1. forward 得到 local/global PI 向量 ===
-                local_feat  = extract_layer_features(net, x,  layer_name='conv1', pool_size=pool_size, device=device)
-                global_feat = extract_layer_features(global_model, x, layer_name='conv1', pool_size=pool_size, device=device)
+                local_feat  = extract_layer_features(net, x,  layer_name=args.feature_layer, pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=pool_size, device=device)
                 local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
                 global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
@@ -1260,10 +1264,9 @@ def compute_entropy(features):
 
     # 计算熵
     log_probs = torch.log(probs + 1e-7)  # 加上一个小的epsilon避免log(0)
-    entropy = -torch.sum(probs * log_probs, dim=1)  # 计算每个特征图的熵
-
+    entropy = -torch.sum(probs * log_probs, dim=1).mean().item()
     # 返回所有特征图的熵的平均值
-    return torch.mean(entropy)
+    return entropy
 
 def compute_feature_similarity(client, global_):
     # 计算余弦相似度
@@ -1452,6 +1455,27 @@ def swd(u, v, n_proj=64):
     v_proj = torch.sort(v @ proj)[0]
     return torch.mean((u_proj - v_proj).abs()).item()
 
+# ========== 可视化相关函数 ==========
+def compute_barcode_and_pi(feature_map, pi):
+    # feature_map: numpy数组，单通道
+    cc = CubicalComplex(dimensions=feature_map.shape, top_dimensional_cells=feature_map.ravel())
+    bars = cc.persistence()
+    bars_pd = [pair[1] for pair in bars if len(pair) > 1 and pair[1][1] > pair[1][0]]
+    if len(bars_pd) == 0:
+        bars_pd = np.zeros((0, 2), dtype=np.float32)
+    else:
+        bars_pd = np.array(bars_pd, dtype=np.float32).reshape(-1, 2)
+    pi_vec = pi.transform([bars_pd]).reshape(pi.resolution)
+    return bars, pi_vec
+
+def plot_barcode(bars, ax, title="Barcode"):
+    plot_persistence_barcode(bars, axes=ax)
+    ax.set_title(title)
+
+def plot_pi(pi_vec, ax, title="Persistence Image"):
+    im = ax.imshow(pi_vec, cmap='hot')
+    ax.set_title(title)
+    plt.colorbar(im, ax=ax)
 
 def save_global_model(global_model_checkpoint, directory, filename="global_model.pth"):
     """
@@ -2571,35 +2595,73 @@ if __name__ == '__main__':
             if round in key_rounds:
                 pi_records[round] = {}
                 # --- 每个客户端 ---
+                client_feats = []
                 for net_id, net in nets.items():
-                    net = net.to(args.device)  # 新增：把模型放到同一个 device 上
+                    net = net.to(args.device)  # 把模型放到同一个 device 上
                     net.eval()
                     # 采样一批本地数据
                     dataidxs = net_dataidx_map[net_id]
-                    if args.noise_type == 'space':
-                        train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir,
-                                                                             args.batch_size, 32,
-                                                                             dataidxs, noise_level, net_id,
-                                                                             args.n_parties - 1)
-                    else:
-                        noise_level = args.noise / (args.n_parties - 1) * net_id
-                        train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir,
-                                                                             args.batch_size, 32,
-                                                                             dataidxs, noise_level)
+                    train_dl_local = nets_train_dl_local[net_id]
                     x, _ = next(iter(train_dl_local))
                     x = x[:32].to(args.device)  # 可设batch大小
-                    feat = extract_layer_features(net, x, layer_name='conv1', pool_size=8, device=args.device)
+                    feat = extract_layer_features(net, x, layer_name=args.feature_layer, pool_size=8,
+                                                  device=args.device)
+                    client_feats.append(feat.cpu())  # 先转到CPU，节省显存
+
+                    # 计算PI并存储
                     pi_vec = batch_channel_pi(feat, K=8, pi=pi)
                     pi_records[round][net_id] = pi_vec.cpu().numpy()
+
+                    # 清理显存
+                    del feat
+                    torch.cuda.empty_cache()
+
                 # --- 全局模型 ---
                 global_model = global_model.to(args.device)  # 保证全局模型也在对的设备
                 global_model.eval()
+                # 采样一批全局数据
                 x, _ = next(iter(train_dl_global))
                 x = x[:32].to(args.device)
-                feat = extract_layer_features(global_model, x, layer_name='conv1', pool_size=8, device=args.device)
-                pi_vec = batch_channel_pi(feat, K=8, pi=pi)
+                global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=8,
+                                                     device=args.device)
+                pi_vec = batch_channel_pi(global_feat, K=8, pi=pi)
                 pi_records[round]['global'] = pi_vec.cpu().numpy()
+
+                # 清理全局特征数据
+                del global_feat
+                torch.cuda.empty_cache()
+
                 print(f"[INFO] Collected PI for round {round}")
+
+                # 全局模型特征转CPU
+                global_feat = global_feat.cpu()
+
+                # 只取第一个样本的第一个通道做条形码和PI可视化
+                g_arr = global_feat[0, 0].numpy()
+                g_bars, g_pi = compute_barcode_and_pi(g_arr, pi)
+
+                # 画图
+                fig, axs = plt.subplots(args.n_parties + 1, 2, figsize=(8, 3 * (args.n_parties + 1)))
+                plot_barcode(g_bars, axs[0, 0], title=f"Global Barcode (Round {round})")
+                plot_pi(g_pi, axs[0, 1], title="Global PI")
+                axs[0, 0].set_ylabel("Global", fontsize=10)
+
+                # 后续行：各client
+                for cid, feat in enumerate(client_feats):
+                    c_arr = feat[0, 0].numpy()
+                    c_bars, c_pi = compute_barcode_and_pi(c_arr, pi)
+                    plot_barcode(c_bars, axs[cid + 1, 0], title=f"Client{cid} Barcode")
+                    plot_pi(c_pi, axs[cid + 1, 1], title=f"Client{cid} PI")
+                    axs[cid + 1, 0].set_ylabel(f"Client{cid}", fontsize=10)
+
+                plt.tight_layout()
+                plt.savefig(f"logs/topo_compare_round{round}.png")
+                plt.close(fig)
+                print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
+
+                # 清理显存
+                del client_feats
+                torch.cuda.empty_cache()
 
             gc.collect()
             torch.cuda.empty_cache()
