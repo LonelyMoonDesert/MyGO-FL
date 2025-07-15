@@ -28,9 +28,10 @@ from gudhi import CubicalComplex
 from gudhi.representations import PersistenceImage
 from gudhi import plot_persistence_barcode
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.ticker import MaxNLocator
 import gc
 import psutil
-
+from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA
 import gudhi
 import torch.nn.functional as F
@@ -45,7 +46,22 @@ custom_colors = ['#b2b1cf', '#eac7c7', '#e3d6b5']
 morandi_blue_cmap = LinearSegmentedColormap.from_list(
     "morandi_blue", ["#b2b1cf", "#eaeaea", "#ffffff"]
 )
+# 全局字体
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.titlesize": 16,
+    "axes.labelsize": 15,
+    "xtick.labelsize": 13,
+    "ytick.labelsize": 13,
+    "legend.fontsize": 14,
+    "figure.titlesize": 18
+})
 
+# 自定义深蓝莫兰迪色系+反转
+morandi_deepblue_cmap = LinearSegmentedColormap.from_list(
+    "morandi_deepblue", ["#363c55", "#6b7a99", "#b2b1cf", "#eaeaea", "#ffffff"]
+)
+morandi_deepblue_cmap_r = morandi_deepblue_cmap.reversed()
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -123,6 +139,11 @@ def get_args():
                         help='Number of steps per epoch, used for OneCycleLR.')
     # ‘conv1’-simplecnn, 'layer3'-resnet18
     parser.add_argument('--feature_layer', type=str, default='conv1', help='用于特征提取和拓扑分析的层名（如conv1/layer3等）')
+
+    # UMAP可视化相关
+    parser.add_argument('--max_samples', type=int, default=1000, help='最大样本数量')
+    parser.add_argument('--umap_dim', type=int, default=3, help='UMAP降维后的维度')
+    parser.add_argument('--n_umap_batches', type=int, default=4, help='UMAP可视化采样的batch数')
 
     args = parser.parse_args()
     return args
@@ -803,6 +824,7 @@ def train_net_fedavg(net_id, net, train_dataloader, test_dataloader, epochs, lr,
                 target = target.long()
 
                 # === 1. forward 得到 local/global PI 向量 ===
+                # TODO:待修改
                 local_feat  = extract_layer_features(net, x,  layer_name=args.feature_layer, pool_size=pool_size, device=device)
                 global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=pool_size, device=device)
                 local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
@@ -1401,6 +1423,8 @@ def extract_layer_features(model, x, layer_name='layer3', pool_size=32, device='
     # 找到目标层
     layer = dict([*model.named_modules()])[layer_name]
     handle = layer.register_forward_hook(hook_fn)
+    model = model.to(device)
+    x = x.to(device)
     _ = model(x.to(device))
     handle.remove()
     feat = feats[0]
@@ -1503,6 +1527,19 @@ def swd(u, v, n_proj=64):
 # ----------- 可选：全局柔和风格 ----------
 plt.style.use('seaborn-v0_8-muted')  # 柔和审美
 
+def get_umap_sample_x(train_dl_global, n_batches=4, per_batch=32, device="cpu"):
+    xs, ys, count = [], [], 0
+    for xb, yb in train_dl_global:
+        xs.append(xb[:per_batch])
+        ys.append(yb[:per_batch])
+        count += 1
+        if count >= n_batches:
+            break
+    x = torch.cat(xs, dim=0)
+    y = torch.cat(ys, dim=0)
+    return x.to(device), y.cpu().numpy()
+
+
 # ========== 可视化相关函数 ==========
 
 def compute_barcode_and_pi(feature_map, pi):
@@ -1519,41 +1556,59 @@ def compute_barcode_and_pi(feature_map, pi):
 
 def plot_barcode(
     bars, ax, title="Barcode", linewidth=3,
-    xlim=(0, 1.0),
-    colors=None
+    xlim=(0, 1.0), colors=None,
+    title_fontsize=14, label_fontsize=13, legend_fontsize=12,
+    show_legend=True  # 新增
 ):
     if colors is None:
-        # 默认用tab10色板
         import matplotlib
         colors = matplotlib.colormaps['tab10'].colors[:3]
     labels = {0: 'H0 (Connected)', 1: 'H1 (Hole)', 2: 'H2 (Cavity)'}
     y = [0, 0, 0]
+    legend_handles = []
+    legend_labels = []
     for bar in bars:
         if len(bar) > 1:
             dim = bar[0]
             birth, death = bar[1]
             if death > birth:
-                ax.hlines(y[dim], birth, death, color=colors[dim], linewidth=linewidth,
-                          label=labels[dim] if y[dim] == 0 else "")
+                h = ax.hlines(y[dim], birth, death, color=colors[dim], linewidth=linewidth,
+                              label=labels[dim] if y[dim] == 0 else "")
+                if y[dim] == 0:  # 只收集第一个
+                    legend_handles.append(h)
+                    legend_labels.append(labels[dim])
                 y[dim] += 1
-    ax.set_title(title)
-    ax.set_xlabel("Birth/Death Value")
-    ax.set_ylabel("Barcode Index")
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel("Birth/Death Value", fontsize=label_fontsize)
+    ax.set_ylabel("Barcode Index", fontsize=label_fontsize)
     ax.set_yticks([])
     ax.set_xlim(xlim)
-    handles, legend_labels = ax.get_legend_handles_labels()
-    by_label = dict(zip(legend_labels, handles))
-    if by_label:
-        ax.legend(by_label.values(), by_label.keys(), fontsize=10, loc='best')
+    if show_legend and legend_handles:
+        ax.legend(legend_handles, legend_labels, fontsize=legend_fontsize, loc='best')
+    return legend_handles, legend_labels
 
 
 
-def plot_pi(pi_vec, ax, title="Persistence Image", cmap=morandi_blue_cmap):
-    im = ax.imshow(pi_vec, cmap=cmap, aspect='auto', origin='lower')
-    ax.set_title(title)
-    ax.set_xlabel("Birth")
-    ax.set_ylabel("Persistence")
-    plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+def plot_pi(
+    pi_vec, ax, title="Persistence Image",
+    cmap=None, vmin=None, vmax=None,
+    title_fontsize=16,
+    label_fontsize=15,
+    colorbar_fontsize=13
+):
+    if cmap is None:
+        # 默认莫兰迪色板+反转
+        from matplotlib.colors import LinearSegmentedColormap
+        cmap = LinearSegmentedColormap.from_list(
+            "morandi_deepblue", ["#363c55", "#6b7a99", "#b2b1cf", "#eaeaea", "#ffffff"]
+        ).reversed()
+    im = ax.imshow(pi_vec, cmap=cmap, aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel("Birth", fontsize=label_fontsize)
+    ax.set_ylabel("Persistence", fontsize=label_fontsize)
+    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.ax.tick_params(labelsize=colorbar_fontsize)
+
 
 
 def get_filtration_range(barcodes_list, margin=0.05, fallback=(0, 1)):
@@ -1670,83 +1725,6 @@ def plot_training_progress(history, n_clients, n_rounds):
     plt.tight_layout()
     return fig
 
-def plot_3d_features(ax, features, targets, client_id=None):
-    """统一3D特征可视化函数（带边缘线）"""
-    scatter = ax.scatter(
-        features[:, 0], features[:, 1], features[:, 2],
-        c=targets,
-        cmap=CMAP,
-        norm=NORM,
-        s=25,  # 增大点尺寸
-        edgecolors='w',  # 白色边缘
-        linewidth=0.3,  # 边缘线宽
-        alpha=0.9,  # 提高透明度
-        depthshade=True  # 启用深度阴影
-    )
-    ax.set_xlabel('UMAP1', fontsize=10, labelpad=8)
-    ax.set_ylabel('UMAP2', fontsize=10, labelpad=8)
-    ax.set_zlabel('UMAP3', fontsize=10, labelpad=8)
-    ax.xaxis.pane.set_alpha(0.1)  # 半透明背景
-    ax.yaxis.pane.set_alpha(0.1)
-    ax.zaxis.pane.set_alpha(0.1)
-
-    title = f"Client {client_id}" if isinstance(client_id, int) else "Global"
-    ax.set_title(title, fontsize=12, pad=10)
-
-
-def plot_topology_analysis(features, targets, client_id=None):
-    fig = plt.figure(figsize=(18, 6))  # 增加画布宽度
-    fig.subplots_adjust(right=0.85)  # 调整右侧空间
-
-    # 2D投影
-    ax1 = fig.add_subplot(121)
-    scatter2d = ax1.scatter(
-        features[:, 0], features[:, 1],
-        c=targets, cmap=CMAP, norm=NORM,
-        s=15, edgecolors='none', alpha=0.8
-    )
-    title = f"Client {client_id}" if client_id is not None else "Global"
-    ax1.set_title(f"{title} (2D)", fontsize=12)
-    ax1.set_xlabel('UMAP1')
-    ax1.set_ylabel('UMAP2')
-
-    # 3D投影
-    ax2 = fig.add_subplot(122, projection='3d')
-    plot_3d_features(ax2, features, targets, client_id)
-
-    # 将colorbar移动到右侧独立区域
-    cax = fig.add_axes([0.88, 0.15, 0.02, 0.7])  # [left, bottom, width, height]
-    fig.colorbar(scatter2d, cax=cax, orientation='horizontal', label='Class')
-
-    plt.tight_layout()
-    return fig
-
-
-def plot_client_comparison(client_features_list, client_targets_list, n_clients):
-    """
-    统一风格的对比图生成（优化布局）
-    """
-    nrows = int(np.ceil(np.sqrt(n_clients)))
-    ncols = int(np.ceil(n_clients / nrows))
-
-    fig = plt.figure(figsize=(6 * ncols + 4, 5 * nrows))  # 增加右侧空间
-    fig.subplots_adjust(right=0.88)  # 调整整体布局
-
-    # 绘制所有子图
-    for idx, (features, targets) in enumerate(zip(client_features_list, client_targets_list)):
-        ax = fig.add_subplot(nrows, ncols, idx + 1, projection='3d')
-        plot_3d_features(ax, features, targets, client_id=idx if idx < len(client_features_list) - 1 else "Global")
-
-    # 统一颜色条（右移并优化样式）
-    sm = plt.cm.ScalarMappable(cmap=CMAP, norm=NORM)
-    sm.set_array([])
-    cax = fig.add_axes([0.92, 0.15, 0.02, 0.7])  # 调整位置到最右侧
-    cb = fig.colorbar(sm, cax=cax)
-    cb.set_label('Class Label', fontsize=12)
-    cb.ax.tick_params(labelsize=10)
-
-    plt.tight_layout(pad=3.0)
-    return fig
 
 def split_G_output_by_clients(G_output_list_all_clients, net_dataidx_map):
     client_tensors = {}
@@ -2616,23 +2594,6 @@ if __name__ == '__main__':
             'client_swd': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
         }
 
-        MAX_SAMPLES = 1000 # 定义最大样本数
-        rng = np.random.RandomState(42)  # 定义随机数生成器
-
-        # 初始化 client_features_list 和 client_targets_list
-        client_features_list = []
-        client_targets_list = []
-
-        # 生成初始全局特征
-        global_model.eval()
-        global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
-        if len(global_features) > MAX_SAMPLES:
-            idx = rng.choice(len(global_features), MAX_SAMPLES, replace=False)
-            global_features = global_features[idx]
-            global_targets = global_targets[idx]  # 同步下采样标签
-        # ---- 在 federated_learning 最开始，做一次全局 fit ----
-        umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
-
         # 设置需要保存PI的轮次
         pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
 
@@ -2692,69 +2653,245 @@ if __name__ == '__main__':
                 entropy = compute_global_entropy(global_model, train_dl_global, device=device)
                 logger.info('>> Global Model Entropy: %f' % entropy)
 
+            # ------------------------ 可视化主流程 ------------------------
             if round in key_rounds:
-                # --- 每个客户端 ---
-                x, _ = next(iter(train_dl_global))
-                x = x[:32].to(args.device)  # 可设batch大小
+                # 0️⃣ 统一提特征（一次前向）
+                x, y = get_umap_sample_x(
+                    train_dl_global,
+                    n_batches=args.n_umap_batches,
+                    per_batch=32,
+                    device=args.device
+                )
+
+                model_names = ['global'] + [f'client{cid}' for cid in range(args.n_parties)]
+                models_all = [global_model] + [nets[k] for k in nets]
+
+                model_feats = {}  # {name: tensor(N,C,H,W)}
                 with torch.no_grad():
-                    client_feats = []
-                    for net_id, net in nets.items():
-                        net = net.to(args.device)  # 把模型放到同一个 device 上
-                        net.eval()
-                        feat = extract_layer_features(net, x, layer_name=args.feature_layer, pool_size=8,
-                                                      device=args.device)
-                        client_feats.append(feat.cpu())  # 先转到CPU，节省显存
-                        # 清理显存
+                    for name, model in zip(model_names, models_all):
+                        model = model.to(args.device)
+                        model.eval()
+                        feat = extract_layer_features(
+                            model, x,
+                            layer_name=args.feature_layer,
+                            pool_size=8,
+                            device=args.device
+                        )
+                        model_feats[name] = feat.cpu()  # 存到 CPU
                         torch.cuda.empty_cache()
 
-                    # --- 全局模型 ---
-                    global_model = global_model.to(args.device)  # 保证全局模型也在对的设备
-                    global_model.eval()
-                    global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=8,
-                                                         device=args.device)
+                # ============== 1. 拓扑条形图 & PI =================
+                global_feat = model_feats['global']
+                client_feats = [model_feats[f'client{cid}'] for cid in range(args.n_parties)]
 
-                    # 清理全局特征数据
-                    torch.cuda.empty_cache()
-
-                # ----开始可视化-----
-                # 全局模型特征转CPU
-                global_feat = global_feat.cpu()
-
-                # 1. 一次性先处理并存储所有 bars/pi，避免重复计算
-                vis_items = []  # [(name, bars, pi)]
-                # 全局
+                vis_items = []  # [(name, bars, pi_vec)]
                 g_arr = global_feat[0, 0].numpy()
                 g_bars, g_pi = compute_barcode_and_pi(g_arr, pi)
                 vis_items.append(("Global", g_bars, g_pi))
 
-                # 各client
                 for cid, feat in enumerate(client_feats):
                     c_arr = feat[0, 0].numpy()
                     c_bars, c_pi = compute_barcode_and_pi(c_arr, pi)
                     vis_items.append((f"Client{cid}", c_bars, c_pi))
 
-                # 2. 统一统计横轴范围（只遍历一遍）
-                all_bars = [item[1] for item in vis_items]
-                FILTRATION_RANGE = get_filtration_range(all_bars)  # 上面提供的自动统计函数
+                vmin, vmax = 0, max(p.max() for _, _, p in vis_items)  # 统一 PI 色阶
+                FILTRATION_RANGE = get_filtration_range([b for _, b, _ in vis_items])
 
-                # 3. 开始画图（也只遍历一遍）
-                fig, axs = plt.subplots(len(vis_items), 2, figsize=(10, 3.5 * len(vis_items)))
-                for idx, (label, bars, pi_vec) in enumerate(vis_items):
-                    plot_barcode(bars, axs[idx, 0], title=f"{label} Barcode", linewidth=5,
-                                 xlim=FILTRATION_RANGE, colors=custom_colors)
-                    plot_pi(pi_vec, axs[idx, 1], title=f"{label} PI", cmap=morandi_blue_cmap)
-                    axs[idx, 0].set_ylabel(label, fontsize=12)
+                fig, axs = plt.subplots(len(vis_items), 2,
+                                        figsize=(8, 2.8 * len(vis_items)))
 
-                plt.tight_layout()
-                plt.savefig(f"logs/topo_compare_round{round}.png", dpi=300)
+                legend_handles, legend_labels = [], []
+                for idx, (lbl, bars, pi_vec) in enumerate(vis_items):
+                    handles, labels_ = plot_barcode(
+                        bars, axs[idx, 0],
+                        title=f"{lbl} Barcode",
+                        linewidth=5, xlim=FILTRATION_RANGE,
+                        colors=custom_colors,
+                        title_fontsize=16, label_fontsize=15,
+                        legend_fontsize=14, show_legend=False
+                    )
+                    if idx == 0:
+                        legend_handles, legend_labels = handles, labels_
+
+                    plot_pi(
+                        pi_vec, axs[idx, 1],
+                        title=f"{lbl} PI",
+                        cmap=morandi_deepblue_cmap_r,
+                        vmin=vmin, vmax=vmax,
+                        title_fontsize=16, label_fontsize=15,
+                        colorbar_fontsize=13
+                    )
+                    axs[idx, 0].set_ylabel(lbl, fontsize=15)
+
+                if legend_handles:
+                    fig.legend(
+                        legend_handles, legend_labels,
+                        loc = 'lower center', bbox_to_anchor = (0.5, -0.012),  # 往上挪 ≈ 2% 图高
+                        ncol = len(legend_handles), fontsize = 13, frameon = False)
+                    plt.tight_layout(rect=(0, 0.06, 1, 1))  # 预留 6% 下边距即可
+                plt.savefig(f"logs/topo_compare_round{round}.png",
+                            dpi=400, bbox_inches="tight")
                 plt.close(fig)
                 print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
 
-                # 清理显存
+                # ================= 2. UMAP 可视化 ==================
+                # 2-1 拼接特征
+                all_features, all_labels = [], []
+                for name in model_names:
+                    feat_np = model_feats[name].view(model_feats[name].shape[0], -1).numpy()
+                    all_features.append(feat_np)
+                    all_labels += [name] * feat_np.shape[0]
+                feats = np.vstack(all_features)
+                labels = np.array(all_labels)
+
+                # 2-2 处理 y，使长度匹配 feats
+                if hasattr(y, 'cpu'):
+                    y = y.cpu().numpy()
+                elif isinstance(y, list):
+                    y = np.array(y)
+                y = np.tile(y, len(model_names))  # 复制到每个模型
+
+                if feats.shape[0] > args.max_samples:  # 可选截断
+                    feats = feats[:args.max_samples]
+                    labels = labels[:args.max_samples]
+                    y = y[:args.max_samples]
+
+                # 2-3 降维
+                X_emb2d = umap.UMAP(n_components=2, random_state=42).fit_transform(feats)
+                X_emb3d = umap.UMAP(n_components=3, random_state=42).fit_transform(feats)
+
+                # ------------- 2-D 散点 -----------------
+                colors_umap = ['#FFB6C1', '#9370DB', '#6495ED',
+                               '#90EE90', '#F0E68C', '#F4A460']
+
+                plt.figure(figsize=(8, 7))
+                for idx, name in enumerate(model_names):
+                    mask = (labels == name)
+                    plt.scatter(
+                        X_emb2d[mask, 0], X_emb2d[mask, 1],
+                        c=colors_umap[idx % len(colors_umap)],
+                        marker='X' if name == 'global' else 'o',
+                        s=70 if name == 'global' else 60,
+                        label=name.capitalize(), alpha=0.7, edgecolors='none'
+                    )
+                plt.legend(fontsize=16, loc='best', frameon=True)
+                plt.title(f'UMAP 2D feature projection (Round {round})', fontsize=20)
+                plt.xlabel('UMAP-1', fontsize=18)
+                plt.ylabel('UMAP-2', fontsize=18)
+                plt.xticks(fontsize=16)
+                plt.yticks(fontsize=16)
+                plt.tight_layout()
+                plt.savefig(f"logs/umap2d_compare_round{round}.png", dpi=400)
+                plt.close()
+                print(f"[UMAP 2D可视化] 已保存 logs/umap2d_compare_round{round}.png")
+
+                # ------------- 3-D 总图 ------------------
+                fig = plt.figure(figsize=(8, 7))
+                ax = fig.add_subplot(111, projection='3d')
+                # ① 先画各 client，最后再画 global → global 永远浮在最上
+                for idx, name in enumerate(model_names):
+                    if name == 'global':
+                        continue  # 留到最后
+                    mask = (labels == name)
+                    ax.scatter(
+                        X_emb3d[mask, 0], X_emb3d[mask, 1], X_emb3d[mask, 2],
+                        c=colors_umap[idx % len(colors_umap)],
+                        marker='o',
+                        s=40, alpha=0.7, edgecolors='none',
+                        label=name.capitalize(), zorder=1  # zorder 较低
+                    )
+
+                # —— 现在画 global，尺寸更大、zorder 更高、带黑色描边 ——
+                g_mask = (labels == 'global')
+                ax.scatter(
+                    X_emb3d[g_mask, 0], X_emb3d[g_mask, 1], X_emb3d[g_mask, 2],
+                    c=colors_umap[0], marker='X',
+                    s=60, alpha=0.9,
+                    edgecolors='#DB7093', linewidths=0.6,  # 勾边改为 #DB7093
+                    label='Global', zorder=10
+                )
+
+                ax.legend(fontsize=16, loc='best', frameon=True)
+
+                # —— 主标题稍下移（pad↑），坐标轴标题远离刻度（labelpad↑）——
+                ax.set_title(f'UMAP 3D feature projection (Round {round})',
+                             fontsize=18, pad=14)  # pad 从 10 → 14，标题再往下
+                ax.set_xlabel('UMAP-1', fontsize=16, labelpad=12)
+                ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
+                ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
+
+                # ② 提高刻度密度：nbins=15，比原来 8 更细
+                ax.locator_params(axis='x', nbins=15)
+                ax.locator_params(axis='y', nbins=15)
+                ax.locator_params(axis='z', nbins=15)
+
+                ax.tick_params(axis='both', labelsize=14)
+                # 可选：打开 3-D 网格，辅助视觉
+                ax.grid(True)
+
+                plt.tight_layout()
+                plt.savefig(f"logs/umap3d_compare_round{round}.png", dpi=400)
+                plt.close()
+                print(f"[UMAP 3D可视化] 已保存 logs/umap3d_compare_round{round}.png")
+
+                # ------------- 3-D 各模型子图 -------------
+                color_per_class = [
+                    '#CD5C5C', '#F4A460', '#F0E68C', '#90EE90', '#6495ED',
+                    '#9370DB', '#808080', '#FFB6C1', '#48D1CC', '#BDB76B'
+                ]
+                cifar10_labels = [
+                    "airplane", "automobile", "bird", "cat", "deer",
+                    "dog", "frog", "horse", "ship", "truck"
+                ]
+
+                fig = plt.figure(figsize=(8 * len(model_names), 8))
+                axs = [fig.add_subplot(1, len(model_names), i + 1, projection='3d')
+                       for i in range(len(model_names))]
+
+                for ax, name in zip(axs, model_names):
+                    mask = (labels == name)
+                    X_model = X_emb3d[mask]
+                    y_model = y[mask]
+
+                    for cls in np.unique(y_model):
+                        c_mask = (y_model == cls)
+                        ax.scatter(
+                            X_model[c_mask, 0], X_model[c_mask, 1], X_model[c_mask, 2],
+                            c=color_per_class[int(cls) % len(color_per_class)],
+                            s=60, label=cifar10_labels[int(cls)],
+                            alpha=0.78, edgecolors='none'
+                        )
+
+                    # —— 调整标题与坐标轴标题的位置 ——
+                    ax.set_title(f"{name} UMAP 3D (Round {round})",
+                                 fontsize=18, pad=2)  # pad ↓ 让标题稍微下移
+                    ax.set_xlabel('UMAP-1', fontsize=16, labelpad=12)  # labelpad ↑
+                    ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
+                    ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
+
+                    ax.locator_params(axis='x', nbins=8)
+                    ax.locator_params(axis='y', nbins=8)
+                    ax.locator_params(axis='z', nbins=8)
+                    ax.tick_params(axis='both', labelsize=14)
+
+                # —— 合并图例 ——
+                handles, labels_ = axs[0].get_legend_handles_labels()
+                by_label = dict(zip(labels_, handles))
+                fig.legend(
+                    list(by_label.values()), list(by_label.keys()),
+                    fontsize=16, loc='center left',
+                    bbox_to_anchor=(0.92, 0.5), borderaxespad=0.
+                )
+                fig.tight_layout(rect=(0, 0, 0.90, 1), w_pad=2.5)
+                plt.savefig(f"logs/umap3d_all_round{round}.png", dpi=400, bbox_inches="tight")
+                plt.close()
+                print(f"[3D-UMAP可视化] 已保存 logs/umap3d_all_round{round}.png")
+
+                # ----------- 释放显存 -----------
                 torch.cuda.empty_cache()
 
-            gc.collect()
-            torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
 
         # 最后再画一下 loss 曲线
         # TODO: 去掉最后的10
@@ -2762,7 +2899,6 @@ if __name__ == '__main__':
         fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
         plt.close(fig3)  # 关闭图形
         # 节约内存这一块
-        del client_feats, global_feat, vis_items, all_bars, g_bars, g_pi, c_bars, c_pi, c_arr
         plt.close('all')
         gc.collect()
 
