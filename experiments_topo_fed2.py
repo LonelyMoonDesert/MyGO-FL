@@ -169,6 +169,9 @@ def init_nets(net_configs, dropout_p, n_parties, args):
         n_classes = 2
     elif args.dataset == 'imagenet':
         n_classes = 1000  # ImageNet has 1000 classes
+    elif args.dataset == 'pacs':
+        n_classes = 7
+
 
     if args.use_projection_head:
         add = ""
@@ -187,8 +190,8 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                 nets[net_i] = net
         else:
             for net_i in range(n_parties):
-                # For ImageNet dataset, choose from several popular pretrained models
-                if args.dataset in ("imagenet", "tinyimagenet"):
+                # For ImageNet-like data (large RGB) choose pretrained backbones
+                if args.dataset in ("imagenet", "tinyimagenet", "pacs"):
                     if args.model == "resnet18":
                         net = models.resnet18(pretrained=True)
                     elif args.model == "resnet50":
@@ -198,10 +201,42 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                     elif args.model == "vit":
                         net = ViT('B_16_imagenet1k', pretrained=True)
                     else:
-                        print("Model not supported for ImageNet")
+                        print("Model not supported for ImageNet/PACS")
                         exit(1)
+
+                    # reset classifier to match dataset classes
+                    if hasattr(net, 'fc') and isinstance(net.fc, nn.Linear):
+                        in_f = net.fc.in_features
+                        net.fc = nn.Linear(in_f, n_classes)
+                    elif hasattr(net, 'classifier'):
+                        if isinstance(net.classifier, nn.Sequential):
+                            last_idx = -1
+                            for i in reversed(range(len(net.classifier))):
+                                if isinstance(net.classifier[i], nn.Linear):
+                                    last_idx = i; break
+                            if last_idx >= 0:
+                                in_f = net.classifier[last_idx].in_features
+                                net.classifier[last_idx] = nn.Linear(in_f, n_classes)
+                            else:
+                                raise RuntimeError("Cannot locate final Linear in classifier")
+                        elif isinstance(net.classifier, nn.Linear):
+                            in_f = net.classifier.in_features
+                            net.classifier = nn.Linear(in_f, n_classes)
+                        else:
+                            raise RuntimeError("Unknown classifier type for model=%s" % args.model)
+
+                    # topology hook (only PACS unless you broaden)
+                    if args.dataset == 'pacs':
+                        pacs_layer = getattr(args, 'pacs_hook_layer', 'layer3')
+                        if hasattr(net, pacs_layer):
+                            mod = getattr(net, pacs_layer)
+                        else:
+                            mod = getattr(net, 'layer3', net)
+                        hook_handle = mod.register_forward_hook(make_store_hook(net, attr_name='_feat'))
+
                 elif args.dataset == "generated":
                     net = PerceptronModel()
+
                 elif args.model == "mlp":
                     if args.dataset == 'covtype':
                         input_size = 54
@@ -225,9 +260,14 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                         input_size = 18
                         output_size = 2
                         hidden_sizes = [16, 8]
+                        # NOTE: you didn't instantiate net for SUSY originally; add:
+                        net = FcNet(input_size, hidden_sizes, 2, dropout_p)
+                        hook_handle = net.layers[-1].register_forward_hook(hook_fn)
+
                 elif args.model == "vgg11":
                     net = vgg11()
                     hook_handle = net.features[20].register_forward_hook(hook_fn)
+
                 elif args.model == "simple-cnn":
                     if args.dataset in ("cifar10", "cinic10", "svhn"):
                         net = SimpleCNN(input_dim=(16 * 5 * 5), hidden_dims=[120, 84], output_dim=10)
@@ -239,20 +279,22 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                     elif args.dataset == 'celeba':
                         net = SimpleCNN(input_dim=(16 * 5 * 5), hidden_dims=[120, 84], output_dim=2)
                         hook_handle = net.conv2.register_forward_hook(hook_fn)
+
                 elif args.model == "vgg9":
                     if args.dataset in ("mnist", 'femnist'):
                         net = ModerateCNNMNIST()
                         hook_handle = net.conv_layer[4].register_forward_hook(hook_fn)
                     elif args.dataset in ("cifar10", "cinic10", "svhn"):
-                        # print("in moderate cnn")
                         net = ModerateCNN()
                         hook_handle = net.conv_layer[4].register_forward_hook(hook_fn)
                     elif args.dataset == 'celeba':
                         net = ModerateCNN(output_dim=2)
                         hook_handle = net.conv_layer[4].register_forward_hook(hook_fn)
+
                 elif args.model == "resnet50":
                     net = ResNet50_cifar10()
                     hook_handle = net.layer3.register_forward_hook(hook_fn_resnet50_cifar10)
+
                 elif args.model == "resnet18":
                     if args.dataset in ("cifar10", "cinic10", "svhn"):
                         net = ResNet18_cifar10()
@@ -260,14 +302,17 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                     elif args.dataset in ("tinyimagenet", "imagenet"):
                         net = ResNet18_cifar10()
                         hook_handle = net.layer3.register_forward_hook(hook_fn_reduce_feature_map)
+
                 elif args.model == "vgg16":
                     net = vgg16()
+
                 elif args.model == "vit":
                     net = ViT('B_16_imagenet1k', pretrained=True)
 
                 else:
                     print("not supported yet")
                     exit(1)
+
                 nets[net_i] = net
 
     model_meta_data = []
@@ -1307,6 +1352,12 @@ def hook_fn_resnet50_cifar10(module, input, output):
 
     # 保存特征图
     features = reduced_output
+
+def make_store_hook(net, attr_name='_feat'):
+    def _hook(m, inp, out):
+        setattr(net, attr_name, out.detach())
+    return _hook
+
 
 # 收集全局特征的函数
 def collect_global_features(global_model, train_dl_global, device):
@@ -2418,6 +2469,7 @@ if __name__ == '__main__':
         test_all_in_ds = data.ConcatDataset(test_all_in_list)
         test_dl_global = data.DataLoader(dataset=test_all_in_ds, batch_size=32, shuffle=False)
         logger.info("Getting global dataset using ConcatDataset.")
+
     else:
         for party_id in range(args.n_parties):
             dataidxs = net_dataidx_map[party_id]
@@ -2918,11 +2970,6 @@ if __name__ == '__main__':
                                                      device=device)
             logger.info('>> Global Model Train accuracy: %f' % train_acc)
             logger.info('>> Global Model Test accuracy: %f' % test_acc)
-
-            # 计算全局模型在全局数据集上的熵
-            if args.dataset != 'generated':
-                entropy = compute_global_entropy(global_model, train_dl_global, device=device)
-                logger.info('>> Global Model Entropy: %f' % entropy)
 
             # ------------------------ 可视化主流程 ------------------------
             if round in key_rounds:
