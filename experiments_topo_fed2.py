@@ -750,17 +750,20 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 target = target.long()
 
                 # === 1. forward 得到 local/global PI 向量 ===
-                local_feat  = extract_layer_features(net, x,  layer_name=args.feature_layer, pool_size=pool_size, device=device)
-                global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=pool_size, device=device)
-                local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
-                global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
+                with torch.no_grad():
+                    local_feat = extract_layer_features(net, x, layer_name=args.feature_layer, pool_size=pool_size,
+                                                        device=device)
+                    global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer,
+                                                         pool_size=pool_size, device=device)
+                    local_pi = batch_channel_pi(local_feat, K=K, pi=pi)  # [B, M]
+                    global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
                 # === 2. Loss ===
                 out = net(x)
                 ce_loss = criterion(out, target)
                 topo_loss = torch.norm(local_pi - global_pi, p=2) / x.shape[0]
-                # total_loss = ce_loss + alpha * topo_loss
-                total_loss = ce_loss
+                total_loss = ce_loss + alpha * topo_loss
+                # total_loss = ce_loss
 
                 total_loss.backward()
                 optimizer.step()
@@ -2433,6 +2436,8 @@ if __name__ == '__main__':
         args.dataset, args.datadir, args.logdir, args.partition, args.n_parties, beta=args.beta)
 
     n_classes = len(np.unique(y_train))
+
+    logger.info("FedTopo")
 
     # test_dl = data.DataLoader(dataset=test_ds_global, batch_size=32, shuffle=False)
 

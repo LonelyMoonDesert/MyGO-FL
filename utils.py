@@ -464,23 +464,20 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
         np.save("data/generated/y_test.npy",y_test)
 
     # ---------- PACS domain partition special case ----------
-    if dataset == 'pacs' and partition in ('pacs-domain', 'bydomain', 'domain'):
+    if dataset == 'pacs' and partition in ('pacs-domain', 'bydomain', 'domain', 'lodo'):
         dom_ids = np.unique(dom_train)  # 0..3
         n_use = min(n_parties, len(dom_ids))
         net_dataidx_map = {}
-        for i in range(n_use):
-            di = dom_ids[i]
+        # 顺序分配domain，超出的客户端循环使用domain（多客户端可重复同一domain）
+        for i in range(n_parties):
+            if i < len(dom_ids):
+                di = dom_ids[i]
+            else:
+                di = dom_ids[i % len(dom_ids)]
             idx = np.where(dom_train == di)[0]
             net_dataidx_map[i] = idx
-        # replicate if more parties requested
-        if n_parties > n_use:
-            base = [np.where(dom_train == di)[0] for di in dom_ids]
-            for j in range(n_use, n_parties):
-                di = j % len(dom_ids)
-                net_dataidx_map[j] = base[di]
         traindata_cls_counts = record_net_data_stats(y_train, net_dataidx_map, logdir)
         return (X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts)
-
 
     n_train = y_train.shape[0]
 
@@ -709,8 +706,40 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
                 if check[i]==0:
                     flag=True
                     break
-                    
-        
+
+    elif dataset == 'pacs' and partition in ('pacs-domain-labeldir',):
+        dom_ids = np.unique(dom_train)
+        n_domains = len(dom_ids)
+        # 每个domain分到的client数量
+        clients_per_domain = n_parties // n_domains
+        remainder = n_parties % n_domains
+        net_dataidx_map = {}
+        beta = 0.4  # 可调
+        client_id = 0
+        for di in dom_ids:
+            idx_domain = np.where(dom_train == di)[0]
+            y_domain = y_train[idx_domain]
+            K = len(np.unique(y_domain))
+            # 每个domain分配clients_per_domain个client
+            n_clients = clients_per_domain + (1 if remainder > 0 else 0)
+            if remainder > 0:
+                remainder -= 1
+            idx_batch = [[] for _ in range(n_clients)]
+            for k in np.unique(y_domain):
+                idx_k = idx_domain[y_domain == k]
+                np.random.shuffle(idx_k)
+                proportions = np.random.dirichlet(np.repeat(beta, n_clients))
+                proportions = proportions / proportions.sum()
+                proportions = (np.cumsum(proportions) * len(idx_k)).astype(int)[:-1]
+                splits = np.split(idx_k, proportions)
+                for j in range(n_clients):
+                    idx_batch[j] += splits[j].tolist()
+            for j in range(n_clients):
+                net_dataidx_map[client_id] = np.array(idx_batch[j])
+                client_id += 1
+        traindata_cls_counts = record_net_data_stats(y_train, net_dataidx_map, logdir)
+        return (X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts)
+
         if dataset in ('celeba', 'covtype', 'a9a', 'rcv1', 'SUSY'):
             K = 2
             stat[:,0]=np.sum(stat[:,:5],axis=1)
