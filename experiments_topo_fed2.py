@@ -38,9 +38,10 @@ import gudhi
 import torch.nn.functional as F
 from torch import nn
 import seaborn as sns
-from matplotlib import colors
-from matplotlib.colors import to_rgba
+import warnings
+warnings.filterwarnings("ignore")
 
+FEATURE_LAYER = 'layer3'
 pi = PersistenceImage()  # 可以指定分辨率等参数
 # 定义绘图颜色
 custom_colors = ['#b2b1cf', '#eac7c7', '#e3d6b5']
@@ -119,7 +120,7 @@ def get_args():
     parser.add_argument('--sample', type=float, default=1, help='Sample ratio for each communication round')
 
     # for scheduler
-    parser.add_argument('--scheduler', type=str, default='StepLR', help='Type of scheduler: StepLR, MultiStepLR, etc.')
+    parser.add_argument('--scheduler', type=str, default='StepLR', help='Type of scheduler: StepLR, ExponentialLR, CosineAnnealingLR, ReduceLROnPlateau, etc.')
     parser.add_argument('--scheduler_g', type=str, default='StepLR',
                         help='Type of scheduler: StepLR, MultiStepLR, etc.')
     parser.add_argument('--scheduler_d', type=str, default='StepLR',
@@ -172,8 +173,7 @@ def init_nets(net_configs, dropout_p, n_parties, args):
         n_classes = 1000  # ImageNet has 1000 classes
     elif args.dataset == 'pacs':
         n_classes = 7
-    elif args.dataset == 'office-home':
-        n_classes = 65  # Office-Home has 65 classes
+
 
     if args.use_projection_head:
         add = ""
@@ -193,7 +193,7 @@ def init_nets(net_configs, dropout_p, n_parties, args):
         else:
             for net_i in range(n_parties):
                 # For ImageNet-like data (large RGB) choose pretrained backbones
-                if args.dataset in ("imagenet", "tinyimagenet", "pacs", "office-home"):
+                if args.dataset in ("imagenet", "tinyimagenet", "pacs"):
                     if args.model == "resnet18":
                         net = models.resnet18(pretrained=True)
                     elif args.model == "resnet50":
@@ -203,44 +203,10 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                     elif args.model == "vit":
                         net = ViT('B_16_imagenet1k', pretrained=True)
                     else:
-                        print("Model not supported for ImageNet/PACS/Office-Home")
+                        print("Model not supported for ImageNet")
                         exit(1)
-
-                    # reset classifier to match dataset classes
-                    # reset classifier to match dataset classes
-                    if hasattr(net, 'fc') and isinstance(net.fc, nn.Linear):
-                        in_f = net.fc.in_features
-                        net.fc = nn.Linear(in_f, n_classes)
-                    elif hasattr(net, 'classifier'):
-                        if isinstance(net.classifier, nn.Sequential):
-                            last_idx = -1
-                            for i in reversed(range(len(net.classifier))):
-                                if isinstance(net.classifier[i], nn.Linear):
-                                    last_idx = i; break
-                            if last_idx >= 0:
-                                in_f = net.classifier[last_idx].in_features
-                                net.classifier[last_idx] = nn.Linear(in_f, n_classes)
-                            else:
-                                raise RuntimeError("Cannot locate final Linear in classifier")
-                        elif isinstance(net.classifier, nn.Linear):
-                            in_f = net.classifier.in_features
-                            net.classifier = nn.Linear(in_f, n_classes)
-                        else:
-                            raise RuntimeError("Unknown classifier type for model=%s" % args.model)
-
-                    # topology hook (only PACS and Office-Home unless you broaden)
-                    if args.dataset in ['pacs', 'office-home']:
-                        pacs_layer = getattr(args, 'pacs_hook_layer', 'layer3')
-                        if hasattr(net, pacs_layer):
-                            mod = getattr(net, pacs_layer)
-                        else:
-                            mod = getattr(net, 'layer3', net)
-                        hook_handle = mod.register_forward_hook(make_store_hook(net, attr_name='_feat'))
-
-
                 elif args.dataset == "generated":
                     net = PerceptronModel()
-
                 elif args.model == "mlp":
                     if args.dataset == 'covtype':
                         input_size = 54
@@ -264,14 +230,9 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                         input_size = 18
                         output_size = 2
                         hidden_sizes = [16, 8]
-                        # NOTE: you didn't instantiate net for SUSY originally; add:
-                        net = FcNet(input_size, hidden_sizes, 2, dropout_p)
-                        hook_handle = net.layers[-1].register_forward_hook(hook_fn)
-
                 elif args.model == "vgg11":
                     net = vgg11()
                     hook_handle = net.features[20].register_forward_hook(hook_fn)
-
                 elif args.model == "simple-cnn":
                     if args.dataset in ("cifar10", "cinic10", "svhn"):
                         net = SimpleCNN(input_dim=(16 * 5 * 5), hidden_dims=[120, 84], output_dim=10)
@@ -283,22 +244,20 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                     elif args.dataset == 'celeba':
                         net = SimpleCNN(input_dim=(16 * 5 * 5), hidden_dims=[120, 84], output_dim=2)
                         hook_handle = net.conv2.register_forward_hook(hook_fn)
-
                 elif args.model == "vgg9":
                     if args.dataset in ("mnist", 'femnist'):
                         net = ModerateCNNMNIST()
                         hook_handle = net.conv_layer[4].register_forward_hook(hook_fn)
                     elif args.dataset in ("cifar10", "cinic10", "svhn"):
+                        # print("in moderate cnn")
                         net = ModerateCNN()
                         hook_handle = net.conv_layer[4].register_forward_hook(hook_fn)
                     elif args.dataset == 'celeba':
                         net = ModerateCNN(output_dim=2)
                         hook_handle = net.conv_layer[4].register_forward_hook(hook_fn)
-
                 elif args.model == "resnet50":
                     net = ResNet50_cifar10()
                     hook_handle = net.layer3.register_forward_hook(hook_fn_resnet50_cifar10)
-
                 elif args.model == "resnet18":
                     if args.dataset in ("cifar10", "cinic10", "svhn"):
                         net = ResNet18_cifar10()
@@ -306,17 +265,14 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                     elif args.dataset in ("tinyimagenet", "imagenet"):
                         net = ResNet18_cifar10()
                         hook_handle = net.layer3.register_forward_hook(hook_fn_reduce_feature_map)
-
                 elif args.model == "vgg16":
                     net = vgg16()
-
                 elif args.model == "vit":
                     net = ViT('B_16_imagenet1k', pretrained=True)
 
                 else:
                     print("not supported yet")
                     exit(1)
-
                 nets[net_i] = net
 
     model_meta_data = []
@@ -715,133 +671,117 @@ def train_net_fedgan(net_id, net, train_dataloader, test_dataloader, epochs, lr,
 
     return train_acc, test_acc, G_output_list
 
-def train_net_fedtopo(
-        net_id, net, train_dataloader, test_dataloader,
-        epochs, lr, args_optimizer,
-        global_model, history, round,
-        device="cpu", *,
-        pi=None, K=8, pool_size=32,
-        alpha=0.3,                    # ‑‑ topo‑align (shallow) 权重
-        deep_layer="layer3",          # ‑‑ 用于语义 margin 的深层
-        gamma=0.2, margin=0.5         # ‑‑ 语义 margin 权重 & m
-):
+def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr, args_optimizer, args_scheduler,
+                      global_model, history, round, device="cpu", pi=None, K=8, pool_size=32, alpha=0.3):
     """
-    FedTopo‑S (+ Deep‑Semantic Margin) 训练循环
-    ------------------------------------------------------------
-    alpha · L_topo^s   : 浅层 client‑vs‑global PI L2
-    gamma · L_sem      : 深层 batch‑hard Triplet 语义 margin
-    ------------------------------------------------------------
+    FedTopo 训练核心新实现！彻底避免特征“短路”，使用PI signature欧氏loss。
+    pi: gudhi.representations.PersistenceImage 实例, K: PCA分量数, alpha: topo loss权重
     """
+
+    if args_optimizer == 'adam':
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=lr, weight_decay=args.reg)
+    elif args_optimizer == 'amsgrad':
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=lr, weight_decay=args.reg,
+                               amsgrad=True)
+    elif args_optimizer == 'sgd':
+        optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=lr, momentum=args.rho,
+                              weight_decay=args.reg)
+    criterion = nn.CrossEntropyLoss().to(device)
+
+    # 学习率调度器
+    if args_scheduler == 'StepLR':
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    elif args_scheduler == 'ExponentialLR':
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    elif args_scheduler == 'CosineAnnealingLR':
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=0)
+    elif args_scheduler == 'ReduceLROnPlateau':
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5, verbose=True)
+    else:
+        raise ValueError(f"Unsupported scheduler type: {args_scheduler}")
+
     logger.info('Training network %s' % str(net_id))
 
-    # ---------- pre‑train accuracy ----------
     train_acc = compute_accuracy(net, train_dataloader, device=device)
-    test_acc, _ = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
+    test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
     logger.info('>> Pre-Training Training accuracy: {}'.format(train_acc))
     logger.info('>> Pre-Training Test accuracy: {}'.format(test_acc))
-
-    # ---------- optimizer ----------
-    if args_optimizer == 'adam':
-        optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),
-                               lr=lr, weight_decay=args.reg)
-    elif args_optimizer == 'amsgrad':
-        optimizer = optim.Adam(filter(lambda p: p.requires_grad, net.parameters()),
-                               lr=lr, weight_decay=args.reg, amsgrad=True)
-    else:   # sgd
-        optimizer = optim.SGD(filter(lambda p: p.requires_grad, net.parameters()),
-                              lr=lr, momentum=args.rho, weight_decay=args.reg)
-    criterion = nn.CrossEntropyLoss().to(device)
 
     if type(train_dataloader) != type([1]):
         train_dataloader = [train_dataloader]
 
-    # ---------- epoch loop ----------
     for epoch in range(epochs):
-        tot_col, ce_col, topo_col, sem_col = [], [], [], []
-        last_local_pi = last_global_pi = last_out = None
-
-        for tmp_loader in train_dataloader:
-            for x, target in tmp_loader:
-                x, target = x.to(device), target.to(device).long()
+        total_loss_collector, ce_loss_collector, topo_loss_collector = [], [], []
+        last_local_pi, last_global_pi, last_out = None, None, None
+        for tmp in train_dataloader:
+            for x, target in tmp:
+                x, target = x.to(device), target.to(device)
                 optimizer.zero_grad()
-
-                x.requires_grad = True
+                x.requires_grad = False
                 target.requires_grad = False
                 target = target.long()
 
-                # ===== 1. forward → 浅层 PI =====
-                with torch.no_grad():
-                    local_feat  = extract_layer_features(net, x, layer_name=args.feature_layer,
-                                                         pool_size=pool_size, device=device)
-                    global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer,
-                                                         pool_size=pool_size, device=device)
-                local_pi  = batch_channel_pi(local_feat,  K=K, pi=pi)     # [B,M]
-                global_pi = batch_channel_pi(global_feat, K=K, pi=pi)     # [B,M]
+                # === 1. forward 得到 local/global PI 向量 ===
+                local_feat  = extract_layer_features(net, x,  layer_name=FEATURE_LAYER, pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name=FEATURE_LAYER, pool_size=pool_size, device=device)
+                local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
+                global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
-                # ===== 1b. 深层 PI =====
-                if gamma > 0:
-                    with torch.no_grad():
-                        deep_feat = extract_layer_features(net, x, deep_layer, pool_size, device)
-                    deep_pi = batch_channel_pi(deep_feat, K=K, pi=pi)   # [B,M']
-                else:
-                    deep_pi = None
+                # print("local_pi:", local_pi[:2, :5])  # 打印前两个样本的前5维
+                # print("global_pi:", global_pi[:2, :5])
+                # print("local_pi var:", local_pi.var(dim=1))
+                # print("global_pi var:", global_pi.var(dim=1))
 
-                # ===== 2. losses =====
-                logits   = net(x)
-                ce_loss  = criterion(logits, target)
-                topo_loss = torch.norm(local_pi - global_pi, p=2) / x.size(0)
+                # === 2. Loss ===
+                out = net(x)
+                ce_loss = criterion(out, target)
+                topo_loss = torch.norm(local_pi - global_pi, p=2) / x.shape[0]
+                total_loss = ce_loss + alpha * topo_loss
 
-                # ----- semantic margin -----
-                if gamma > 0:
-                    B = x.size(0)
-                    dist_mat = torch.cdist(deep_pi, deep_pi, p=2)              # [B,B]
-                    same     = (target[:, None] == target[None, :]).float()
-                    I        = torch.eye(B, device=device)
-
-                    pos_mask = same - I                      # exclude self
-                    neg_mask = 1 - same
-
-                    big = 1e6
-                    pos_dist = dist_mat + (1 - pos_mask) * big   # invalid→big
-                    neg_dist = dist_mat + (1 - neg_mask) * big
-
-                    hardest_pos = pos_dist.min(1)[0]            # hard‑min positive
-                    hardest_neg = neg_dist.min(1)[0]            # hard‑min negative
-
-                    valid = (hardest_pos < big/10) & (hardest_neg < big/10)
-                    if valid.any():
-                        sem_loss = torch.relu(hardest_pos[valid] - hardest_neg[valid] + margin).mean()
-                    else:
-                        sem_loss = torch.zeros(1, device=device)
-                else:
-                    sem_loss = torch.zeros(1, device=device)
-
-                total_loss = ce_loss + alpha*topo_loss + gamma*sem_loss
-                # total_loss = ce_loss
                 total_loss.backward()
                 optimizer.step()
 
-                # --- logs --
-                tot_col.append(total_loss.item())
-                ce_col.append(ce_loss.item())
-                topo_col.append(topo_loss.item())
-                if gamma > 0: sem_col.append(sem_loss.item())
+                total_loss_collector.append(total_loss.item())
+                ce_loss_collector.append(ce_loss.item())
+                topo_loss_collector.append(topo_loss.item())
 
-                last_local_pi, last_global_pi, last_out = local_pi.detach(), global_pi.detach(), logits.detach()
+                # 只记录最后一个batch的特征和输出
+                last_local_pi = local_pi.detach()
+                last_global_pi = global_pi.detach()
+                last_out = out.detach()
 
+        epoch_total_loss = np.mean(total_loss_collector)
+        epoch_ce_loss = np.mean(ce_loss_collector)
+        epoch_topo_loss = np.mean(topo_loss_collector)
+        logger.info(f'Epoch: {epoch} Total: {epoch_total_loss:.4f} CE: {epoch_ce_loss:.4f} Topo: {epoch_topo_loss:.4f} LR: {scheduler.get_last_lr()[0]}')
 
-        # ---------- epoch stats ----------
-        epoch_total_loss  = float(np.mean(tot_col))
-        epoch_ce_loss   = float(np.mean(ce_col))
-        epoch_topo_loss = float(np.mean(topo_col))
-        epoch_sem_loss  = float(np.mean(sem_col)) if gamma > 0 else 0.0
-        logger.info(f'Epoch: {epoch} Total: {epoch_total_loss:.4f} CE: {epoch_ce_loss:.4f} Topo: {epoch_topo_loss:.4f} Sem: {epoch_sem_loss:.4f}')
+        # 如果使用 ReduceLROnPlateau 调度器，调用 scheduler.step(val_loss) 来更新学习率
+        if args_scheduler == 'ReduceLROnPlateau':
+            val_loss = epoch_total_loss  # 假设验证集损失是总损失
+            scheduler.step(val_loss)
+        else:
+            scheduler.step()
 
-    # ---------- post‑train metrics ----------
+    # 结尾照常统计 acc/记录 history ...
     train_acc = compute_accuracy(net, train_dataloader, device=device)
     test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
     logger.info('>> Training accuracy: %f' % train_acc)
     logger.info('>> Test accuracy: %f' % test_acc)
+    net.to('cpu')
+    logger.info(' ** Training complete **')
+
+    # # 计算相似性
+    # similarity = compute_feature_similarity(local_feat, global_feat)
+    # logging.info(f">> Similarity {similarity.item():.4f}")  # 记录相似度
+    #
+    # # 在返回前计算拓扑距离
+    # with torch.no_grad():
+    #     distance = 1 - similarity.item()  # 使用1 - 相似度作为距离
+    #
+    # if args.dataset != 'generated':
+    #     entropy = compute_entropy(G_output_list)
+    #     # 记录这次的平均熵值
+    #     logger.info('>> Entropy: %f' % entropy)
 
     # === 用最后一个batch的local_pi/global_pi和out统计指标 ===
     # 1. 特征相似性（以欧氏距离为例，或者你可以换成别的指标）
@@ -871,7 +811,6 @@ def train_net_fedtopo(
     history['client_total_loss'][net_id][round] = epoch_total_loss
     history['client_ce_loss'][net_id][round] = epoch_ce_loss
     history['client_topo_loss'][net_id][round] = epoch_topo_loss
-    history['client_sem_loss'][net_id][round]     = epoch_sem_loss
     history['client_train_acc'][net_id][round] = train_acc
     history['client_test_acc'][net_id][round] = test_acc
     history['client_topo_distance'][net_id][round] = distance
@@ -885,17 +824,10 @@ def train_net_fedtopo(
     history['client_swd'][net_id][round] = swd_val
     logger.info(f'>> Last-batch SWD: {swd_val:.4f}')
 
-    net.to('cpu')
-    logger.info(' ** Training complete **')
     return train_acc, test_acc
 
-def train_net_fedavg(
-        net_id, net, train_dataloader, test_dataloader,
-        epochs, lr, args_optimizer,
-        global_model, history, round,
-        device="cpu", *,
-        pi=None, K=8, pool_size=32,
-):
+
+def train_net_fedavg(net_id, net, train_dataloader, test_dataloader, epochs, lr, args_optimizer, device="cpu"):
     logger.info('Training network %s' % str(net_id))
 
     train_acc = compute_accuracy(net, train_dataloader, device=device)
@@ -920,44 +852,56 @@ def train_net_fedavg(
     else:
         train_dataloader = [train_dataloader]
 
+    # writer = SummaryWriter()
+    G_output_list = None
     for epoch in range(epochs):
-        tot_col, ce_col, topo_col, sem_col = [], [], [], []
-        last_local_pi = last_global_pi = last_out = None
-        for tmp_loader in train_dataloader:
-            for x, target in tmp_loader:
+        total_loss_collector = []
+        last_local_pi, last_global_pi, last_out = None, None, None
+        epoch_loss_collector = []
+        for tmp in train_dataloader:
+            for batch_idx, (x, target) in enumerate(tmp):
                 x, target = x.to(device), target.to(device)
-                optimizer.zero_grad()
 
+                optimizer.zero_grad()
                 x.requires_grad = True
                 target.requires_grad = False
                 target = target.long()
 
-                # ===== 1. forward → 浅层 PI =====
-                with torch.no_grad():
-                    local_feat  = extract_layer_features(net, x, layer_name=args.feature_layer,
-                                                         pool_size=pool_size, device=device)
-                    global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer,
-                                                         pool_size=pool_size, device=device)
-                local_pi  = batch_channel_pi(local_feat,  K=K, pi=pi)     # [B,M]
-                global_pi = batch_channel_pi(global_feat, K=K, pi=pi)     # [B,M]
-                # === 1. forward 得到 local/global PI 向量 ===
                 out = net(x)
+
+                # 在最后一个 epoch 记录下 G_output
+                if epoch == epochs - 1:
+                    # features = features.cpu()  # Ensure features is on CPU
+                    if G_output_list is None:
+                        G_output_list = features  # Initialize with the first feature map
+                    else:
+                        # Concatenate along the batch dimension
+                        G_output_list = torch.cat((G_output_list, features), dim=0)
 
                 loss = criterion(out, target)
 
                 loss.backward()
                 optimizer.step()
 
-                tot_col.append(loss.item())
-
-                last_local_pi, last_global_pi, last_out = local_pi.detach(), global_pi.detach(), out.detach()
-
                 cnt += 1
+                epoch_loss_collector.append(loss.item())
 
-        epoch_total_loss = float(np.mean(tot_col))
+        epoch_loss = sum(epoch_loss_collector) / len(epoch_loss_collector)
+        logger.info('Epoch: %d Loss: %f' % (epoch, epoch_loss))
 
-        logger.info(f'Epoch: {epoch} Loss: {epoch_total_loss:.4f}')
+        # train_acc = compute_accuracy(net, train_dataloader, device=device)
+        # test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
 
+        # writer.add_scalar('Accuracy/train', train_acc, epoch)
+        # writer.add_scalar('Accuracy/test', test_acc, epoch)
+
+        # if epoch % 10 == 0:
+        #     logger.info('Epoch: %d Loss: %f' % (epoch, epoch_loss))
+        #     train_acc = compute_accuracy(net, train_dataloader, device=device)
+        #     test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
+        #
+        #     logger.info('>> Training accuracy: %f' % train_acc)
+        #     logger.info('>> Test accuracy: %f' % test_acc)
 
     train_acc = compute_accuracy(net, train_dataloader, device=device)
     test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
@@ -965,49 +909,13 @@ def train_net_fedavg(
     logger.info('>> Training accuracy: %f' % train_acc)
     logger.info('>> Test accuracy: %f' % test_acc)
 
-    # === 用最后一个batch的local_pi/global_pi和out统计指标 ===
-    # 1. 特征相似性（以欧氏距离为例，或者你可以换成别的指标）
-    if last_local_pi is not None and last_global_pi is not None:
-        similarity = torch.nn.functional.cosine_similarity(
-            last_local_pi.flatten(1), last_global_pi.flatten(1)
-        ).mean().item()
-        distance = torch.norm(last_local_pi - last_global_pi, p=2).item() / last_local_pi.shape[0]
-    else:
-        similarity = 0.0
-        distance = 0.0
-    logger.info(f">> Last-batch PI Similarity: {similarity:.4f}")
-    logger.info(f">> Last-batch Topo Distance: {distance:.4f}")
-    cka_val = 0
-    history['client_cka'][net_id][round] = 1 - cka_val  # 越小越相似
-    logger.info(f'>> Last-batch 1-CKA: {1 - cka_val:.4f}')
-
-    # 2. 用最后一个batch的logits算熵
-    if last_out is not None:
-        probs = torch.nn.functional.softmax(last_out, dim=1)
-        log_probs = torch.log(probs + 1e-7)
-        entropy = -torch.sum(probs * log_probs, dim=1).mean().item()
-        logger.info('>> Last-batch Entropy: %f' % entropy)
-    else:
-        entropy = 0.0
-    # 更新历史记录
-    history['client_total_loss'][net_id][round] = epoch_total_loss
-    history['client_ce_loss'][net_id][round] = epoch_total_loss
-    history['client_topo_loss'][net_id][round] = 0.0
-    history['client_train_acc'][net_id][round] = train_acc
-    history['client_test_acc'][net_id][round] = test_acc
-    history['client_topo_distance'][net_id][round] = distance
-    history['client_similarity'][net_id][round] = similarity
-    history['client_entropy'][net_id][round] = entropy
-    delta = distance - history['client_topo_distance'][net_id][round - 1] if round > 0 else 0.0
-    history['client_delta_topo_dist'][net_id][round] = delta
-    dists = [history['client_topo_distance'][net_id][round] for net_id in range(args.n_parties)]
-    history['round_var'][round] = float(np.var(dists))
-    swd_val = swd(last_local_pi, last_global_pi)
-    history['client_swd'][net_id][round] = swd_val
-    logger.info(f'>> Last-batch SWD: {swd_val:.4f}')
-
     net.to('cpu')
     logger.info(' ** Training complete **')
+
+    if args.dataset != 'generated':
+        entropy = compute_entropy(G_output_list)
+        # 记录这次的平均熵值
+        logger.info('>> Entropy: %f' % entropy)
 
     return train_acc, test_acc
 
@@ -1405,12 +1313,6 @@ def hook_fn_resnet50_cifar10(module, input, output):
     # 保存特征图
     features = reduced_output
 
-def make_store_hook(net, attr_name='_feat'):
-    def _hook(m, inp, out):
-        setattr(net, attr_name, out.detach())
-    return _hook
-
-
 # 收集全局特征的函数
 def collect_global_features(global_model, train_dl_global, device):
     global_samples = []
@@ -1436,9 +1338,10 @@ def compute_entropy(features):
 
     # 计算熵
     log_probs = torch.log(probs + 1e-7)  # 加上一个小的epsilon避免log(0)
-    entropy = -torch.sum(probs * log_probs, dim=1).mean().item()
+    entropy = -torch.sum(probs * log_probs, dim=1)  # 计算每个特征图的熵
+
     # 返回所有特征图的熵的平均值
-    return entropy
+    return torch.mean(entropy)
 
 def compute_feature_similarity(client, global_):
     # 计算余弦相似度
@@ -1517,7 +1420,7 @@ def hybrid_alignment_loss(client_features, global_features, alpha=0.9):
     geometric_loss = compute_geometric_alignment_loss(client_features, global_features)  # 新几何损失
     return alpha * geometric_loss + (1 - alpha) * statistical_loss
 
-def extract_layer_features(model, x, layer_name='layer3', pool_size=32, device='cuda'):
+def extract_layer_features(model, x, layer_name=FEATURE_LAYER, pool_size=32, device='cuda'):
     """
     获取某模型某一层的输出，并池化到 pool_size×pool_size。
     返回: tensor, shape [B, C, pool_size, pool_size]
@@ -1528,8 +1431,6 @@ def extract_layer_features(model, x, layer_name='layer3', pool_size=32, device='
     # 找到目标层
     layer = dict([*model.named_modules()])[layer_name]
     handle = layer.register_forward_hook(hook_fn)
-    model = model.to(device)
-    x = x.to(device)
     _ = model(x.to(device))
     handle.remove()
     feat = feats[0]
@@ -1569,7 +1470,7 @@ def batch_channel_pi(feat_bchw, K=8, pi=None):
     pi_vecs = torch.tensor(np.stack(pi_vecs, 0), device=feat_bchw.device, dtype=torch.float32)
     return pi_vecs
 
-def fit_persistence_image_from_loader(model, dataloader, device, layer_name='layer3', pool_size=8, K=2, max_batches=20):
+def fit_persistence_image_from_loader(model, dataloader, device, layer_name=FEATURE_LAYER, pool_size=8, K=2, max_batches=20):
     from gudhi.representations import PersistenceImage
     pi = PersistenceImage()
     all_barcodes = []
@@ -1629,9 +1530,27 @@ def swd(u, v, n_proj=64):
     v_proj = torch.sort(v @ proj)[0]
     return torch.mean((u_proj - v_proj).abs()).item()
 
+def cmyk_to_rgb(c, m, y, k):
+    r = 1 - min(1, c * (1 - k) + k)
+    g = 1 - min(1, m * (1 - k) + k)
+    b = 1 - min(1, y * (1 - k) + k)
+    return (r, g, b)  # 返回的是 [0, 1] 范围内的 RGB
+
+# 如果你需要 RGB 范围是 [0, 255]，你可以将其转换为 0-255 的范围
+def cmyk_to_rgb_255(c, m, y, k):
+    rgb = cmyk_to_rgb(c, m, y, k)
+    return tuple([int(x * 255) for x in rgb])  # 转换为 0-255 范围的 RGB
+
 # 颜色与客户端标签
 CLIENT_COLORS = ['#9370DB', '#6495ED', '#90EE90', '#F0E68C', '#F4A460']
-
+CLIENT_COLORS_CMYK = [
+    (56.92, 63.07, 0.00, 0.00),
+    (64.40, 41.31, 0.00, 0.00),
+    (49.00, 0.00, 58.27, 0.00),
+    (13.03, 6.66, 55.22, 0.00),
+    (5.47, 45.18, 65.80, 0.00)
+]
+CLIENT_COLORS_RGB = [cmyk_to_rgb_255(c, m, y, k) for c, m, y, k in CLIENT_COLORS_CMYK]
 
 def _smooth_curve(x, y, n=200, k=3):
     """
@@ -1645,88 +1564,6 @@ def _smooth_curve(x, y, n=200, k=3):
     y_smooth = spline(x_smooth)
     return x_smooth, y_smooth
 
-# 将 CMYK 转换为 RGB
-def cmyk_to_rgb(c, m, y, k):
-    r = 1 - min(1, c * (1 - k) + k)
-    g = 1 - min(1, m * (1 - k) + k)
-    b = 1 - min(1, y * (1 - k) + k)
-    return (r, g, b)
-
-# 将 RGB 颜色转换为 CMYK，再转换为 RGB
-def rgb_hex_to_cmyk_rgb(hex_color):
-    # 先将 hex 颜色转换为 RGB
-    r, g, b = [int(hex_color[i:i+2], 16) for i in (1, 3, 5)]
-    c, m, y, k = rgb_to_cmyk(r, g, b)
-    return cmyk_to_rgb(c, m, y, k)
-
-# RGB 到 CMYK 转换函数
-def rgb_to_cmyk(r, g, b):
-    r, g, b = r / 255.0, g / 255.0, b / 255.0  # RGB normalization to [0, 1]
-    k = 1 - max(r, g, b)
-    if k < 1:
-        c = (1 - r - k) / (1 - k)
-        m = (1 - g - k) / (1 - k)
-        y = (1 - b - k) / (1 - k)
-    else:
-        c = m = y = 0
-    return c, m, y, k
-
-
-office_home_labels = [
-    "Alarm_Clock", "Backpack", "Batteries", "Bed", "Bike", "Bottle", "Bucket",
-    "Calculator", "Calendar", "Candles", "Chair", "Clipboards", "Computer",
-    "Couch", "Curtains", "Desk_Lamp", "Drill", "Eraser", "Exit_Sign", "Fan",
-    "File_Cabinet", "Flipflops", "Flowers", "Folder", "Fork", "Glasses", "Hammer",
-    "Helmet", "Kettle", "Keyboard", "Knives", "Lamp_Shade", "Laptop", "Marker",
-    "Monitor", "Mop", "Mouse", "Mug", "Notebook", "Oven", "Pan", "Paper_Clip",
-    "Pen", "Pencil", "Postit_Notes", "Printer", "Push_Pin", "Radio", "Refrigerator",
-    "Ruler", "Scissors", "Screwdriver", "Shelf", "Sink", "Sneakers", "Soda",
-    "Speaker", "Spoon", "Table", "Telephone", "ToothBrush", "Toys", "Trash_Can",
-    "TV", "Webcam"
-]
-
-# 生成 65 个 CMYK 到 RGB 的颜色
-color_per_class_cmyk = [
-    cmyk_to_rgb(0.85, 0.5, 0.4, 0.0), cmyk_to_rgb(0.25, 0.75, 0.85, 0.0),
-    cmyk_to_rgb(0.15, 0.85, 0.3, 0.0), cmyk_to_rgb(0.1, 0.4, 0.8, 0.1),
-    cmyk_to_rgb(0.2, 0.5, 0.7, 0.1), cmyk_to_rgb(0.9, 0.7, 0.1, 0.1),
-    cmyk_to_rgb(0.1, 0.3, 0.7, 0.3), cmyk_to_rgb(0.5, 0.6, 0.2, 0.0),
-    cmyk_to_rgb(0.8, 0.1, 0.4, 0.0), cmyk_to_rgb(0.3, 0.9, 0.0, 0.4),
-    cmyk_to_rgb(0.6, 0.4, 0.7, 0.0), cmyk_to_rgb(0.2, 0.8, 0.5, 0.0),
-    cmyk_to_rgb(0.5, 0.2, 0.8, 0.0), cmyk_to_rgb(0.3, 0.6, 0.1, 0.2),
-    cmyk_to_rgb(0.1, 0.9, 0.5, 0.2), cmyk_to_rgb(0.7, 0.3, 0.6, 0.1),
-    cmyk_to_rgb(0.6, 0.1, 0.4, 0.3), cmyk_to_rgb(0.2, 0.7, 0.3, 0.4),
-    cmyk_to_rgb(0.3, 0.4, 0.9, 0.2), cmyk_to_rgb(0.5, 0.3, 0.6, 0.0),
-    cmyk_to_rgb(0.4, 0.7, 0.8, 0.1), cmyk_to_rgb(0.9, 0.5, 0.4, 0.0),
-    cmyk_to_rgb(0.8, 0.6, 0.3, 0.1), cmyk_to_rgb(0.2, 0.3, 0.6, 0.4),
-    cmyk_to_rgb(0.4, 0.2, 0.9, 0.0), cmyk_to_rgb(0.1, 0.8, 0.5, 0.0),
-    cmyk_to_rgb(0.6, 0.5, 0.2, 0.2), cmyk_to_rgb(0.7, 0.8, 0.4, 0.0),
-    cmyk_to_rgb(0.9, 0.1, 0.7, 0.3), cmyk_to_rgb(0.5, 0.4, 0.2, 0.0),
-    cmyk_to_rgb(0.3, 0.6, 0.4, 0.0), cmyk_to_rgb(0.8, 0.9, 0.2, 0.0),
-    cmyk_to_rgb(0.2, 0.1, 0.5, 0.1), cmyk_to_rgb(0.7, 0.4, 0.9, 0.0),
-    cmyk_to_rgb(0.9, 0.3, 0.5, 0.0), cmyk_to_rgb(0.5, 0.6, 0.3, 0.1),
-    cmyk_to_rgb(0.4, 0.7, 0.6, 0.2), cmyk_to_rgb(0.6, 0.8, 0.3, 0.0),
-    cmyk_to_rgb(0.2, 0.6, 0.8, 0.1), cmyk_to_rgb(0.8, 0.2, 0.5, 0.0),
-    cmyk_to_rgb(0.3, 0.5, 0.2, 0.4), cmyk_to_rgb(0.1, 0.7, 0.6, 0.0),
-    cmyk_to_rgb(0.4, 0.3, 0.7, 0.2), cmyk_to_rgb(0.6, 0.9, 0.4, 0.1),
-    cmyk_to_rgb(0.7, 0.2, 0.6, 0.0), cmyk_to_rgb(0.5, 0.8, 0.2, 0.1),
-    cmyk_to_rgb(0.8, 0.4, 0.1, 0.0), cmyk_to_rgb(0.7, 0.3, 0.6, 0.1),
-    cmyk_to_rgb(0.6, 0.5, 0.9, 0.0), cmyk_to_rgb(0.1, 0.2, 0.7, 0.3),
-    cmyk_to_rgb(0.4, 0.5, 0.8, 0.2), cmyk_to_rgb(0.6, 0.3, 0.9, 0.0),
-    cmyk_to_rgb(0.3, 0.7, 0.1, 0.2), cmyk_to_rgb(0.5, 0.6, 0.2, 0.0),
-    cmyk_to_rgb(0.9, 0.4, 0.3, 0.1), cmyk_to_rgb(0.7, 0.8, 0.6, 0.0),
-    cmyk_to_rgb(0.2, 0.9, 0.3, 0.0), cmyk_to_rgb(0.4, 0.5, 0.6, 0.1),
-    cmyk_to_rgb(0.6, 0.2, 0.7, 0.0), cmyk_to_rgb(0.1, 0.4, 0.5, 0.3),
-    cmyk_to_rgb(0.7, 0.6, 0.3, 0.2), cmyk_to_rgb(0.5, 0.9, 0.4, 0.0),
-    cmyk_to_rgb(0.3, 0.7, 0.2, 0.1), cmyk_to_rgb(0.8, 0.5, 0.6, 0.0),
-    cmyk_to_rgb(0.9, 0.4, 0.7, 0.1), cmyk_to_rgb(0.4, 0.6, 0.5, 0.0),
-    cmyk_to_rgb(0.7, 0.3, 0.9, 0.0), cmyk_to_rgb(0.5, 0.2, 0.8, 0.1)
-]
-
-colors_umap_cmyk_rgb = [
-    rgb_hex_to_cmyk_rgb('#DB7093'), rgb_hex_to_cmyk_rgb('#9370DB'), rgb_hex_to_cmyk_rgb('#6495ED'),
-    rgb_hex_to_cmyk_rgb('#90EE90'), rgb_hex_to_cmyk_rgb('#F0E68C'), rgb_hex_to_cmyk_rgb('#F4A460')
-]
 
 def plot_training_progress(history, n_clients, n_rounds):
     """
@@ -1908,196 +1745,6 @@ def get_filtration_range(barcodes_list, margin=0.05, fallback=(0, 1)):
         return fallback
     return (min_birth, max_death)
 
-# UMAP降维函数
-import numpy as np
-import torch
-import matplotlib.pyplot as plt
-import umap
-import psutil
-
-# UMAP降维函数
-def get_umap_embeddings(feats, n_components=2, n_batches=10, batch_size=32):
-    # 分批处理数据并进行降维
-    all_feats = []
-    for i in range(n_batches):
-        batch_feats = feats[i * batch_size: (i + 1) * batch_size] if (i + 1) * batch_size <= feats.shape[0] else feats[i * batch_size:]
-        all_feats.append(batch_feats)
-    all_feats = np.concatenate(all_feats, axis=0)
-    umap_model = umap.UMAP(n_components=n_components, random_state=42)
-    return umap_model.fit_transform(all_feats)
-
-# 1. 绘制拓扑条形图与PI
-def plot_barcode_and_pi_for_round(vis_items, FILTRATION_RANGE, round, custom_colors, morandi_deepblue_cmap_r):
-    fig, axs = plt.subplots(len(vis_items), 2, figsize=(8, 2.8 * len(vis_items)))
-    legend_handles, legend_labels = [], []
-    for idx, (lbl, bars, pi_vec) in enumerate(vis_items):
-        handles, labels_ = plot_barcode(
-            bars, axs[idx, 0],
-            title=f"{lbl} Barcode",
-            linewidth=5, xlim=FILTRATION_RANGE,
-            colors=custom_colors,
-            title_fontsize=16, label_fontsize=15,
-            legend_fontsize=14, show_legend=False
-        )
-        if idx == 0:
-            legend_handles, legend_labels = handles, labels_
-
-        plot_pi(
-            pi_vec, axs[idx, 1],
-            title=f"{lbl} PI",
-            cmap=morandi_deepblue_cmap_r,
-            title_fontsize=16, label_fontsize=15,
-            colorbar_fontsize=13
-        )
-        axs[idx, 0].set_ylabel(lbl, fontsize=15)
-
-    if legend_handles:
-        reserved = 0.04  # 8% height reserved for legend
-        plt.tight_layout(rect=(0, reserved, 1, 1))
-        fig.legend(
-            legend_handles, legend_labels,
-            loc='lower center',
-            bbox_to_anchor=(0.5, reserved / 2),
-            bbox_transform=fig.transFigure,
-            ncol=len(legend_handles),
-            fontsize=14,
-            frameon=False
-        )
-
-    plt.savefig(f"logs/topo_compare_round{round}.png", dpi=400, bbox_inches="tight")
-    plt.close(fig)
-    print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
-
-# 2. 绘制UMAP 2D可视化
-def plot_umap_2d_for_round(X_emb2d, labels, model_names, colors_umap_cmyk_rgb, round):
-    fig, ax = plt.subplots(figsize=(8, 7))
-
-    for idx, name in enumerate(model_names):
-        if name == 'global':
-            continue
-        mask = labels == name
-        ax.scatter(
-            X_emb2d[mask, 0], X_emb2d[mask, 1],
-            c=colors_umap_cmyk_rgb[idx % len(colors_umap_cmyk_rgb)],
-            marker='o', s=60, alpha=0.5,
-            edgecolors='none', zorder=1,
-            label=name.capitalize()
-        )
-
-    g_mask = labels == 'global'
-    ax.scatter(
-        X_emb2d[g_mask, 0], X_emb2d[g_mask, 1],
-        c=colors_umap_cmyk_rgb[0],
-        marker='x', s=70, alpha=0.7,
-        linewidths=2.5,
-        edgecolors='none', zorder=100,
-        label='Global'
-    )
-
-    reserved = 0.15
-    fig.subplots_adjust(bottom=reserved)
-    handles, labels_ = ax.get_legend_handles_labels()
-    fig.legend(
-        handles, labels_,
-        loc='lower center',
-        bbox_to_anchor=(0.5, reserved / 5),
-        bbox_transform=fig.transFigure,
-        ncol=3, handlelength=1.5,
-        columnspacing=1.0, handletextpad=0.5,
-        frameon=False, fontsize=16
-    )
-
-    ax.set_title(f'UMAP 2D feature projection (Round {round})', fontsize=20)
-    ax.set_xlabel('UMAP-1', fontsize=18)
-    ax.set_ylabel('UMAP-2', fontsize=18)
-    ax.tick_params(axis='both', labelsize=16)
-
-    fig.savefig(f"logs/umap2d_compare_round{round}.png", dpi=400)
-    plt.close(fig)
-    print(f"[UMAP 2D可视化] 已保存 logs/umap2d_compare_round{round}.png")
-
-# 3. 绘制UMAP 3D可视化（每个模型单独）
-def plot_umap_3d_for_round(X_emb3d, labels, model_names, colors_umap_cmyk_rgb, round, office_home_labels):
-    fig = plt.figure(figsize=(8, 7))
-    ax = fig.add_subplot(111, projection='3d')
-
-    for idx, name in enumerate(model_names):
-        if name == 'global':
-            continue
-        mask = labels == name
-        ax.scatter(
-            X_emb3d[mask, 0], X_emb3d[mask, 1], X_emb3d[mask, 2],
-            c=colors_umap_cmyk_rgb[idx % len(colors_umap_cmyk_rgb)],
-            s=40, alpha=0.5, edgecolors='none',
-            zorder=1, label=name.capitalize()
-        )
-
-    g_mask = labels == 'global'
-    ax.scatter(
-        X_emb3d[g_mask, 0], X_emb3d[g_mask, 1], X_emb3d[g_mask, 2],
-        c=colors_umap_cmyk_rgb[0],
-        marker='x', s=50, alpha=0.7,
-        linewidths=2.5,
-        zorder=100, label='Global'
-    )
-
-    ax.legend(fontsize=16, loc='best', frameon=True)
-    ax.set_title(f'UMAP 3D feature projection (Round {round})', fontsize=18, pad=12)
-    ax.set_xlabel('UMAP-1', fontsize=16, labelpad=16)
-    ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
-    ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
-    ax.locator_params(axis='x', nbins=15)
-    ax.locator_params(axis='y', nbins=15)
-    ax.locator_params(axis='z', nbins=15)
-    ax.tick_params(axis='both', labelsize=14)
-    for lbl in ax.get_xticklabels():
-        lbl.set_rotation(45)
-        lbl.set_horizontalalignment('right')
-
-    plt.tight_layout()
-    plt.savefig(f"logs/umap3d_compare_round{round}.png", dpi=400)
-    plt.close(fig)
-    print(f"[UMAP 3D可视化] 已保存 logs/umap3d_compare_round{round}.png")
-
-# 4. 绘制3D所有模型子图
-def plot_umap_3d_all_for_round(X_emb3d, labels, model_names, office_home_labels, color_per_class_cmyk, round):
-    fig = plt.figure(figsize=(8 * len(model_names), 8))
-    axs = [fig.add_subplot(1, len(model_names), i + 1, projection='3d') for i in range(len(model_names))]
-
-    for ax, name in zip(axs, model_names):
-        mask = (labels == name)
-        X_model = X_emb3d[mask]
-        y_model = labels[mask]
-
-        for cls in np.unique(y_model):
-            c_mask = (y_model == cls)
-            ax.scatter(
-                X_model[c_mask, 0], X_model[c_mask, 1], X_model[c_mask, 2],
-                c=color_per_class_cmyk[int(cls) % len(color_per_class_cmyk)],
-                s=60, label=office_home_labels[int(cls)],
-                alpha=0.78, edgecolors='none'
-            )
-
-        ax.set_title(f"{name} UMAP 3D (Round {round})", fontsize=18, pad=0)
-        ax.set_xlabel('UMAP-1', fontsize=16, labelpad=12)
-        ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
-        ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
-        ax.locator_params(axis='x', nbins=8)
-        ax.locator_params(axis='y', nbins=8)
-        ax.locator_params(axis='z', nbins=8)
-        ax.tick_params(axis='both', labelsize=14)
-
-    handles, labels_ = axs[0].get_legend_handles_labels()
-    by_label = dict(zip(labels_, handles))
-    fig.legend(
-        list(by_label.values()), list(by_label.keys()),
-        fontsize=16, loc='center left',
-        bbox_to_anchor=(0.92, 0.5), borderaxespad=0.
-    )
-    fig.tight_layout(rect=(0, 0, 0.90, 1), w_pad=2.5)
-    plt.savefig(f"logs/umap3d_all_round{round}.png", dpi=400, bbox_inches="tight")
-    plt.close()
-    print(f"[3D-UMAP可视化] 已保存 logs/umap3d_all_round{round}.png")
 
 def save_global_model(global_model_checkpoint, directory, filename="global_model.pth"):
     """
@@ -2113,7 +1760,7 @@ def save_global_model(global_model_checkpoint, directory, filename="global_model
 def save_checkpoint(state, checkpoint_dir, filename="checkpoint.pth.tar"):
     """
     Saves the training checkpoint to a specified directory with a given filename.
-    Ensures that the directory structure is consislinewidth=2tent across various saving functions.
+    Ensures that the directory structure is consistent across various saving functions.
     """
     os.makedirs(checkpoint_dir, exist_ok=True)  # Ensure the directory exists.
     filepath = os.path.join(checkpoint_dir, filename)
@@ -2446,7 +2093,7 @@ def local_train_net(nets, selected, args, net_dataidx_map, D, adv=False, test_dl
     return nets_list, G_output_list_all_clients
 
 
-def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, nets_train_dl_local, test_dl=None, device="cpu"):
+def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, test_dl=None, device="cpu"):
     avg_acc = 0.0
 
     for net_id, net in nets.items():
@@ -2459,13 +2106,28 @@ def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model,
         net.to(device)
         global_model.to(device)
 
+        noise_level = args.noise
+        if net_id == args.n_parties - 1:
+            noise_level = 0
+
+        if args.noise_type == 'space':
+            train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32,
+                                                                 dataidxs, noise_level, net_id, args.n_parties - 1)
+        else:
+            noise_level = args.noise / (args.n_parties - 1) * net_id
+            train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32,
+                                                                 dataidxs, noise_level)
+        train_dl_global, test_dl_global, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32)
         n_epoch = args.epochs
 
+        # trainacc, testacc = train_net_fedtopo(net_id, net, train_dl_local, test_dl, n_epoch, args.lr,
+        #                                        args.optimizer, global_model, history, round,
+        #                                        device=device)
         # 轮数越大，alpha越大（可控上线）
         alpha = min(0.05 + round * 0.01, 0.5)  # 最高到0.5
 
         trainacc, testacc = train_net_fedtopo(
-            net_id, net, nets_train_dl_local[net_id], test_dl, n_epoch, args.lr, args.optimizer,
+            net_id, net, train_dl_local, test_dl, n_epoch, args.lr, args.optimizer, args.scheduler,
             global_model, history, round, device=device, pi=pi, K=2, pool_size=8, alpha=alpha)
         logger.info("net %d final test acc %f" % (net_id, testacc))
         avg_acc += testacc
@@ -2479,7 +2141,7 @@ def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model,
     return nets_list
 
 
-def local_train_net_fedavg(nets, selected, args, net_dataidx_map, global_model, history, round, pi, nets_train_dl_local, test_dl=None, device="cpu"):
+def local_train_net_fedavg(nets, selected, args, net_dataidx_map, test_dl=None, device="cpu"):
     avg_acc = 0.0
 
     for net_id, net in nets.items():
@@ -2490,13 +2152,23 @@ def local_train_net_fedavg(nets, selected, args, net_dataidx_map, global_model, 
         logger.info("Training network %s. n_training: %d" % (str(net_id), len(dataidxs)))
         # move the model to cuda device:
         net.to(device)
-        global_model.to(device)
 
+        noise_level = args.noise
+        if net_id == args.n_parties - 1:
+            noise_level = 0
+
+        if args.noise_type == 'space':
+            train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32,
+                                                                 dataidxs, noise_level, net_id, args.n_parties - 1)
+        else:
+            noise_level = args.noise / (args.n_parties - 1) * net_id
+            train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32,
+                                                                 dataidxs, noise_level)
+        train_dl_global, test_dl_global, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32)
         n_epoch = args.epochs
 
-        trainacc, testacc = train_net_fedavg(
-            net_id, net, nets_train_dl_local[net_id], test_dl, n_epoch, args.lr, args.optimizer,
-            global_model, history, round, device=device, pi=pi, K=2, pool_size=8)
+        trainacc, testacc = train_net_fedavg(net_id, net, train_dl_local, test_dl, n_epoch, args.lr, args.optimizer,
+                                             device=device)
         logger.info("net %d final test acc %f" % (net_id, testacc))
         avg_acc += testacc
         # saving the trained models here
@@ -2747,6 +2419,7 @@ if __name__ == '__main__':
     logger.info(str(args))
     logger.info(device)
 
+    logger.info(FEATURE_LAYER)
     seed = args.init_seed
     logger.info("#" * 100)
     np.random.seed(seed)
@@ -2758,10 +2431,19 @@ if __name__ == '__main__':
 
     n_classes = len(np.unique(y_train))
 
+    train_dl_global, test_dl_global, train_ds_global, test_ds_global = get_dataloader(args.dataset,
+                                                                                      args.datadir,
+                                                                                      args.batch_size,
+                                                                                      32)
+
+    print("len train_dl_global:", len(train_ds_global))
+
+    data_size = len(test_ds_global)
+
+    # test_dl = data.DataLoader(dataset=test_ds_global, batch_size=32, shuffle=False)
+
     train_all_in_list = []
     test_all_in_list = []
-    nets_train_dl_local = {}  # ⬅️ 新增的映射关系字典
-
     if args.noise > 0:
         for party_id in range(args.n_parties):
             dataidxs = net_dataidx_map[party_id]
@@ -2783,7 +2465,6 @@ if __name__ == '__main__':
                                                                                               args.datadir,
                                                                                               args.batch_size, 32,
                                                                                               dataidxs, noise_level)
-            nets_train_dl_local[party_id] = train_dl_local # 新增的变量，可以避免之后多次加载数据集
             train_all_in_list.append(train_ds_local)
             test_all_in_list.append(test_ds_local)
         train_all_in_ds = data.ConcatDataset(train_all_in_list)
@@ -2791,40 +2472,163 @@ if __name__ == '__main__':
         test_all_in_ds = data.ConcatDataset(test_all_in_list)
         test_dl_global = data.DataLoader(dataset=test_all_in_ds, batch_size=32, shuffle=False)
         logger.info("Getting global dataset using ConcatDataset.")
-
     else:
-        for party_id in range(args.n_parties):
-            dataidxs = net_dataidx_map[party_id]
-
-            noise_level = args.noise
-            if party_id == args.n_parties - 1:
-                noise_level = 0
-
-            if args.noise_type == 'space':
-                train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
-                                                                                              args.datadir,
-                                                                                              args.batch_size, 32,
-                                                                                              dataidxs, noise_level,
-                                                                                              party_id,
-                                                                                              args.n_parties - 1)
-            else:
-                noise_level = args.noise / (args.n_parties - 1) * party_id
-                train_dl_local, test_dl_local, train_ds_local, test_ds_local = get_dataloader(args.dataset,
-                                                                                              args.datadir,
-                                                                                              args.batch_size, 32,
-                                                                                              dataidxs, noise_level)
-            nets_train_dl_local[party_id] = train_dl_local # 新增的变量，可以避免之后多次加载数据集
-
         train_dl_global, test_dl_global, train_ds_global, test_ds_global = get_dataloader(args.dataset,
                                                                                           args.datadir,
                                                                                           args.batch_size,
                                                                                           32)
         logger.info("Getting global dataset using get_dataloader.")
 
+    # 现在我们强制使用比较纯净（只加了noise，我也说不清）的数据集，虽然不确定会带来什么影响……
+    train_dl_global, test_dl_global, train_ds_global, test_ds_global = get_dataloader(args.dataset,
+                                                                                      args.datadir,
+                                                                                      args.batch_size,
+                                                                                      32)
 
     key_rounds = [0,  args.comm_round // 4, args.comm_round // 2, (3 * args.comm_round - 2) // 4, args.comm_round - 1]
 
-    if args.alg == 'fedtopo':
+    if args.alg == 'fedgan':
+        logger.info("Initializing nets")
+        nets, local_model_meta_data, layer_type = init_nets(args.net_config, args.dropout_p, args.n_parties, args)
+        global_models, global_model_meta_data, global_layer_type = init_nets(args.net_config, 0, 1, args)
+        global_model = global_models[0]
+        print(nets[0])
+        global_para = global_model.state_dict()
+        if args.is_same_initial:
+            for net_id, net in nets.items():
+                net.load_state_dict(global_para)
+
+        for round in range(args.comm_round):
+            logger.info("in comm round:" + str(round))
+
+            arr = np.arange(args.n_parties)
+            np.random.shuffle(arr)
+            selected = arr[:int(args.n_parties * args.sample)]
+
+            global_para = global_model.state_dict()
+            if round == 0:
+                if args.is_same_initial:
+                    for idx in selected:
+                        nets[idx].load_state_dict(global_para)
+            else:
+                for idx in selected:
+                    nets[idx].load_state_dict(global_para)
+
+            # update_client_task_layers(global_model, nets)
+
+            # if round == 0:
+            #     _, G_output_list_all_clients = local_train_net(nets, selected, args, net_dataidx_map, D, adv = False, test_dl = test_dl_global, device=device)
+            # else:
+            #     _, G_output_list_all_clients = local_train_net(nets, selected, args, net_dataidx_map, D, adv = True, test_dl = test_dl_global, device=device)
+            # # local_train_net(nets, args, net_dataidx_map, local_split=False, device=device)
+
+            _, G_output_list_all_clients = local_train_net(nets, selected, args, net_dataidx_map, D, adv=False,
+                                                           test_dl=test_dl_global, device=device)
+
+            # update global model
+            total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
+            fed_avg_freqs = [len(net_dataidx_map[r]) / total_data_points for r in selected]
+
+            for idx in range(len(selected)):
+                net_para = nets[selected[idx]].cpu().state_dict()
+                if idx == 0:
+                    for key in net_para:
+                        global_para[key] = net_para[key] * fed_avg_freqs[idx]
+                else:
+                    for key in net_para:
+                        global_para[key] += net_para[key] * fed_avg_freqs[idx]
+            global_model.load_state_dict(global_para)
+
+            logger.info('global n_training: %d' % len(train_dl_global))
+            logger.info('global n_test: %d' % len(test_dl_global))
+
+            global_model.to(device)
+            train_acc = compute_accuracy(global_model, train_dl_global, device=device)
+            test_acc, conf_matrix = compute_accuracy(global_model, test_dl_global, get_confusion_matrix=True,
+                                                     device=device)
+
+            logger.info('>> Global Model Train accuracy: %f' % train_acc)
+            logger.info('>> Global Model Test accuracy: %f' % test_acc)
+
+            # 计算全局模型在全局数据集上的熵
+            entropy = compute_global_entropy(global_model, train_dl_global, device=device)
+            logger.info('>> Global Model Entropy: %f' % entropy)
+
+            # ================第二轮 对抗训练===========================
+
+            global_para = global_model.state_dict()
+            if round == 0:
+                if args.is_same_initial:
+                    for idx in selected:
+                        nets[idx].load_state_dict(global_para)
+            else:
+                for idx in selected:
+                    nets[idx].load_state_dict(global_para)
+            # update_client_task_layers(global_model, nets)
+
+            # 第二轮 对抗训练
+            global_model.eval()
+            real_data = generate_real_samples(global_model, train_dl_global, device=device)
+            logger.info('>> Shape of generated real samples: ' + str(real_data.shape))
+
+            # 判别器训练
+
+            # TODO: 获取feature map，把对客户端的遍历放进函数里面
+            G_output_list_all_clients = get_features(nets, selected, args, net_dataidx_map, test_dl=test_dl_global,
+                                                         device=device)
+
+            train_discriminator(D, G_output_list_all_clients, real_data, net_dataidx_map, device, args.optimizer_D,
+                                args.lr_D, args.epoch_D,
+                                batch_size=args.batch_size)
+
+            # 对抗训练客户端
+            # 将判别器的输出形成的loss发送到各client，让它们进行对抗训练
+            # 这里首先进了local_train_net函数中，然后再分流到执行adv_train_net函数
+            # local_train_net(nets, selected, args, net_dataidx_map, D, adv=True, test_dl=test_dl_global, device=device)
+            _, G_output_list_all_clients = local_train_net(nets, selected, args, net_dataidx_map, D, adv=True,
+                                                           test_dl=test_dl_global, device=device)
+
+            # 第二轮update global model
+            total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
+            fed_avg_freqs = [len(net_dataidx_map[r]) / total_data_points for r in selected]
+
+            for idx in range(len(selected)):
+                net_para = nets[selected[idx]].cpu().state_dict()
+                if idx == 0:
+                    for key in net_para:
+                        global_para[key] = net_para[key] * fed_avg_freqs[idx]
+                else:
+                    for key in net_para:
+                        global_para[key] += net_para[key] * fed_avg_freqs[idx]
+            global_model.load_state_dict(global_para)
+
+            # aggregate_task_layers_weighted(global_model, nets, net_dataidx_map, selected)
+
+            logger.info('global n_training: %d' % len(train_dl_global))
+            logger.info('global n_test: %d' % len(test_dl_global))
+
+            global_model.to(device)
+            train_acc = compute_accuracy(global_model, train_dl_global, device=device)
+            test_acc, conf_matrix = compute_accuracy(global_model, test_dl_global, get_confusion_matrix=True,
+                                                     device=device)
+
+            logger.info('>> Global Model Train accuracy: %f' % train_acc)
+            logger.info('>> Global Model Test accuracy: %f' % test_acc)
+
+            # 计算全局模型在全局数据集上的熵
+            entropy = compute_global_entropy(global_model, train_dl_global, device=device)
+            logger.info('>> Global Model Entropy: %f' % entropy)
+            # 保存global model
+            # Save the training state
+            checkpoint = {
+                'model': global_model,
+                'round': round
+            }
+            filename = f"global_round{round}.pth"
+            save_global_model(checkpoint, args.ckpt_dir, filename)
+
+
+    elif args.alg == 'fedtopo':
         logger.info("Initializing nets")
         nets, local_model_meta_data, layer_type = init_nets(args.net_config, args.dropout_p, args.n_parties, args)
         global_models, global_model_meta_data, global_layer_type = init_nets(args.net_config, 0, 1, args)
@@ -2840,7 +2644,6 @@ if __name__ == '__main__':
             'client_total_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_ce_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_topo_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_sem_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_train_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_test_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_topo_distance': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
@@ -2852,14 +2655,29 @@ if __name__ == '__main__':
             'client_swd': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
         }
 
-        # 设置需要保存PI的轮次
-        pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
+        MAX_SAMPLES = 1000 # 定义最大样本数
+        rng = np.random.RandomState(42)  # 定义随机数生成器
 
+        # 初始化 client_features_list 和 client_targets_list
+        client_features_list = []
+        client_targets_list = []
+
+        # 生成初始全局特征
+        global_model.eval()
+        # global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
+        # if len(global_features) > MAX_SAMPLES:
+        #     idx = rng.choice(len(global_features), MAX_SAMPLES, replace=False)
+        #     global_features = global_features[idx]
+        #     global_targets = global_targets[idx]  # 同步下采样标签
+        # # ---- 在 federated_learning 最开始，做一次全局 fit ----
+        # umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
+
+        global_model.to(device)
         # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
         print("Fitting PersistenceImage on global_model + train_dl_global ...")
         pi = fit_persistence_image_from_loader(
             global_model, train_dl_global, device,
-            layer_name=args.feature_layer, pool_size=8, K=2, max_batches=20  # 按你需求可调参数
+            layer_name=FEATURE_LAYER, pool_size=8, K=2, max_batches=20  # 按你需求可调参数
         )
         print("Done fitting PersistenceImage.")
 
@@ -2880,7 +2698,7 @@ if __name__ == '__main__':
                 for idx in selected:
                     nets[idx].load_state_dict(global_para)
 
-            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, nets_train_dl_local, test_dl=test_dl_global, device=device)
+            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, test_dl=test_dl_global, device=device)
 
             # update global model
             total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
@@ -2908,7 +2726,7 @@ if __name__ == '__main__':
 
             # ------------------------ 可视化主流程 ------------------------
             if round in key_rounds:
-                # 一次前向获取特征
+                # 0️⃣ 统一提特征（一次前向）
                 x, y = get_umap_sample_x(
                     train_dl_global,
                     n_batches=args.n_umap_batches,
@@ -2926,42 +2744,299 @@ if __name__ == '__main__':
                         model.eval()
                         feat = extract_layer_features(
                             model, x,
-                            layer_name=args.feature_layer,
+                            layer_name=FEATURE_LAYER,
                             pool_size=8,
                             device=args.device
                         )
                         model_feats[name] = feat.cpu()  # 存到 CPU
                         torch.cuda.empty_cache()
 
-                # 获取2D和3D降维结果
-                feats = np.vstack([feat.view(feat.shape[0], -1).numpy() for feat in model_feats.values()])
-                X_emb2d = get_umap_embeddings(feats, n_components=2)
-                X_emb3d = get_umap_embeddings(feats, n_components=3)
+                # ============== 1. 拓扑条形图 & PI =================
+                global_feat = model_feats['global']
+                client_feats = [model_feats[f'client{cid}'] for cid in range(args.n_parties)]
 
-                # 计算 vis_items 和 FILTRATION_RANGE
-                vis_items = []
-                for idx, name in enumerate(model_names):
-                    model_feat = model_feats[name]
-                    bars, pi_vec = compute_barcode_and_pi(model_feat[0, 0].numpy(), pi)
-                    vis_items.append((name, bars, pi_vec))
+                vis_items = []  # [(name, bars, pi_vec)]
+                g_arr = global_feat[0, 0].numpy()
+                g_bars, g_pi = compute_barcode_and_pi(g_arr, pi)
+                vis_items.append(("Global", g_bars, g_pi))
 
+                for cid, feat in enumerate(client_feats):
+                    c_arr = feat[0, 0].numpy()
+                    c_bars, c_pi = compute_barcode_and_pi(c_arr, pi)
+                    vis_items.append((f"Client{cid}", c_bars, c_pi))
+
+                vmin, vmax = 0, max(p.max() for _, _, p in vis_items)  # 统一 PI 色阶
                 FILTRATION_RANGE = get_filtration_range([b for _, b, _ in vis_items])
 
-                # 调用封装好的绘图函数
-                plot_barcode_and_pi_for_round(vis_items, FILTRATION_RANGE, round, custom_colors,
-                                              morandi_deepblue_cmap_r)
-                plot_umap_2d_for_round(X_emb2d, y, model_names, colors_umap_cmyk_rgb, round)
-                plot_umap_3d_for_round(X_emb3d, y, model_names, colors_umap_cmyk_rgb, round, office_home_labels)
-                plot_umap_3d_all_for_round(X_emb3d, y, model_names, office_home_labels, color_per_class_cmyk, round)
+                fig, axs = plt.subplots(len(vis_items), 2,
+                                        figsize=(8, 2.8 * len(vis_items)))
 
-                # 释放显存
+                legend_handles, legend_labels = [], []
+                for idx, (lbl, bars, pi_vec) in enumerate(vis_items):
+                    handles, labels_ = plot_barcode(
+                        bars, axs[idx, 0],
+                        title=f"{lbl} Barcode",
+                        linewidth=5, xlim=FILTRATION_RANGE,
+                        colors=custom_colors,
+                        title_fontsize=16, label_fontsize=15,
+                        legend_fontsize=14, show_legend=False
+                    )
+                    if idx == 0:
+                        legend_handles, legend_labels = handles, labels_
+
+                    plot_pi(
+                        pi_vec, axs[idx, 1],
+                        title=f"{lbl} PI",
+                        cmap=morandi_deepblue_cmap_r,
+                        vmin=vmin, vmax=vmax,
+                        title_fontsize=16, label_fontsize=15,
+                        colorbar_fontsize=13
+                    )
+                    axs[idx, 0].set_ylabel(lbl, fontsize=15)
+
+                if legend_handles:
+                    # 给 legend 预留的高度
+                    reserved = 0.04  # 8 % 画布高度
+
+                    # 先让 tight_layout 只在 1‑reserved 之上排版
+                    plt.tight_layout(rect=(0, reserved, 1, 1))
+
+                    # 再把 legend 放到预留区的中间 (x=0.5, y=reserved/2)
+                    fig.legend(
+                        legend_handles, legend_labels,
+                        loc='lower center',
+                        bbox_to_anchor=(0.5, reserved / 2),
+                        bbox_transform=fig.transFigure,  # 以 fig 坐标解释 bbox
+                        ncol=len(legend_handles),
+                        fontsize=14,
+                        frameon=False
+                    )
+
+                plt.savefig(f"logs/topo_compare_round{round}.png",
+                            dpi=400, bbox_inches="tight")
+                plt.close(fig)
+                print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
+
+                # ================= 2. UMAP 可视化 ==================
+                # 2-1 拼接特征
+                all_features, all_labels = [], []
+                for name in model_names:
+                    feat_np = model_feats[name].view(model_feats[name].shape[0], -1).numpy()
+                    all_features.append(feat_np)
+                    all_labels += [name] * feat_np.shape[0]
+                feats = np.vstack(all_features)
+                labels = np.array(all_labels)
+
+                # 2-2 处理 y，使长度匹配 feats
+                if hasattr(y, 'cpu'):
+                    y = y.cpu().numpy()
+                elif isinstance(y, list):
+                    y = np.array(y)
+                y = np.tile(y, len(model_names))  # 复制到每个模型
+
+                if feats.shape[0] > args.max_samples:  # 可选截断
+                    feats = feats[:args.max_samples]
+                    labels = labels[:args.max_samples]
+                    y = y[:args.max_samples]
+
+                # 2-3 降维
+                X_emb2d = umap.UMAP(n_components=2, random_state=42).fit_transform(feats)
+                X_emb3d = umap.UMAP(n_components=3, random_state=42).fit_transform(feats)
+
+                # ------------- 2‑D 散点 -----------------
+                colors_umap = ['#DB7093', '#9370DB', '#6495ED',
+                               '#90EE90', '#F0E68C', '#F4A460']
+                colors_umap_CMYK = [
+                    (17.52, 68.79, 21.62, 0.00),
+                    (56.92, 63.07, 0.00, 0.00),
+                    (64.40, 41.31, 0.00, 0.00),
+                    (49.00, 0.00, 58.27, 0.00),
+                    (3.03, 6.66, 55.22, 0.00),
+                    (5.47, 45.18, 65.80, 0.00)
+                ]
+                colors_umap_RGB = [cmyk_to_rgb_255(c, m, y, k) for c, m, y, k in colors_umap_CMYK]
+
+                fig, ax = plt.subplots(figsize=(8, 7))
+
+                # ① 先画所有非‑global 的点
+                for idx, name in enumerate(model_names):
+                    if name == 'global':
+                        continue  # 留到最后
+                    mask = labels == name
+                    ax.scatter(
+                        X_emb2d[mask, 0], X_emb2d[mask, 1],
+                        c=colors_umap[idx % len(colors_umap)],
+                        marker='o', s=60, alpha=0.5,
+                        edgecolors='none', zorder=1,  # 较低 zorder
+                        label=name.capitalize()
+                    )
+
+                # ② 再单独画 global，给很高的 zorder
+                g_mask = labels == 'global'
+                ax.scatter(
+                    X_emb2d[g_mask, 0], X_emb2d[g_mask, 1],
+                    c=colors_umap[0],
+                    marker='x', s=70, alpha=0.7,
+                    linewidths=2.5,
+                    edgecolors='none', zorder=100,  # 最高 zorder
+                    label='Global'
+                )
+
+                # ------- 布局与 legend -------
+                rows = 2
+                ncols = 3
+                reserved = 0.15  # 预留 12 % 画布高度，留得更宽一些
+
+                # ①：把子图都压到剩下 1‑reserved 的区域
+                fig.subplots_adjust(bottom=reserved)  # 和 tight_layout(rect=…) 等价但更直观
+
+                # ②：把 legend 放在预留区正中
+                handles, labels_ = ax.get_legend_handles_labels()
+                fig.legend(
+                    handles, labels_,
+                    loc='lower center',
+                    bbox_to_anchor=(0.5, reserved / 5),  # 纵坐标仍在预留区正中
+                    bbox_transform=fig.transFigure,
+                    ncol=ncols, handlelength=1.5,
+                    columnspacing=1.0, handletextpad=0.5,
+                    frameon=False, fontsize=16
+                )
+
+                ax.set_title(f'UMAP 2D feature projection (Round {round})', fontsize=20)
+                ax.set_xlabel('UMAP-1', fontsize=18)
+                ax.set_ylabel('UMAP-2', fontsize=18)
+                ax.tick_params(axis='both', labelsize=16)
+
+                fig.savefig(f"logs/umap2d_compare_round{round}.png", dpi=400)
+                plt.close(fig)
+                print(f"[UMAP 2D可视化] 已保存 logs/umap2d_compare_round{round}.png")
+
+                # ------------- 3‑D 总图 ------------------
+                fig = plt.figure(figsize=(8, 7))
+                ax = fig.add_subplot(111, projection='3d', computed_zorder=False)
+
+                # ① 先画各 client
+                for idx, name in enumerate(model_names):
+                    if name == 'global':
+                        continue
+                    mask = labels == name
+                    ax.scatter(
+                        X_emb3d[mask, 0], X_emb3d[mask, 1], X_emb3d[mask, 2],
+                        c=colors_umap[idx % len(colors_umap)],
+                        s=40, alpha=0.5, edgecolors='none',
+                        zorder=1, label=name.capitalize()
+                    )
+
+                # ② 再单独画 global
+                g_mask = labels == 'global'
+                ax.scatter(
+                    X_emb3d[g_mask, 0], X_emb3d[g_mask, 1], X_emb3d[g_mask, 2],
+                    c=colors_umap[0],  # 颜色照旧
+                    marker='x', s=50, alpha=0.7,  # s 稍大更显眼
+                    linewidths=2.5,  # 用线宽来控制粗细
+                    zorder=100, label='Global'
+                )
+
+                # legend 现在就能包含 Global 了
+                ax.legend(fontsize=16, loc='best', frameon=True)
+
+                # —— 其余保持不变 ——
+                ax.set_title(f'UMAP 3D feature projection (Round {round})',
+                             fontsize=18, pad=12)
+                ax.set_xlabel('UMAP-1', fontsize=16, labelpad=16)
+                ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
+                ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
+
+                ax.locator_params(axis='x', nbins=15)
+                ax.locator_params(axis='y', nbins=15)
+                ax.locator_params(axis='z', nbins=15)
+                ax.tick_params(axis='both', labelsize=14)
+                ax.grid(True)
+
+                # ―― 旋转 UMAP‑1（x 轴）刻度标签 ――
+                for lbl in ax.get_xticklabels():
+                    lbl.set_rotation(45)  # 45° 斜排
+                    lbl.set_horizontalalignment('right')
+
+                plt.tight_layout()
+                plt.savefig(f"logs/umap3d_compare_round{round}.png", dpi=400)
+                plt.close(fig)
+                print(f"[UMAP 3D可视化] 已保存 logs/umap3d_compare_round{round}.png")
+
+                # ------------- 3-D 各模型子图 -------------
+                color_per_class = [
+                    '#CD5C5C', '#F4A460', '#F0E68C', '#90EE90', '#6495ED',
+                    '#9370DB', '#808080', '#FFB6C1', '#48D1CC', '#BDB76B'
+                ]
+                color_per_class_CMYK = [
+                    (20.86, 74.41, 55.84, 3.5),
+                    (5.47, 45.18, 65.80, 0.00),
+                    (13.03, 6.66, 55.22, 0.00),
+                    (49.00, 0.00, 58.27, 0.00),
+                    (64.40, 41.31, 0.00, 0.00),
+                    (56.92, 63.07, 0.00, 0.00),
+                    (54.74, 45.22, 41.73, 7.13),
+                    (0.00, 40.85, 13.14, 0.00),
+                    (64.77, 0.00, 29.88, 0.00),
+                    (34.74, 23.27, 66.44, 0.20)
+                ]
+                color_per_class_RGB = [cmyk_to_rgb_255(c, m, y, k) for c, m, y, k in color_per_class_CMYK]
+
+                cifar10_labels = [
+                    "airplane", "automobile", "bird", "cat", "deer",
+                    "dog", "frog", "horse", "ship", "truck"
+                ]
+
+                fig = plt.figure(figsize=(8 * len(model_names), 8))
+                axs = [fig.add_subplot(1, len(model_names), i + 1, projection='3d')
+                       for i in range(len(model_names))]
+
+                for ax, name in zip(axs, model_names):
+                    mask = (labels == name)
+                    X_model = X_emb3d[mask]
+                    y_model = y[mask]
+
+                    for cls in np.unique(y_model):
+                        c_mask = (y_model == cls)
+                        ax.scatter(
+                            X_model[c_mask, 0], X_model[c_mask, 1], X_model[c_mask, 2],
+                            c=color_per_class[int(cls) % len(color_per_class)],
+                            s=60, label=cifar10_labels[int(cls)],
+                            alpha=0.78, edgecolors='none'
+                        )
+
+                    # —— 调整标题与坐标轴标题的位置 ——
+                    ax.set_title(f"{name} UMAP 3D (Round {round})",
+                                 fontsize=18, pad=0)  # pad ↓ 让标题稍微下移
+                    ax.set_xlabel('UMAP-1', fontsize=16, labelpad=12)  # labelpad ↑
+                    ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
+                    ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
+
+                    ax.locator_params(axis='x', nbins=8)
+                    ax.locator_params(axis='y', nbins=8)
+                    ax.locator_params(axis='z', nbins=8)
+                    ax.tick_params(axis='both', labelsize=14)
+
+                # —— 合并图例 ——
+                handles, labels_ = axs[0].get_legend_handles_labels()
+                by_label = dict(zip(labels_, handles))
+                fig.legend(
+                    list(by_label.values()), list(by_label.keys()),
+                    fontsize=16, loc='center left',
+                    bbox_to_anchor=(0.92, 0.5), borderaxespad=0.
+                )
+                fig.tight_layout(rect=(0, 0, 0.90, 1), w_pad=2.5)
+                plt.savefig(f"logs/umap3d_all_round{round}.png", dpi=400, bbox_inches="tight")
+                plt.close()
+                print(f"[3D-UMAP可视化] 已保存 logs/umap3d_all_round{round}.png")
+
+                # ----------- 释放显存 -----------
                 torch.cuda.empty_cache()
 
         gc.collect()
         torch.cuda.empty_cache()
 
         # 最后再画一下 loss 曲线
-        # TODO: 去掉最后的10
         fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
         fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
         plt.close(fig3)  # 关闭图形
@@ -2974,18 +3049,29 @@ if __name__ == '__main__':
         nets, local_model_meta_data, layer_type = init_nets(args.net_config, args.dropout_p, args.n_parties, args)
         global_models, global_model_meta_data, global_layer_type = init_nets(args.net_config, 0, 1, args)
         global_model = global_models[0]
-        global_para = global_model.state_dict()
 
+        global_para = global_model.state_dict()
+        print(nets[0])
         if args.is_same_initial:
             for net_id, net in nets.items():
                 net.load_state_dict(global_para)
+
+        # 设置需要保存PI的轮次
+        pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
+
+        # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
+        print("Fitting PersistenceImage on global_model + train_dl_global ...")
+        pi = fit_persistence_image_from_loader(
+            global_model, train_dl_global, device,
+            layer_name=FEATURE_LAYER, pool_size=8, K=2, max_batches=20  # 按你需求可调参数
+        )
+        print("Done fitting PersistenceImage.")
 
         # 初始化history，用于绘图
         history = {
             'client_total_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_ce_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_topo_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_sem_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_train_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_test_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
             'client_topo_distance': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
@@ -2997,20 +3083,7 @@ if __name__ == '__main__':
             'client_swd': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
         }
 
-        # 设置需要保存PI的轮次
-        pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
-
-        # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
-        print("Fitting PersistenceImage on global_model + train_dl_global ...")
-        pi = fit_persistence_image_from_loader(
-            global_model, train_dl_global, device,
-            layer_name=args.feature_layer, pool_size=8, K=2, max_batches=20  # 按你需求可调参数
-        )
-        print("Done fitting PersistenceImage.")
-
-
         for round in range(args.comm_round):
-            print(f"[进程实际内存] {(psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024):.1f} MB")
             logger.info("in comm round:" + str(round))
 
             arr = np.arange(args.n_parties)
@@ -3026,7 +3099,7 @@ if __name__ == '__main__':
                 for idx in selected:
                     nets[idx].load_state_dict(global_para)
 
-            local_train_net_fedavg(nets, selected, args, net_dataidx_map, global_model, history, round, pi, nets_train_dl_local, test_dl=test_dl_global, device=device)
+            local_train_net_fedavg(nets, selected, args, net_dataidx_map, test_dl=test_dl_global, device=device)
             # local_train_net(nets, args, net_dataidx_map, local_split=False, device=device)
 
             # update global model
@@ -3054,57 +3127,72 @@ if __name__ == '__main__':
             logger.info('>> Global Model Train accuracy: %f' % train_acc)
             logger.info('>> Global Model Test accuracy: %f' % test_acc)
 
-            # ------------------------ 可视化主流程 ------------------------
+            # 计算全局模型在全局数据集上的熵
+            if args.dataset != 'generated':
+                entropy = compute_global_entropy(global_model, train_dl_global, device=device)
+                logger.info('>> Global Model Entropy: %f' % entropy)
+
+            pi_records = {}
             if round in key_rounds:
-                # 一次前向获取特征
-                x, y = get_umap_sample_x(
-                    train_dl_global,
-                    n_batches=args.n_umap_batches,
-                    per_batch=32,
-                    device=args.device
-                )
-
-                model_names = ['global'] + [f'client{cid}' for cid in range(args.n_parties)]
-                models_all = [global_model] + [nets[k] for k in nets]
-
-                model_feats = {}  # {name: tensor(N,C,H,W)}
+                # --- 每个客户端 ---
+                x, _ = next(iter(train_dl_global))
+                x = x[:32].to(args.device)  # 可设batch大小
                 with torch.no_grad():
-                    for name, model in zip(model_names, models_all):
-                        model = model.to(args.device)
-                        model.eval()
-                        feat = extract_layer_features(
-                            model, x,
-                            layer_name=args.feature_layer,
-                            pool_size=8,
-                            device=args.device
-                        )
-                        model_feats[name] = feat.cpu()  # 存到 CPU
+                    client_feats = []
+                    for net_id, net in nets.items():
+                        net = net.to(args.device)  # 把模型放到同一个 device 上
+                        net.eval()
+                        feat = extract_layer_features(net, x, layer_name=FEATURE_LAYER, pool_size=8,
+                                                      device=args.device)
+                        client_feats.append(feat.cpu())  # 先转到CPU，节省显存
+                        # 清理显存
                         torch.cuda.empty_cache()
 
-                # 获取2D和3D降维结果
-                feats = np.vstack([feat.view(feat.shape[0], -1).numpy() for feat in model_feats.values()])
-                X_emb2d = get_umap_embeddings(feats, n_components=2)
-                X_emb3d = get_umap_embeddings(feats, n_components=3)
+                    # --- 全局模型 ---
+                    global_model = global_model.to(args.device)  # 保证全局模型也在对的设备
+                    global_model.eval()
+                    global_feat = extract_layer_features(global_model, x, layer_name=FEATURE_LAYER, pool_size=8,
+                                                         device=args.device)
 
-                # 计算 vis_items 和 FILTRATION_RANGE
-                vis_items = []
-                for idx, name in enumerate(model_names):
-                    model_feat = model_feats[name]
-                    bars, pi_vec = compute_barcode_and_pi(model_feat[0, 0].numpy(), pi)
-                    vis_items.append((name, bars, pi_vec))
+                    # 清理全局特征数据
+                    torch.cuda.empty_cache()
 
-                FILTRATION_RANGE = get_filtration_range([b for _, b, _ in vis_items])
+                # ----开始可视化-----
+                # 全局模型特征转CPU
+                global_feat = global_feat.cpu()
 
-                # 调用封装好的绘图函数
-                plot_barcode_and_pi_for_round(vis_items, FILTRATION_RANGE, round, custom_colors,
-                                              morandi_deepblue_cmap_r)
-                plot_umap_2d_for_round(X_emb2d, y, model_names, colors_umap_cmyk_rgb, round)
-                plot_umap_3d_for_round(X_emb3d, y, model_names, colors_umap_cmyk_rgb, round, office_home_labels)
-                plot_umap_3d_all_for_round(X_emb3d, y, model_names, office_home_labels, color_per_class_cmyk, round)
+                # 1. 一次性先处理并存储所有 bars/pi，避免重复计算
+                vis_items = []  # [(name, bars, pi)]
+                # 全局
+                g_arr = global_feat[0, 0].numpy()
+                g_bars, g_pi = compute_barcode_and_pi(g_arr, pi)
+                vis_items.append(("Global", g_bars, g_pi))
 
-                # 释放显存
+                # 各client
+                for cid, feat in enumerate(client_feats):
+                    c_arr = feat[0, 0].numpy()
+                    c_bars, c_pi = compute_barcode_and_pi(c_arr, pi)
+                    vis_items.append((f"Client{cid}", c_bars, c_pi))
+
+                # 2. 统一统计横轴范围（只遍历一遍）
+                all_bars = [item[1] for item in vis_items]
+                FILTRATION_RANGE = get_filtration_range(all_bars)  # 上面提供的自动统计函数
+
+                # 3. 开始画图（也只遍历一遍）
+                fig, axs = plt.subplots(len(vis_items), 2, figsize=(10, 3.5 * len(vis_items)))
+                for idx, (label, bars, pi_vec) in enumerate(vis_items):
+                    plot_barcode(bars, axs[idx, 0], title=f"{label} Barcode", linewidth=5,
+                                 xlim=FILTRATION_RANGE, colors=custom_colors)
+                    plot_pi(pi_vec, axs[idx, 1], title=f"{label} PI", cmap=morandi_blue_cmap)
+                    axs[idx, 0].set_ylabel(label, fontsize=12)
+
+                plt.tight_layout()
+                plt.savefig(f"logs/topo_compare_round{round}.png", dpi=300)
+                plt.close(fig)
+                print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
+
+                # 清理显存
                 torch.cuda.empty_cache()
-
 
             gc.collect()
             torch.cuda.empty_cache()
@@ -3114,10 +3202,6 @@ if __name__ == '__main__':
         fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
         fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
         plt.close(fig3)  # 关闭图形
-
-        # 节约内存这一块
-        plt.close('all')
-        gc.collect()
 
     elif args.alg == 'fedprox':
         logger.info("Initializing nets")
