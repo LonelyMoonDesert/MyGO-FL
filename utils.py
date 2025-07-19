@@ -79,6 +79,50 @@ def _locate_pacs_domain(root, domain_key):
             return p
     raise ValueError(f'Cannot find PACS domain {domain_key} under {root}')
 
+OFFICE_HOME_DOMAINS = ['Art', 'Clipart', 'Product', 'Real World']
+
+OFFICE_HOME_DOMAIN_ALIASES = {
+    'art': ['art', 'Art', 'art_painting'],
+    'clipart': ['clipart', 'Clipart'],
+    'product': ['product', 'Product'],
+    'real world': ['real world', 'Real World'],
+}
+
+
+def _resolve_office_home_root(datadir):
+    import os
+    cands = [
+        os.path.join(datadir),
+        datadir,
+    ]
+    for c in cands:
+        if all(os.path.isdir(os.path.join(c, d)) for d in OFFICE_HOME_DOMAINS if os.path.isdir(c)):
+            return c
+    # fallback to datadir anyway
+    return datadir
+
+
+def _locate_office_home_domain(root, domain_key):
+    """
+    Given canonical root and canonical domain_key in OFFICE_HOME_DOMAINS,
+    try alias names; return path.
+    """
+    import os
+
+    # Convert domain_key to lowercase to ensure it matches the alias keys in OFFICE_HOME_DOMAIN_ALIASES
+    domain_key = domain_key.lower().strip()  # Normalize the domain name
+
+    if domain_key not in OFFICE_HOME_DOMAIN_ALIASES:
+        raise ValueError(f'Unknown domain key {domain_key}')
+
+    for alias in OFFICE_HOME_DOMAIN_ALIASES[domain_key]:
+        p = os.path.join(root, alias)
+        if os.path.isdir(p):
+            return p
+
+    raise ValueError(f'Cannot find Office-Home domain {domain_key} under {root}')
+
+
 class PACSSubset(data.Dataset):
     """
     Wraps an ImageFolder for a PACS domain; optionally selects a subset of indices.
@@ -332,6 +376,62 @@ def load_pacs_data(datadir, train_ratio=1.0, seed=0):
 
     return X_train, y_train, X_test, y_test, domain_train, domain_test
 
+def load_office_home_data(datadir, train_ratio=1.0, seed=0):
+    """
+    Scan Office-Home directory, build global train/test split per domain.
+    Returns:
+        X_train (np.ndarray object of paths)
+        y_train (np.ndarray int)
+        X_test  (np.ndarray object)
+        y_test  (np.ndarray int)
+        domain_train (np.ndarray int)  # 0..3 (art, clipart, product, real)
+        domain_test  (np.ndarray int)
+    """
+    import os
+    import numpy as np
+    from torchvision.datasets import ImageFolder
+
+    # _resolve_office_home_root should return the root path of the Office-Home dataset
+    root = _resolve_office_home_root(datadir)
+
+    paths_all = []
+    labels_all = []
+    domains_all = []
+
+    # Iterate over all domains in the Office-Home dataset
+    for di, dk in enumerate(OFFICE_HOME_DOMAINS):
+        droot = _locate_office_home_domain(root, dk)  # Locate the path for each domain
+        ds = ImageFolder(droot, transform=None)
+        # ds.samples: list of (path, class_idx)
+        for p, cls in ds.samples:
+            paths_all.append(p)
+            labels_all.append(cls)
+            domains_all.append(di)
+
+    paths_all = np.array(paths_all, dtype=object)
+    labels_all = np.array(labels_all, dtype=np.int64)
+    domains_all = np.array(domains_all, dtype=np.int64)
+
+    # Split the data into training and test sets for each domain
+    rng = np.random.RandomState(seed)
+    train_mask = np.zeros(len(paths_all), dtype=bool)
+
+    for di in range(len(OFFICE_HOME_DOMAINS)):
+        idx = np.where(domains_all == di)[0]
+        rng.shuffle(idx)
+        cut = int(train_ratio * len(idx))  # Determine the split based on train_ratio
+        train_mask[idx[:cut]] = True
+
+    X_train = paths_all[train_mask]
+    y_train = labels_all[train_mask]
+    domain_train = domains_all[train_mask]
+
+    X_test = paths_all[~train_mask]
+    y_test = labels_all[~train_mask]
+    domain_test = domains_all[~train_mask]
+
+    return X_train, y_train, X_test, y_test, domain_train, domain_test
+
 
 def record_net_data_stats(y_train, net_dataidx_map, logdir):
 
@@ -368,6 +468,9 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
         X_train, y_train, X_test, y_test = load_tinyimagenet_data(datadir)
     elif dataset == 'pacs':
         X_train, y_train, X_test, y_test, dom_train, dom_test = load_pacs_data(datadir)
+    elif dataset == 'office-home':
+        # 加载 Office-Home 数据集
+        X_train, y_train, X_test, y_test, dom_train, dom_test = load_office_home_data(datadir)
     elif dataset == 'generated':
         X_train, y_train = [], []
         for loc in range(4):
@@ -464,6 +567,7 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
         np.save("data/generated/y_test.npy",y_test)
 
     # ---------- PACS domain partition special case ----------
+    net_dataidx_map = {}
     if dataset == 'pacs' and partition in ('pacs-domain', 'bydomain', 'domain', 'lodo'):
         dom_ids = np.unique(dom_train)  # 0..3
         n_use = min(n_parties, len(dom_ids))
@@ -476,6 +580,25 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
                 di = dom_ids[i % len(dom_ids)]
             idx = np.where(dom_train == di)[0]
             net_dataidx_map[i] = idx
+        traindata_cls_counts = record_net_data_stats(y_train, net_dataidx_map, logdir)
+        return (X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts)
+
+
+    # ---------- Office-Home partition special case ----------
+    if dataset == 'office-home' and partition in ('office-home-domain', 'bydomain', 'domain', 'lodo'):
+        dom_ids = np.unique(dom_train)  # 0..3，四个domain：'art', 'clipart', 'product', 'real'
+        n_use = min(n_parties, len(dom_ids))
+        net_dataidx_map = {}
+
+        # 顺序分配domain，超出的客户端循环使用domain（多客户端可重复同一domain）
+        for i in range(n_parties):
+            if i < len(dom_ids):
+                di = dom_ids[i]
+            else:
+                di = dom_ids[i % len(dom_ids)]
+            idx = np.where(dom_train == di)[0]
+            net_dataidx_map[i] = idx
+
         traindata_cls_counts = record_net_data_stats(y_train, net_dataidx_map, logdir)
         return (X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts)
 
@@ -688,25 +811,6 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
             np.random.shuffle(idx_batch[j])
             net_dataidx_map[j] = idx_batch[j]
 
-    elif partition == "transfer-from-criteo":
-        stat0 = np.load("criteo-dis.npy")
-        
-        n_total = stat0.shape[0]
-        flag=True
-        while (flag):
-            chosen = np.random.permutation(n_total)[:n_parties]
-            stat = stat0[chosen,:]
-            check = [0 for i in range(10)]
-            for ele in stat:
-                for j in range(10):
-                    if ele[j]>0:
-                        check[j]=1
-            flag=False
-            for i in range(10):
-                if check[i]==0:
-                    flag=True
-                    break
-
     elif dataset == 'pacs' and partition in ('pacs-domain-labeldir',):
         dom_ids = np.unique(dom_train)
         n_domains = len(dom_ids)
@@ -739,6 +843,25 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
                 client_id += 1
         traindata_cls_counts = record_net_data_stats(y_train, net_dataidx_map, logdir)
         return (X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts)
+
+    elif partition == "transfer-from-criteo":
+        stat0 = np.load("criteo-dis.npy")
+        
+        n_total = stat0.shape[0]
+        flag=True
+        while (flag):
+            chosen = np.random.permutation(n_total)[:n_parties]
+            stat = stat0[chosen,:]
+            check = [0 for i in range(10)]
+            for ele in stat:
+                for j in range(10):
+                    if ele[j]>0:
+                        check[j]=1
+            flag=False
+            for i in range(10):
+                if check[i]==0:
+                    flag=True
+                    break
 
         if dataset in ('celeba', 'covtype', 'a9a', 'rcv1', 'SUSY'):
             K = 2
@@ -899,7 +1022,7 @@ def get_dataloader(dataset, datadir, train_bs, test_bs,
     """
     if dataset in ('mnist', 'femnist', 'fmnist', 'cifar10', 'svhn', 'generated',
                    'covtype', 'a9a', 'rcv1', 'SUSY', 'cifar100', 'tinyimagenet',
-                   'pacs'):
+                   'pacs', 'office-home'):
 
         if dataset == 'mnist':
             dl_obj = MNIST_truncated
@@ -1055,6 +1178,76 @@ def get_dataloader(dataset, datadir, train_bs, test_bs,
             train_ds = PACSPathsDataset(paths, targets, train_indices, transform_train)
             test_ds  = PACSPathsDataset(paths, targets, test_indices,  transform_test)
 
+        elif dataset == 'office-home':
+            root = _resolve_office_home_root(datadir)
+            # choose domain(s)
+            if net_id is None:
+                domain_keys = OFFICE_HOME_DOMAINS  # all domains
+            else:
+                domain_keys = [OFFICE_HOME_DOMAINS[net_id % len(OFFICE_HOME_DOMAINS)]]
+
+            # transforms (ImageNet style)
+            office_home_norm = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                     std=[0.229, 0.224, 0.225])
+            transform_train = transforms.Compose([
+                transforms.Resize(256),
+                transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                office_home_norm,
+                AddGaussianNoise(0., noise_level, net_id, total),
+            ])
+            transform_test = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                office_home_norm,
+                AddGaussianNoise(0., noise_level, net_id, total),
+            ])
+
+            # build a flat list over requested domains
+            paths = []
+            targets = []
+            for dk in domain_keys:
+                droot = _locate_office_home_domain(root, dk)
+                base = ImageFolder(droot, transform=None)
+                for p, cls in base.samples:
+                    paths.append(p)
+                    targets.append(cls)
+            paths = np.array(paths, dtype=object)
+            targets = np.array(targets, dtype=np.int64)
+
+            # if dataidxs provided, use as train indices (global indexing in above flatten)
+            if dataidxs is not None:
+                train_indices = np.array(dataidxs, dtype=int)
+                mask = np.ones(len(paths), dtype=bool)
+                mask[train_indices] = False
+                test_indices = np.arange(len(paths))[mask]
+            else:
+                # 80/20 split
+                rng = np.random.RandomState(0 if net_id is None else net_id)
+                perm = rng.permutation(len(paths))
+                cut = int(0.8 * len(paths))
+                train_indices = perm[:cut]
+                test_indices = perm[cut:]
+
+            # simple dataset wrapper
+            class OfficeHomePathsDataset(data.Dataset):
+                def __init__(self, paths, labels, indices, transform):
+                    self.paths = paths[indices]
+                    self.labels = labels[indices]
+                    self.transform = transform
+                def __len__(self): return len(self.paths)
+                def __getitem__(self, i):
+                    img = Image.open(self.paths[i]).convert('RGB')
+                    if self.transform: img = self.transform(img)
+                    return img, int(self.labels[i])
+
+            from PIL import Image
+            train_ds = OfficeHomePathsDataset(paths, targets, train_indices, transform_train)
+            test_ds  = OfficeHomePathsDataset(paths, targets, test_indices,  transform_test)
+
+
         else:
             dl_obj = Generated
             transform_train = None
@@ -1065,7 +1258,7 @@ def get_dataloader(dataset, datadir, train_bs, test_bs,
             train_ds = dl_obj(datadir+'tiny-imagenet-200/train/', dataidxs=dataidxs,
                               transform=transform_train)
             test_ds = dl_obj(datadir+'tiny-imagenet-200/val/', transform=transform_test)
-        elif dataset not in ('pacs',):
+        elif dataset not in ('pacs','office-home'):
             train_ds = dl_obj(datadir, dataidxs=dataidxs, train=True,
                               transform=transform_train, download=True)
             test_ds = dl_obj(datadir, train=False,
