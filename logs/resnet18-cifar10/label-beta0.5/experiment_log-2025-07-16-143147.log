@@ -1,0 +1,967 @@
+07-16 14:31 INFO     Namespace(model='resnet18', resume=True, ckpt_dir='./checkpoints', dataset='cifar10', net_config=None, partition='noniid-labeldir', batch_size=32, lr=0.01, lr_G=0.008, lr_D=0.008, epochs=5, epoch_G=5, epoch_D=1, n_parties=5, alg='fedtopo', training_type='local', use_projection_head=False, out_dim=256, loss='contrastive', temperature=0.5, comm_round=10, is_same_initial=1, init_seed=0, dropout_p=0.0, datadir='../data', reg=1e-05, l1_lambda=0.0001, l1=False, adv_l1_lambda=0.0001, adv_l1=False, lambda_adv=0.3, logdir='./logs/', modeldir='./models/', beta=0.5, device='cuda:0', log_file_name='experiment_log-2025-07-16-143147', optimizer='sgd', optimizer_G='sgd', optimizer_D='sgd', mu=0.01, noise=0.0, noise_type='level', rho=0.9, sample=1.0, scheduler='StepLR', scheduler_g='StepLR', scheduler_d='StepLR', gamma=0.01, step_size=30, milestones='30,60', T_max=50, factor=0.1, patience=10, base_lr=0.001, max_lr=0.01, step_size_up=2000, steps_per_epoch=1000, feature_layer='layer3', max_samples=1536, umap_dim=3, n_umap_batches=8)
+07-16 14:31 INFO     cuda:0
+07-16 14:31 INFO     ####################################################################################################
+07-16 14:31 INFO     Partitioning data
+07-16 14:31 INFO     Data statistics: {0: {0: 2538, 1: 2206, 2: 409, 3: 3154, 4: 40, 5: 178, 6: 387, 7: 128, 8: 2363}, 1: {0: 43, 1: 215, 2: 202, 3: 1423, 4: 1777, 5: 2276, 6: 1, 7: 498, 8: 446, 9: 878}, 2: {0: 23, 1: 1517, 2: 1244, 3: 192, 4: 2349, 5: 208, 6: 259, 7: 2175, 8: 682, 9: 114}, 3: {0: 1053, 1: 1004, 2: 2473, 4: 108, 5: 512, 6: 897, 7: 1057, 8: 1368, 9: 2583}, 4: {0: 1343, 1: 58, 2: 672, 3: 231, 4: 726, 5: 1826, 6: 3456, 7: 1142, 8: 141, 9: 1425}}
+07-16 14:31 INFO     Getting global dataset using get_dataloader.
+07-16 14:31 INFO     Initializing nets
+07-16 14:31 INFO     in comm round:0
+07-16 14:31 INFO     Training network 0. n_training: 11403
+07-16 14:31 INFO     Training network 0
+07-16 14:32 INFO     >> Pre-Training Training accuracy: 0.0
+07-16 14:32 INFO     >> Pre-Training Test accuracy: 0.0
+07-16 14:32 INFO     Epoch: 0 Total: 1.4561 CE: 1.4341 Topo: 0.4413
+07-16 14:33 INFO     Epoch: 1 Total: 1.0600 CE: 1.0365 Topo: 0.4696
+07-16 14:33 INFO     Epoch: 2 Total: 0.9604 CE: 0.9367 Topo: 0.4732
+07-16 14:33 INFO     Epoch: 3 Total: 0.8426 CE: 0.8179 Topo: 0.4927
+07-16 14:34 INFO     Epoch: 4 Total: 0.7555 CE: 0.7296 Topo: 0.5179
+07-16 14:34 INFO     >> Training accuracy: 0.777339
+07-16 14:34 INFO     >> Test accuracy: 0.411100
+07-16 14:34 INFO      ** Training complete **
+07-16 14:34 INFO     >> Last-batch PI Similarity: 0.9525
+07-16 14:34 INFO     >> Last-batch Topo Distance: 1.0032
+07-16 14:34 INFO     >> Last-batch 1-CKA: 0.5037
+07-16 14:34 INFO     >> Last-batch Entropy: 0.565737
+07-16 14:34 INFO     >> Last-batch SWD: 0.1184
+07-16 14:34 INFO     net 0 final test acc 0.411100
+07-16 14:34 INFO     Training network 1. n_training: 7759
+07-16 14:34 INFO     Training network 1
+07-16 14:34 INFO     >> Pre-Training Training accuracy: 0.0
+07-16 14:34 INFO     >> Pre-Training Test accuracy: 0.0
+07-16 14:34 INFO     Epoch: 0 Total: 1.7939 CE: 1.7775 Topo: 0.3276
+07-16 14:35 INFO     Epoch: 1 Total: 1.3901 CE: 1.3726 Topo: 0.3508
+07-16 14:35 INFO     Epoch: 2 Total: 1.2851 CE: 1.2670 Topo: 0.3617
+07-16 14:35 INFO     Epoch: 3 Total: 1.1852 CE: 1.1660 Topo: 0.3827
+07-16 14:36 INFO     Epoch: 4 Total: 1.1387 CE: 1.1177 Topo: 0.4205
+07-16 14:36 INFO     >> Training accuracy: 0.620570
+07-16 14:36 INFO     >> Test accuracy: 0.404600
+07-16 14:36 INFO      ** Training complete **
+07-16 14:36 INFO     >> Last-batch PI Similarity: 0.9689
+07-16 14:36 INFO     >> Last-batch Topo Distance: 0.4857
+07-16 14:36 INFO     >> Last-batch 1-CKA: 0.3425
+07-16 14:36 INFO     >> Last-batch Entropy: 0.872482
+07-16 14:36 INFO     >> Last-batch SWD: 0.0502
+07-16 14:36 INFO     net 1 final test acc 0.404600
+07-16 14:36 INFO     Training network 2. n_training: 8763
+07-16 14:36 INFO     Training network 2
+07-16 14:36 INFO     >> Pre-Training Training accuracy: 0.0
+07-16 14:36 INFO     >> Pre-Training Test accuracy: 0.0
+07-16 14:36 INFO     Epoch: 0 Total: 1.6929 CE: 1.6738 Topo: 0.3803
+07-16 14:37 INFO     Epoch: 1 Total: 1.3176 CE: 1.2964 Topo: 0.4254
+07-16 14:37 INFO     Epoch: 2 Total: 1.1816 CE: 1.1604 Topo: 0.4241
+07-16 14:37 INFO     Epoch: 3 Total: 1.0659 CE: 1.0443 Topo: 0.4323
+07-16 14:38 INFO     Epoch: 4 Total: 0.9727 CE: 0.9507 Topo: 0.4408
+07-16 14:38 INFO     >> Training accuracy: 0.724181
+07-16 14:38 INFO     >> Test accuracy: 0.442200
+07-16 14:38 INFO      ** Training complete **
+07-16 14:38 INFO     >> Last-batch PI Similarity: 0.9658
+07-16 14:38 INFO     >> Last-batch Topo Distance: 0.5255
+07-16 14:38 INFO     >> Last-batch 1-CKA: 0.3221
+07-16 14:38 INFO     >> Last-batch Entropy: 0.729041
+07-16 14:38 INFO     >> Last-batch SWD: 0.0753
+07-16 14:38 INFO     net 2 final test acc 0.442200
+07-16 14:38 INFO     Training network 3. n_training: 11055
+07-16 14:38 INFO     Training network 3
+07-16 14:38 INFO     >> Pre-Training Training accuracy: 0.0
+07-16 14:38 INFO     >> Pre-Training Test accuracy: 0.0
+07-16 14:38 INFO     Epoch: 0 Total: 1.7022 CE: 1.6851 Topo: 0.3409
+07-16 14:39 INFO     Epoch: 1 Total: 1.2631 CE: 1.2439 Topo: 0.3856
+07-16 14:39 INFO     Epoch: 2 Total: 1.0637 CE: 1.0440 Topo: 0.3941
+07-16 14:40 INFO     Epoch: 3 Total: 0.9070 CE: 0.8865 Topo: 0.4097
+07-16 14:40 INFO     Epoch: 4 Total: 0.7871 CE: 0.7676 Topo: 0.3906
+07-16 14:40 INFO     >> Training accuracy: 0.768611
+07-16 14:40 INFO     >> Test accuracy: 0.576000
+07-16 14:40 INFO      ** Training complete **
+07-16 14:40 INFO     >> Last-batch PI Similarity: 0.9706
+07-16 14:40 INFO     >> Last-batch Topo Distance: 0.4895
+07-16 14:40 INFO     >> Last-batch 1-CKA: 0.3681
+07-16 14:40 INFO     >> Last-batch Entropy: 0.875944
+07-16 14:40 INFO     >> Last-batch SWD: 0.0585
+07-16 14:40 INFO     net 3 final test acc 0.576000
+07-16 14:40 INFO     Training network 4. n_training: 11020
+07-16 14:40 INFO     Training network 4
+07-16 14:40 INFO     >> Pre-Training Training accuracy: 0.0
+07-16 14:40 INFO     >> Pre-Training Test accuracy: 0.0
+07-16 14:41 INFO     Epoch: 0 Total: 1.6826 CE: 1.6609 Topo: 0.4347
+07-16 14:41 INFO     Epoch: 1 Total: 1.3051 CE: 1.2819 Topo: 0.4641
+07-16 14:41 INFO     Epoch: 2 Total: 1.1326 CE: 1.1108 Topo: 0.4367
+07-16 14:42 INFO     Epoch: 3 Total: 1.0415 CE: 1.0193 Topo: 0.4440
+07-16 14:42 INFO     Epoch: 4 Total: 0.9423 CE: 0.9203 Topo: 0.4400
+07-16 14:42 INFO     >> Training accuracy: 0.711252
+07-16 14:42 INFO     >> Test accuracy: 0.440700
+07-16 14:42 INFO      ** Training complete **
+07-16 14:42 INFO     >> Last-batch PI Similarity: 0.9727
+07-16 14:42 INFO     >> Last-batch Topo Distance: 0.6370
+07-16 14:42 INFO     >> Last-batch 1-CKA: 0.4056
+07-16 14:42 INFO     >> Last-batch Entropy: 0.797125
+07-16 14:42 INFO     >> Last-batch SWD: 0.0447
+07-16 14:42 INFO     net 4 final test acc 0.440700
+07-16 14:42 INFO     global n_training: 1563
+07-16 14:42 INFO     global n_test: 313
+07-16 14:43 INFO     >> Global Model Train accuracy: 0.101240
+07-16 14:43 INFO     >> Global Model Test accuracy: 0.101700
+07-16 14:43 INFO     >> Global Model Entropy: 6.873783
+07-16 14:44 INFO     in comm round:1
+07-16 14:44 INFO     Training network 0. n_training: 11403
+07-16 14:44 INFO     Training network 0
+07-16 14:44 INFO     >> Pre-Training Training accuracy: 0.03902481803034289
+07-16 14:44 INFO     >> Pre-Training Test accuracy: 0.1017
+07-16 14:44 INFO     Epoch: 0 Total: 1.2626 CE: 1.2417 Topo: 0.3484
+07-16 14:45 INFO     Epoch: 1 Total: 1.0149 CE: 0.9899 Topo: 0.4153
+07-16 14:45 INFO     Epoch: 2 Total: 0.9279 CE: 0.9023 Topo: 0.4282
+07-16 14:46 INFO     Epoch: 3 Total: 0.8426 CE: 0.8158 Topo: 0.4469
+07-16 14:46 INFO     Epoch: 4 Total: 0.7519 CE: 0.7223 Topo: 0.4923
+07-16 14:46 INFO     >> Training accuracy: 0.786986
+07-16 14:46 INFO     >> Test accuracy: 0.427000
+07-16 14:46 INFO      ** Training complete **
+07-16 14:46 INFO     >> Last-batch PI Similarity: 0.8969
+07-16 14:46 INFO     >> Last-batch Topo Distance: 0.9257
+07-16 14:46 INFO     >> Last-batch 1-CKA: 0.7151
+07-16 14:46 INFO     >> Last-batch Entropy: 0.787329
+07-16 14:46 INFO     >> Last-batch SWD: 0.0910
+07-16 14:46 INFO     net 0 final test acc 0.427000
+07-16 14:46 INFO     Training network 1. n_training: 7759
+07-16 14:46 INFO     Training network 1
+07-16 14:46 INFO     >> Pre-Training Training accuracy: 0.02603428276839799
+07-16 14:46 INFO     >> Pre-Training Test accuracy: 0.1017
+07-16 14:47 INFO     Epoch: 0 Total: 1.5590 CE: 1.5407 Topo: 0.3057
+07-16 14:47 INFO     Epoch: 1 Total: 1.3413 CE: 1.3225 Topo: 0.3127
+07-16 14:47 INFO     Epoch: 2 Total: 1.2662 CE: 1.2454 Topo: 0.3470
+07-16 14:47 INFO     Epoch: 3 Total: 1.2027 CE: 1.1799 Topo: 0.3796
+07-16 14:48 INFO     Epoch: 4 Total: 1.1500 CE: 1.1277 Topo: 0.3720
+07-16 14:48 INFO     >> Training accuracy: 0.622116
+07-16 14:48 INFO     >> Test accuracy: 0.394300
+07-16 14:48 INFO      ** Training complete **
+07-16 14:48 INFO     >> Last-batch PI Similarity: 0.9670
+07-16 14:48 INFO     >> Last-batch Topo Distance: 0.5149
+07-16 14:48 INFO     >> Last-batch 1-CKA: 0.7016
+07-16 14:48 INFO     >> Last-batch Entropy: 1.094324
+07-16 14:48 INFO     >> Last-batch SWD: 0.0594
+07-16 14:48 INFO     net 1 final test acc 0.394300
+07-16 14:48 INFO     Training network 2. n_training: 8763
+07-16 14:48 INFO     Training network 2
+07-16 14:48 INFO     >> Pre-Training Training accuracy: 0.14173228346456693
+07-16 14:48 INFO     >> Pre-Training Test accuracy: 0.1017
+07-16 14:48 INFO     Epoch: 0 Total: 1.4515 CE: 1.4345 Topo: 0.2838
+07-16 14:48 INFO     Epoch: 1 Total: 1.2407 CE: 1.2223 Topo: 0.3067
+07-16 14:49 INFO     Epoch: 2 Total: 1.1325 CE: 1.1120 Topo: 0.3414
+07-16 14:49 INFO     Epoch: 3 Total: 1.0461 CE: 1.0254 Topo: 0.3464
+07-16 14:49 INFO     Epoch: 4 Total: 0.9544 CE: 0.9317 Topo: 0.3787
+07-16 14:50 INFO     >> Training accuracy: 0.654913
+07-16 14:50 INFO     >> Test accuracy: 0.454100
+07-16 14:50 INFO      ** Training complete **
+07-16 14:50 INFO     >> Last-batch PI Similarity: 0.9708
+07-16 14:50 INFO     >> Last-batch Topo Distance: 0.4169
+07-16 14:50 INFO     >> Last-batch 1-CKA: 0.7210
+07-16 14:50 INFO     >> Last-batch Entropy: 1.133449
+07-16 14:50 INFO     >> Last-batch SWD: 0.0536
+07-16 14:50 INFO     net 2 final test acc 0.454100
+07-16 14:50 INFO     Training network 3. n_training: 11055
+07-16 14:50 INFO     Training network 3
+07-16 14:50 INFO     >> Pre-Training Training accuracy: 0.22496607869742197
+07-16 14:50 INFO     >> Pre-Training Test accuracy: 0.1017
+07-16 14:50 INFO     Epoch: 0 Total: 1.5442 CE: 1.5250 Topo: 0.3210
+07-16 14:50 INFO     Epoch: 1 Total: 1.2482 CE: 1.2281 Topo: 0.3352
+07-16 14:51 INFO     Epoch: 2 Total: 1.0890 CE: 1.0680 Topo: 0.3493
+07-16 14:51 INFO     Epoch: 3 Total: 1.0002 CE: 0.9778 Topo: 0.3733
+07-16 14:52 INFO     Epoch: 4 Total: 0.9050 CE: 0.8804 Topo: 0.4106
+07-16 14:52 INFO     >> Training accuracy: 0.706739
+07-16 14:52 INFO     >> Test accuracy: 0.490900
+07-16 14:52 INFO      ** Training complete **
+07-16 14:52 INFO     >> Last-batch PI Similarity: 0.8993
+07-16 14:52 INFO     >> Last-batch Topo Distance: 0.6101
+07-16 14:52 INFO     >> Last-batch 1-CKA: 0.6837
+07-16 14:52 INFO     >> Last-batch Entropy: 0.971473
+07-16 14:52 INFO     >> Last-batch SWD: 0.0329
+07-16 14:52 INFO     net 3 final test acc 0.490900
+07-16 14:52 INFO     Training network 4. n_training: 11020
+07-16 14:52 INFO     Training network 4
+07-16 14:52 INFO     >> Pre-Training Training accuracy: 0.06243194192377496
+07-16 14:52 INFO     >> Pre-Training Test accuracy: 0.1017
+07-16 14:52 INFO     Epoch: 0 Total: 1.5460 CE: 1.5245 Topo: 0.3597
+07-16 14:53 INFO     Epoch: 1 Total: 1.2924 CE: 1.2703 Topo: 0.3693
+07-16 14:53 INFO     Epoch: 2 Total: 1.1510 CE: 1.1274 Topo: 0.3946
+07-16 14:54 INFO     Epoch: 3 Total: 1.0511 CE: 1.0273 Topo: 0.3980
+07-16 14:54 INFO     Epoch: 4 Total: 0.9777 CE: 0.9522 Topo: 0.4248
+07-16 14:54 INFO     >> Training accuracy: 0.704174
+07-16 14:54 INFO     >> Test accuracy: 0.419100
+07-16 14:54 INFO      ** Training complete **
+07-16 14:54 INFO     >> Last-batch PI Similarity: 0.9339
+07-16 14:54 INFO     >> Last-batch Topo Distance: 0.5671
+07-16 14:54 INFO     >> Last-batch 1-CKA: 0.6497
+07-16 14:54 INFO     >> Last-batch Entropy: 1.108413
+07-16 14:54 INFO     >> Last-batch SWD: 0.0363
+07-16 14:54 INFO     net 4 final test acc 0.419100
+07-16 14:54 INFO     global n_training: 1563
+07-16 14:54 INFO     global n_test: 313
+07-16 14:55 INFO     >> Global Model Train accuracy: 0.499840
+07-16 14:55 INFO     >> Global Model Test accuracy: 0.521800
+07-16 14:55 INFO     >> Global Model Entropy: 6.747775
+07-16 14:55 INFO     in comm round:2
+07-16 14:55 INFO     Training network 0. n_training: 11403
+07-16 14:55 INFO     Training network 0
+07-16 14:55 INFO     >> Pre-Training Training accuracy: 0.4554941682013505
+07-16 14:55 INFO     >> Pre-Training Test accuracy: 0.5218
+07-16 14:56 INFO     Epoch: 0 Total: 0.7960 CE: 0.7844 Topo: 0.1646
+07-16 14:56 INFO     Epoch: 1 Total: 0.6965 CE: 0.6833 Topo: 0.1886
+07-16 14:57 INFO     Epoch: 2 Total: 0.6413 CE: 0.6277 Topo: 0.1944
+07-16 14:57 INFO     Epoch: 3 Total: 0.5931 CE: 0.5790 Topo: 0.2023
+07-16 14:57 INFO     Epoch: 4 Total: 0.5706 CE: 0.5556 Topo: 0.2154
+07-16 14:57 INFO     >> Training accuracy: 0.833377
+07-16 14:57 INFO     >> Test accuracy: 0.486200
+07-16 14:57 INFO      ** Training complete **
+07-16 14:57 INFO     >> Last-batch PI Similarity: 0.9208
+07-16 14:57 INFO     >> Last-batch Topo Distance: 0.3169
+07-16 14:57 INFO     >> Last-batch 1-CKA: 0.2715
+07-16 14:57 INFO     >> Last-batch Entropy: 0.406784
+07-16 14:57 INFO     >> Last-batch SWD: 0.0157
+07-16 14:57 INFO     net 0 final test acc 0.486200
+07-16 14:57 INFO     Training network 1. n_training: 7759
+07-16 14:57 INFO     Training network 1
+07-16 14:58 INFO     >> Pre-Training Training accuracy: 0.4224771233406367
+07-16 14:58 INFO     >> Pre-Training Test accuracy: 0.5218
+07-16 14:58 INFO     Epoch: 0 Total: 1.1037 CE: 1.0919 Topo: 0.1692
+07-16 14:58 INFO     Epoch: 1 Total: 1.0347 CE: 1.0216 Topo: 0.1872
+07-16 14:58 INFO     Epoch: 2 Total: 0.9763 CE: 0.9626 Topo: 0.1954
+07-16 14:59 INFO     Epoch: 3 Total: 0.9108 CE: 0.8968 Topo: 0.2004
+07-16 14:59 INFO     Epoch: 4 Total: 0.8651 CE: 0.8499 Topo: 0.2180
+07-16 14:59 INFO     >> Training accuracy: 0.704343
+07-16 14:59 INFO     >> Test accuracy: 0.475300
+07-16 14:59 INFO      ** Training complete **
+07-16 14:59 INFO     >> Last-batch PI Similarity: 0.9536
+07-16 14:59 INFO     >> Last-batch Topo Distance: 0.3041
+07-16 14:59 INFO     >> Last-batch 1-CKA: 0.4215
+07-16 14:59 INFO     >> Last-batch Entropy: 1.003035
+07-16 14:59 INFO     >> Last-batch SWD: 0.0243
+07-16 14:59 INFO     net 1 final test acc 0.475300
+07-16 14:59 INFO     Training network 2. n_training: 8763
+07-16 14:59 INFO     Training network 2
+07-16 14:59 INFO     >> Pre-Training Training accuracy: 0.5428506219331279
+07-16 14:59 INFO     >> Pre-Training Test accuracy: 0.5218
+07-16 15:00 INFO     Epoch: 0 Total: 0.9405 CE: 0.9287 Topo: 0.1686
+07-16 15:00 INFO     Epoch: 1 Total: 0.8686 CE: 0.8556 Topo: 0.1862
+07-16 15:00 INFO     Epoch: 2 Total: 0.8176 CE: 0.8027 Topo: 0.2126
+07-16 15:01 INFO     Epoch: 3 Total: 0.7725 CE: 0.7565 Topo: 0.2286
+07-16 15:01 INFO     Epoch: 4 Total: 0.7181 CE: 0.7008 Topo: 0.2478
+07-16 15:01 INFO     >> Training accuracy: 0.777588
+07-16 15:01 INFO     >> Test accuracy: 0.509700
+07-16 15:01 INFO      ** Training complete **
+07-16 15:01 INFO     >> Last-batch PI Similarity: 0.9140
+07-16 15:01 INFO     >> Last-batch Topo Distance: 0.2775
+07-16 15:01 INFO     >> Last-batch 1-CKA: 0.2282
+07-16 15:01 INFO     >> Last-batch Entropy: 0.892784
+07-16 15:01 INFO     >> Last-batch SWD: 0.0316
+07-16 15:01 INFO     net 2 final test acc 0.509700
+07-16 15:01 INFO     Training network 3. n_training: 11055
+07-16 15:01 INFO     Training network 3
+07-16 15:01 INFO     >> Pre-Training Training accuracy: 0.5328810492989597
+07-16 15:01 INFO     >> Pre-Training Test accuracy: 0.5218
+07-16 15:02 INFO     Epoch: 0 Total: 0.9341 CE: 0.9218 Topo: 0.1757
+07-16 15:02 INFO     Epoch: 1 Total: 0.8189 CE: 0.8052 Topo: 0.1955
+07-16 15:02 INFO     Epoch: 2 Total: 0.7532 CE: 0.7382 Topo: 0.2147
+07-16 15:03 INFO     Epoch: 3 Total: 0.7099 CE: 0.6940 Topo: 0.2271
+07-16 15:03 INFO     Epoch: 4 Total: 0.6570 CE: 0.6403 Topo: 0.2385
+07-16 15:03 INFO     >> Training accuracy: 0.799276
+07-16 15:03 INFO     >> Test accuracy: 0.604200
+07-16 15:03 INFO      ** Training complete **
+07-16 15:03 INFO     >> Last-batch PI Similarity: 0.9509
+07-16 15:03 INFO     >> Last-batch Topo Distance: 0.4085
+07-16 15:03 INFO     >> Last-batch 1-CKA: 0.2707
+07-16 15:03 INFO     >> Last-batch Entropy: 0.852416
+07-16 15:03 INFO     >> Last-batch SWD: 0.0326
+07-16 15:03 INFO     net 3 final test acc 0.604200
+07-16 15:03 INFO     Training network 4. n_training: 11020
+07-16 15:03 INFO     Training network 4
+07-16 15:03 INFO     >> Pre-Training Training accuracy: 0.5333030852994556
+07-16 15:03 INFO     >> Pre-Training Test accuracy: 0.5218
+07-16 15:04 INFO     Epoch: 0 Total: 1.0103 CE: 0.9971 Topo: 0.1877
+07-16 15:04 INFO     Epoch: 1 Total: 0.9413 CE: 0.9278 Topo: 0.1933
+07-16 15:05 INFO     Epoch: 2 Total: 0.8381 CE: 0.8239 Topo: 0.2027
+07-16 15:05 INFO     Epoch: 3 Total: 0.7974 CE: 0.7827 Topo: 0.2087
+07-16 15:06 INFO     Epoch: 4 Total: 0.7551 CE: 0.7399 Topo: 0.2167
+07-16 15:06 INFO     >> Training accuracy: 0.770508
+07-16 15:06 INFO     >> Test accuracy: 0.545500
+07-16 15:06 INFO      ** Training complete **
+07-16 15:06 INFO     >> Last-batch PI Similarity: 0.9460
+07-16 15:06 INFO     >> Last-batch Topo Distance: 0.3627
+07-16 15:06 INFO     >> Last-batch 1-CKA: 0.2402
+07-16 15:06 INFO     >> Last-batch Entropy: 0.731984
+07-16 15:06 INFO     >> Last-batch SWD: 0.0145
+07-16 15:06 INFO     net 4 final test acc 0.545500
+07-16 15:06 INFO     global n_training: 1563
+07-16 15:06 INFO     global n_test: 313
+07-16 15:06 INFO     >> Global Model Train accuracy: 0.635540
+07-16 15:06 INFO     >> Global Model Test accuracy: 0.652400
+07-16 15:07 INFO     >> Global Model Entropy: 6.577683
+07-16 15:07 INFO     in comm round:3
+07-16 15:07 INFO     Training network 0. n_training: 11403
+07-16 15:07 INFO     Training network 0
+07-16 15:07 INFO     >> Pre-Training Training accuracy: 0.5753749013417522
+07-16 15:07 INFO     >> Pre-Training Test accuracy: 0.6524
+07-16 15:08 INFO     Epoch: 0 Total: 0.6043 CE: 0.5920 Topo: 0.1538
+07-16 15:08 INFO     Epoch: 1 Total: 0.5571 CE: 0.5442 Topo: 0.1611
+07-16 15:08 INFO     Epoch: 2 Total: 0.5154 CE: 0.5014 Topo: 0.1757
+07-16 15:09 INFO     Epoch: 3 Total: 0.4913 CE: 0.4772 Topo: 0.1769
+07-16 15:09 INFO     Epoch: 4 Total: 0.4519 CE: 0.4370 Topo: 0.1852
+07-16 15:09 INFO     >> Training accuracy: 0.852144
+07-16 15:09 INFO     >> Test accuracy: 0.511800
+07-16 15:09 INFO      ** Training complete **
+07-16 15:09 INFO     >> Last-batch PI Similarity: 0.9686
+07-16 15:09 INFO     >> Last-batch Topo Distance: 0.2544
+07-16 15:09 INFO     >> Last-batch 1-CKA: 0.2145
+07-16 15:09 INFO     >> Last-batch Entropy: 0.597110
+07-16 15:09 INFO     >> Last-batch SWD: 0.0128
+07-16 15:09 INFO     net 0 final test acc 0.511800
+07-16 15:09 INFO     Training network 1. n_training: 7759
+07-16 15:09 INFO     Training network 1
+07-16 15:09 INFO     >> Pre-Training Training accuracy: 0.5271297847660781
+07-16 15:09 INFO     >> Pre-Training Test accuracy: 0.6524
+07-16 15:10 INFO     Epoch: 0 Total: 0.8703 CE: 0.8575 Topo: 0.1598
+07-16 15:10 INFO     Epoch: 1 Total: 0.8394 CE: 0.8245 Topo: 0.1862
+07-16 15:10 INFO     Epoch: 2 Total: 0.7774 CE: 0.7621 Topo: 0.1915
+07-16 15:11 INFO     Epoch: 3 Total: 0.7580 CE: 0.7419 Topo: 0.2022
+07-16 15:11 INFO     Epoch: 4 Total: 0.6939 CE: 0.6777 Topo: 0.2027
+07-16 15:11 INFO     >> Training accuracy: 0.770589
+07-16 15:11 INFO     >> Test accuracy: 0.600300
+07-16 15:11 INFO      ** Training complete **
+07-16 15:11 INFO     >> Last-batch PI Similarity: 0.9403
+07-16 15:11 INFO     >> Last-batch Topo Distance: 0.3189
+07-16 15:11 INFO     >> Last-batch 1-CKA: 0.1883
+07-16 15:11 INFO     >> Last-batch Entropy: 0.549260
+07-16 15:11 INFO     >> Last-batch SWD: 0.0267
+07-16 15:11 INFO     net 1 final test acc 0.600300
+07-16 15:11 INFO     Training network 2. n_training: 8763
+07-16 15:11 INFO     Training network 2
+07-16 15:11 INFO     >> Pre-Training Training accuracy: 0.6900604815702385
+07-16 15:11 INFO     >> Pre-Training Test accuracy: 0.6524
+07-16 15:11 INFO     Epoch: 0 Total: 0.7334 CE: 0.7204 Topo: 0.1631
+07-16 15:12 INFO     Epoch: 1 Total: 0.6852 CE: 0.6702 Topo: 0.1868
+07-16 15:12 INFO     Epoch: 2 Total: 0.6490 CE: 0.6338 Topo: 0.1907
+07-16 15:12 INFO     Epoch: 3 Total: 0.6172 CE: 0.6007 Topo: 0.2069
+07-16 15:13 INFO     Epoch: 4 Total: 0.5843 CE: 0.5667 Topo: 0.2203
+07-16 15:13 INFO     >> Training accuracy: 0.831565
+07-16 15:13 INFO     >> Test accuracy: 0.606300
+07-16 15:13 INFO      ** Training complete **
+07-16 15:13 INFO     >> Last-batch PI Similarity: 0.8760
+07-16 15:13 INFO     >> Last-batch Topo Distance: 0.2801
+07-16 15:13 INFO     >> Last-batch 1-CKA: 0.1551
+07-16 15:13 INFO     >> Last-batch Entropy: 0.582691
+07-16 15:13 INFO     >> Last-batch SWD: 0.0278
+07-16 15:13 INFO     net 2 final test acc 0.606300
+07-16 15:13 INFO     Training network 3. n_training: 11055
+07-16 15:13 INFO     Training network 3
+07-16 15:13 INFO     >> Pre-Training Training accuracy: 0.7074626865671642
+07-16 15:13 INFO     >> Pre-Training Test accuracy: 0.6524
+07-16 15:13 INFO     Epoch: 0 Total: 0.7089 CE: 0.6964 Topo: 0.1574
+07-16 15:14 INFO     Epoch: 1 Total: 0.6488 CE: 0.6352 Topo: 0.1690
+07-16 15:14 INFO     Epoch: 2 Total: 0.6112 CE: 0.5965 Topo: 0.1837
+07-16 15:14 INFO     Epoch: 3 Total: 0.5708 CE: 0.5545 Topo: 0.2041
+07-16 15:15 INFO     Epoch: 4 Total: 0.5463 CE: 0.5303 Topo: 0.2001
+07-16 15:15 INFO     >> Training accuracy: 0.829489
+07-16 15:15 INFO     >> Test accuracy: 0.638300
+07-16 15:15 INFO      ** Training complete **
+07-16 15:15 INFO     >> Last-batch PI Similarity: 0.9450
+07-16 15:15 INFO     >> Last-batch Topo Distance: 0.3462
+07-16 15:15 INFO     >> Last-batch 1-CKA: 0.1897
+07-16 15:15 INFO     >> Last-batch Entropy: 0.524213
+07-16 15:15 INFO     >> Last-batch SWD: 0.0160
+07-16 15:15 INFO     net 3 final test acc 0.638300
+07-16 15:15 INFO     Training network 4. n_training: 11020
+07-16 15:15 INFO     Training network 4
+07-16 15:15 INFO     >> Pre-Training Training accuracy: 0.6671506352087114
+07-16 15:15 INFO     >> Pre-Training Test accuracy: 0.6524
+07-16 15:15 INFO     Epoch: 0 Total: 0.7808 CE: 0.7670 Topo: 0.1723
+07-16 15:16 INFO     Epoch: 1 Total: 0.7353 CE: 0.7212 Topo: 0.1765
+07-16 15:16 INFO     Epoch: 2 Total: 0.7037 CE: 0.6882 Topo: 0.1939
+07-16 15:17 INFO     Epoch: 3 Total: 0.6511 CE: 0.6352 Topo: 0.1985
+07-16 15:17 INFO     Epoch: 4 Total: 0.6273 CE: 0.6106 Topo: 0.2080
+07-16 15:17 INFO     >> Training accuracy: 0.809074
+07-16 15:17 INFO     >> Test accuracy: 0.624700
+07-16 15:17 INFO      ** Training complete **
+07-16 15:17 INFO     >> Last-batch PI Similarity: 0.9149
+07-16 15:17 INFO     >> Last-batch Topo Distance: 0.4435
+07-16 15:17 INFO     >> Last-batch 1-CKA: 0.2067
+07-16 15:17 INFO     >> Last-batch Entropy: 0.726291
+07-16 15:17 INFO     >> Last-batch SWD: 0.0249
+07-16 15:17 INFO     net 4 final test acc 0.624700
+07-16 15:17 INFO     global n_training: 1563
+07-16 15:17 INFO     global n_test: 313
+07-16 15:18 INFO     >> Global Model Train accuracy: 0.711000
+07-16 15:18 INFO     >> Global Model Test accuracy: 0.719200
+07-16 15:19 INFO     >> Global Model Entropy: 6.473520
+07-16 15:19 INFO     in comm round:4
+07-16 15:19 INFO     Training network 0. n_training: 11403
+07-16 15:19 INFO     Training network 0
+07-16 15:20 INFO     >> Pre-Training Training accuracy: 0.6350083311409278
+07-16 15:20 INFO     >> Pre-Training Test accuracy: 0.7192
+07-16 15:20 INFO     Epoch: 0 Total: 0.5001 CE: 0.4863 Topo: 0.1533
+07-16 15:20 INFO     Epoch: 1 Total: 0.4591 CE: 0.4447 Topo: 0.1604
+07-16 15:21 INFO     Epoch: 2 Total: 0.4432 CE: 0.4269 Topo: 0.1811
+07-16 15:21 INFO     Epoch: 3 Total: 0.4203 CE: 0.4042 Topo: 0.1792
+07-16 15:22 INFO     Epoch: 4 Total: 0.4083 CE: 0.3924 Topo: 0.1766
+07-16 15:22 INFO     >> Training accuracy: 0.883364
+07-16 15:22 INFO     >> Test accuracy: 0.569000
+07-16 15:22 INFO      ** Training complete **
+07-16 15:22 INFO     >> Last-batch PI Similarity: 0.9460
+07-16 15:22 INFO     >> Last-batch Topo Distance: 0.3631
+07-16 15:22 INFO     >> Last-batch 1-CKA: 0.1997
+07-16 15:22 INFO     >> Last-batch Entropy: 0.540422
+07-16 15:22 INFO     >> Last-batch SWD: 0.0203
+07-16 15:22 INFO     net 0 final test acc 0.569000
+07-16 15:22 INFO     Training network 1. n_training: 7759
+07-16 15:22 INFO     Training network 1
+07-16 15:22 INFO     >> Pre-Training Training accuracy: 0.6156721226962237
+07-16 15:22 INFO     >> Pre-Training Test accuracy: 0.7192
+07-16 15:22 INFO     Epoch: 0 Total: 0.7675 CE: 0.7536 Topo: 0.1547
+07-16 15:23 INFO     Epoch: 1 Total: 0.6979 CE: 0.6821 Topo: 0.1763
+07-16 15:23 INFO     Epoch: 2 Total: 0.6711 CE: 0.6546 Topo: 0.1842
+07-16 15:23 INFO     Epoch: 3 Total: 0.6473 CE: 0.6305 Topo: 0.1870
+07-16 15:23 INFO     Epoch: 4 Total: 0.6177 CE: 0.6002 Topo: 0.1950
+07-16 15:24 INFO     >> Training accuracy: 0.793015
+07-16 15:24 INFO     >> Test accuracy: 0.623300
+07-16 15:24 INFO      ** Training complete **
+07-16 15:24 INFO     >> Last-batch PI Similarity: 0.9039
+07-16 15:24 INFO     >> Last-batch Topo Distance: 0.2597
+07-16 15:24 INFO     >> Last-batch 1-CKA: 0.1705
+07-16 15:24 INFO     >> Last-batch Entropy: 0.520358
+07-16 15:24 INFO     >> Last-batch SWD: 0.0127
+07-16 15:24 INFO     net 1 final test acc 0.623300
+07-16 15:24 INFO     Training network 2. n_training: 8763
+07-16 15:24 INFO     Training network 2
+07-16 15:24 INFO     >> Pre-Training Training accuracy: 0.7533949560652744
+07-16 15:24 INFO     >> Pre-Training Test accuracy: 0.7192
+07-16 15:24 INFO     Epoch: 0 Total: 0.6211 CE: 0.6065 Topo: 0.1630
+07-16 15:24 INFO     Epoch: 1 Total: 0.5733 CE: 0.5570 Topo: 0.1811
+07-16 15:25 INFO     Epoch: 2 Total: 0.5538 CE: 0.5363 Topo: 0.1942
+07-16 15:25 INFO     Epoch: 3 Total: 0.5106 CE: 0.4909 Topo: 0.2182
+07-16 15:25 INFO     Epoch: 4 Total: 0.4844 CE: 0.4661 Topo: 0.2034
+07-16 15:26 INFO     >> Training accuracy: 0.863745
+07-16 15:26 INFO     >> Test accuracy: 0.667000
+07-16 15:26 INFO      ** Training complete **
+07-16 15:26 INFO     >> Last-batch PI Similarity: 0.9187
+07-16 15:26 INFO     >> Last-batch Topo Distance: 0.2318
+07-16 15:26 INFO     >> Last-batch 1-CKA: 0.1416
+07-16 15:26 INFO     >> Last-batch Entropy: 0.381355
+07-16 15:26 INFO     >> Last-batch SWD: 0.0340
+07-16 15:26 INFO     net 2 final test acc 0.667000
+07-16 15:26 INFO     Training network 3. n_training: 11055
+07-16 15:26 INFO     Training network 3
+07-16 15:26 INFO     >> Pre-Training Training accuracy: 0.779194934418815
+07-16 15:26 INFO     >> Pre-Training Test accuracy: 0.7192
+07-16 15:26 INFO     Epoch: 0 Total: 0.5767 CE: 0.5627 Topo: 0.1552
+07-16 15:27 INFO     Epoch: 1 Total: 0.5451 CE: 0.5291 Topo: 0.1780
+07-16 15:27 INFO     Epoch: 2 Total: 0.5055 CE: 0.4888 Topo: 0.1850
+07-16 15:27 INFO     Epoch: 3 Total: 0.4826 CE: 0.4665 Topo: 0.1794
+07-16 15:28 INFO     Epoch: 4 Total: 0.4653 CE: 0.4485 Topo: 0.1873
+07-16 15:28 INFO     >> Training accuracy: 0.875260
+07-16 15:28 INFO     >> Test accuracy: 0.684300
+07-16 15:28 INFO      ** Training complete **
+07-16 15:28 INFO     >> Last-batch PI Similarity: 0.9214
+07-16 15:28 INFO     >> Last-batch Topo Distance: 0.2658
+07-16 15:28 INFO     >> Last-batch 1-CKA: 0.1521
+07-16 15:28 INFO     >> Last-batch Entropy: 0.326029
+07-16 15:28 INFO     >> Last-batch SWD: 0.0155
+07-16 15:28 INFO     net 3 final test acc 0.684300
+07-16 15:28 INFO     Training network 4. n_training: 11020
+07-16 15:28 INFO     Training network 4
+07-16 15:28 INFO     >> Pre-Training Training accuracy: 0.7505444646098004
+07-16 15:28 INFO     >> Pre-Training Test accuracy: 0.7192
+07-16 15:28 INFO     Epoch: 0 Total: 0.6543 CE: 0.6396 Topo: 0.1633
+07-16 15:29 INFO     Epoch: 1 Total: 0.6228 CE: 0.6064 Topo: 0.1831
+07-16 15:29 INFO     Epoch: 2 Total: 0.5936 CE: 0.5770 Topo: 0.1847
+07-16 15:30 INFO     Epoch: 3 Total: 0.5530 CE: 0.5353 Topo: 0.1963
+07-16 15:30 INFO     Epoch: 4 Total: 0.5377 CE: 0.5201 Topo: 0.1962
+07-16 15:30 INFO     >> Training accuracy: 0.814156
+07-16 15:30 INFO     >> Test accuracy: 0.653100
+07-16 15:30 INFO      ** Training complete **
+07-16 15:30 INFO     >> Last-batch PI Similarity: 0.9138
+07-16 15:30 INFO     >> Last-batch Topo Distance: 0.3356
+07-16 15:30 INFO     >> Last-batch 1-CKA: 0.2057
+07-16 15:30 INFO     >> Last-batch Entropy: 0.698826
+07-16 15:30 INFO     >> Last-batch SWD: 0.0143
+07-16 15:30 INFO     net 4 final test acc 0.653100
+07-16 15:30 INFO     global n_training: 1563
+07-16 15:30 INFO     global n_test: 313
+07-16 15:31 INFO     >> Global Model Train accuracy: 0.755300
+07-16 15:31 INFO     >> Global Model Test accuracy: 0.755900
+07-16 15:31 INFO     >> Global Model Entropy: 6.383380
+07-16 15:31 INFO     in comm round:5
+07-16 15:31 INFO     Training network 0. n_training: 11403
+07-16 15:31 INFO     Training network 0
+07-16 15:31 INFO     >> Pre-Training Training accuracy: 0.6831535560817329
+07-16 15:31 INFO     >> Pre-Training Test accuracy: 0.7559
+07-16 15:32 INFO     Epoch: 0 Total: 0.4405 CE: 0.4262 Topo: 0.1432
+07-16 15:32 INFO     Epoch: 1 Total: 0.4211 CE: 0.4057 Topo: 0.1541
+07-16 15:32 INFO     Epoch: 2 Total: 0.3940 CE: 0.3786 Topo: 0.1542
+07-16 15:33 INFO     Epoch: 3 Total: 0.3671 CE: 0.3510 Topo: 0.1613
+07-16 15:33 INFO     Epoch: 4 Total: 0.3527 CE: 0.3362 Topo: 0.1649
+07-16 15:33 INFO     >> Training accuracy: 0.896869
+07-16 15:33 INFO     >> Test accuracy: 0.570100
+07-16 15:33 INFO      ** Training complete **
+07-16 15:33 INFO     >> Last-batch PI Similarity: 0.9352
+07-16 15:33 INFO     >> Last-batch Topo Distance: 0.2483
+07-16 15:33 INFO     >> Last-batch 1-CKA: 0.1787
+07-16 15:33 INFO     >> Last-batch Entropy: 0.147809
+07-16 15:33 INFO     >> Last-batch SWD: 0.0120
+07-16 15:33 INFO     net 0 final test acc 0.570100
+07-16 15:33 INFO     Training network 1. n_training: 7759
+07-16 15:33 INFO     Training network 1
+07-16 15:33 INFO     >> Pre-Training Training accuracy: 0.655883490140482
+07-16 15:33 INFO     >> Pre-Training Test accuracy: 0.7559
+07-16 15:34 INFO     Epoch: 0 Total: 0.6793 CE: 0.6656 Topo: 0.1365
+07-16 15:34 INFO     Epoch: 1 Total: 0.6447 CE: 0.6283 Topo: 0.1634
+07-16 15:34 INFO     Epoch: 2 Total: 0.6076 CE: 0.5906 Topo: 0.1694
+07-16 15:35 INFO     Epoch: 3 Total: 0.5916 CE: 0.5747 Topo: 0.1682
+07-16 15:35 INFO     Epoch: 4 Total: 0.5841 CE: 0.5669 Topo: 0.1722
+07-16 15:35 INFO     >> Training accuracy: 0.799845
+07-16 15:35 INFO     >> Test accuracy: 0.603300
+07-16 15:35 INFO      ** Training complete **
+07-16 15:35 INFO     >> Last-batch PI Similarity: 0.9112
+07-16 15:35 INFO     >> Last-batch Topo Distance: 0.2085
+07-16 15:35 INFO     >> Last-batch 1-CKA: 0.2129
+07-16 15:35 INFO     >> Last-batch Entropy: 0.506707
+07-16 15:35 INFO     >> Last-batch SWD: 0.0098
+07-16 15:35 INFO     net 1 final test acc 0.603300
+07-16 15:35 INFO     Training network 2. n_training: 8763
+07-16 15:35 INFO     Training network 2
+07-16 15:35 INFO     >> Pre-Training Training accuracy: 0.7785005135227662
+07-16 15:35 INFO     >> Pre-Training Test accuracy: 0.7559
+07-16 15:35 INFO     Epoch: 0 Total: 0.5316 CE: 0.5172 Topo: 0.1439
+07-16 15:36 INFO     Epoch: 1 Total: 0.4822 CE: 0.4659 Topo: 0.1634
+07-16 15:36 INFO     Epoch: 2 Total: 0.4616 CE: 0.4448 Topo: 0.1674
+07-16 15:36 INFO     Epoch: 3 Total: 0.4464 CE: 0.4288 Topo: 0.1764
+07-16 15:37 INFO     Epoch: 4 Total: 0.4106 CE: 0.3913 Topo: 0.1922
+07-16 15:37 INFO     >> Training accuracy: 0.842634
+07-16 15:37 INFO     >> Test accuracy: 0.652800
+07-16 15:37 INFO      ** Training complete **
+07-16 15:37 INFO     >> Last-batch PI Similarity: 0.8647
+07-16 15:37 INFO     >> Last-batch Topo Distance: 0.2543
+07-16 15:37 INFO     >> Last-batch 1-CKA: 0.1845
+07-16 15:37 INFO     >> Last-batch Entropy: 0.406798
+07-16 15:37 INFO     >> Last-batch SWD: 0.0491
+07-16 15:37 INFO     net 2 final test acc 0.652800
+07-16 15:37 INFO     Training network 3. n_training: 11055
+07-16 15:37 INFO     Training network 3
+07-16 15:37 INFO     >> Pre-Training Training accuracy: 0.8382632293080055
+07-16 15:37 INFO     >> Pre-Training Test accuracy: 0.7559
+07-16 15:37 INFO     Epoch: 0 Total: 0.5050 CE: 0.4906 Topo: 0.1439
+07-16 15:38 INFO     Epoch: 1 Total: 0.4814 CE: 0.4653 Topo: 0.1611
+07-16 15:38 INFO     Epoch: 2 Total: 0.4442 CE: 0.4279 Topo: 0.1633
+07-16 15:38 INFO     Epoch: 3 Total: 0.4145 CE: 0.3978 Topo: 0.1674
+07-16 15:39 INFO     Epoch: 4 Total: 0.3971 CE: 0.3800 Topo: 0.1718
+07-16 15:39 INFO     >> Training accuracy: 0.859701
+07-16 15:39 INFO     >> Test accuracy: 0.674300
+07-16 15:39 INFO      ** Training complete **
+07-16 15:39 INFO     >> Last-batch PI Similarity: 0.8267
+07-16 15:39 INFO     >> Last-batch Topo Distance: 0.3119
+07-16 15:39 INFO     >> Last-batch 1-CKA: 0.1716
+07-16 15:39 INFO     >> Last-batch Entropy: 0.348209
+07-16 15:39 INFO     >> Last-batch SWD: 0.0220
+07-16 15:39 INFO     net 3 final test acc 0.674300
+07-16 15:39 INFO     Training network 4. n_training: 11020
+07-16 15:39 INFO     Training network 4
+07-16 15:39 INFO     >> Pre-Training Training accuracy: 0.802540834845735
+07-16 15:39 INFO     >> Pre-Training Test accuracy: 0.7559
+07-16 15:39 INFO     Epoch: 0 Total: 0.5943 CE: 0.5799 Topo: 0.1445
+07-16 15:40 INFO     Epoch: 1 Total: 0.5453 CE: 0.5293 Topo: 0.1600
+07-16 15:40 INFO     Epoch: 2 Total: 0.5215 CE: 0.5047 Topo: 0.1685
+07-16 15:41 INFO     Epoch: 3 Total: 0.4838 CE: 0.4666 Topo: 0.1723
+07-16 15:41 INFO     Epoch: 4 Total: 0.4674 CE: 0.4497 Topo: 0.1771
+07-16 15:41 INFO     >> Training accuracy: 0.861615
+07-16 15:41 INFO     >> Test accuracy: 0.691400
+07-16 15:41 INFO      ** Training complete **
+07-16 15:41 INFO     >> Last-batch PI Similarity: 0.9100
+07-16 15:41 INFO     >> Last-batch Topo Distance: 0.2640
+07-16 15:41 INFO     >> Last-batch 1-CKA: 0.1692
+07-16 15:41 INFO     >> Last-batch Entropy: 0.375996
+07-16 15:41 INFO     >> Last-batch SWD: 0.0129
+07-16 15:41 INFO     net 4 final test acc 0.691400
+07-16 15:41 INFO     global n_training: 1563
+07-16 15:41 INFO     global n_test: 313
+07-16 15:42 INFO     >> Global Model Train accuracy: 0.791780
+07-16 15:42 INFO     >> Global Model Test accuracy: 0.791700
+07-16 15:42 INFO     >> Global Model Entropy: 6.349409
+07-16 15:43 INFO     in comm round:6
+07-16 15:43 INFO     Training network 0. n_training: 11403
+07-16 15:43 INFO     Training network 0
+07-16 15:43 INFO     >> Pre-Training Training accuracy: 0.717355081995966
+07-16 15:43 INFO     >> Pre-Training Test accuracy: 0.7917
+07-16 15:43 INFO     Epoch: 0 Total: 0.4104 CE: 0.3951 Topo: 0.1387
+07-16 15:44 INFO     Epoch: 1 Total: 0.3576 CE: 0.3405 Topo: 0.1554
+07-16 15:44 INFO     Epoch: 2 Total: 0.3484 CE: 0.3305 Topo: 0.1625
+07-16 15:44 INFO     Epoch: 3 Total: 0.3288 CE: 0.3105 Topo: 0.1668
+07-16 15:45 INFO     Epoch: 4 Total: 0.3150 CE: 0.2963 Topo: 0.1702
+07-16 15:45 INFO     >> Training accuracy: 0.917039
+07-16 15:45 INFO     >> Test accuracy: 0.612300
+07-16 15:45 INFO      ** Training complete **
+07-16 15:45 INFO     >> Last-batch PI Similarity: 0.8414
+07-16 15:45 INFO     >> Last-batch Topo Distance: 0.2943
+07-16 15:45 INFO     >> Last-batch 1-CKA: 0.1668
+07-16 15:45 INFO     >> Last-batch Entropy: 0.343794
+07-16 15:45 INFO     >> Last-batch SWD: 0.0137
+07-16 15:45 INFO     net 0 final test acc 0.612300
+07-16 15:45 INFO     Training network 1. n_training: 7759
+07-16 15:45 INFO     Training network 1
+07-16 15:45 INFO     >> Pre-Training Training accuracy: 0.7410748807836062
+07-16 15:45 INFO     >> Pre-Training Test accuracy: 0.7917
+07-16 15:45 INFO     Epoch: 0 Total: 0.5994 CE: 0.5841 Topo: 0.1397
+07-16 15:46 INFO     Epoch: 1 Total: 0.5789 CE: 0.5615 Topo: 0.1584
+07-16 15:46 INFO     Epoch: 2 Total: 0.5318 CE: 0.5140 Topo: 0.1625
+07-16 15:46 INFO     Epoch: 3 Total: 0.5226 CE: 0.5047 Topo: 0.1625
+07-16 15:46 INFO     Epoch: 4 Total: 0.5005 CE: 0.4822 Topo: 0.1665
+07-16 15:47 INFO     >> Training accuracy: 0.827168
+07-16 15:47 INFO     >> Test accuracy: 0.665900
+07-16 15:47 INFO      ** Training complete **
+07-16 15:47 INFO     >> Last-batch PI Similarity: 0.9147
+07-16 15:47 INFO     >> Last-batch Topo Distance: 0.1958
+07-16 15:47 INFO     >> Last-batch 1-CKA: 0.1730
+07-16 15:47 INFO     >> Last-batch Entropy: 0.795091
+07-16 15:47 INFO     >> Last-batch SWD: 0.0058
+07-16 15:47 INFO     net 1 final test acc 0.665900
+07-16 15:47 INFO     Training network 2. n_training: 8763
+07-16 15:47 INFO     Training network 2
+07-16 15:47 INFO     >> Pre-Training Training accuracy: 0.8311080680132374
+07-16 15:47 INFO     >> Pre-Training Test accuracy: 0.7917
+07-16 15:47 INFO     Epoch: 0 Total: 0.4687 CE: 0.4530 Topo: 0.1427
+07-16 15:47 INFO     Epoch: 1 Total: 0.4252 CE: 0.4073 Topo: 0.1634
+07-16 15:48 INFO     Epoch: 2 Total: 0.4088 CE: 0.3892 Topo: 0.1776
+07-16 15:48 INFO     Epoch: 3 Total: 0.3960 CE: 0.3768 Topo: 0.1741
+07-16 15:48 INFO     Epoch: 4 Total: 0.3741 CE: 0.3542 Topo: 0.1810
+07-16 15:48 INFO     >> Training accuracy: 0.886797
+07-16 15:48 INFO     >> Test accuracy: 0.695900
+07-16 15:48 INFO      ** Training complete **
+07-16 15:48 INFO     >> Last-batch PI Similarity: 0.8727
+07-16 15:48 INFO     >> Last-batch Topo Distance: 0.1944
+07-16 15:48 INFO     >> Last-batch 1-CKA: 0.1506
+07-16 15:48 INFO     >> Last-batch Entropy: 0.342812
+07-16 15:48 INFO     >> Last-batch SWD: 0.0307
+07-16 15:48 INFO     net 2 final test acc 0.695900
+07-16 15:48 INFO     Training network 3. n_training: 11055
+07-16 15:48 INFO     Training network 3
+07-16 15:48 INFO     >> Pre-Training Training accuracy: 0.8483943916779738
+07-16 15:48 INFO     >> Pre-Training Test accuracy: 0.7917
+07-16 15:49 INFO     Epoch: 0 Total: 0.4248 CE: 0.4091 Topo: 0.1428
+07-16 15:49 INFO     Epoch: 1 Total: 0.4117 CE: 0.3934 Topo: 0.1661
+07-16 15:50 INFO     Epoch: 2 Total: 0.3861 CE: 0.3669 Topo: 0.1740
+07-16 15:50 INFO     Epoch: 3 Total: 0.3745 CE: 0.3558 Topo: 0.1697
+07-16 15:50 INFO     Epoch: 4 Total: 0.3481 CE: 0.3281 Topo: 0.1820
+07-16 15:50 INFO     >> Training accuracy: 0.899141
+07-16 15:50 INFO     >> Test accuracy: 0.722300
+07-16 15:50 INFO      ** Training complete **
+07-16 15:50 INFO     >> Last-batch PI Similarity: 0.8751
+07-16 15:50 INFO     >> Last-batch Topo Distance: 0.3077
+07-16 15:50 INFO     >> Last-batch 1-CKA: 0.1520
+07-16 15:50 INFO     >> Last-batch Entropy: 0.399271
+07-16 15:50 INFO     >> Last-batch SWD: 0.0218
+07-16 15:50 INFO     net 3 final test acc 0.722300
+07-16 15:50 INFO     Training network 4. n_training: 11020
+07-16 15:50 INFO     Training network 4
+07-16 15:51 INFO     >> Pre-Training Training accuracy: 0.8229582577132486
+07-16 15:51 INFO     >> Pre-Training Test accuracy: 0.7917
+07-16 15:51 INFO     Epoch: 0 Total: 0.5070 CE: 0.4903 Topo: 0.1515
+07-16 15:51 INFO     Epoch: 1 Total: 0.4861 CE: 0.4681 Topo: 0.1639
+07-16 15:52 INFO     Epoch: 2 Total: 0.4595 CE: 0.4408 Topo: 0.1700
+07-16 15:52 INFO     Epoch: 3 Total: 0.4322 CE: 0.4138 Topo: 0.1679
+07-16 15:53 INFO     Epoch: 4 Total: 0.4185 CE: 0.3992 Topo: 0.1750
+07-16 15:53 INFO     >> Training accuracy: 0.879583
+07-16 15:53 INFO     >> Test accuracy: 0.731300
+07-16 15:53 INFO      ** Training complete **
+07-16 15:53 INFO     >> Last-batch PI Similarity: 0.9115
+07-16 15:53 INFO     >> Last-batch Topo Distance: 0.2704
+07-16 15:53 INFO     >> Last-batch 1-CKA: 0.1635
+07-16 15:53 INFO     >> Last-batch Entropy: 0.377179
+07-16 15:53 INFO     >> Last-batch SWD: 0.0146
+07-16 15:53 INFO     net 4 final test acc 0.731300
+07-16 15:53 INFO     global n_training: 1563
+07-16 15:53 INFO     global n_test: 313
+07-16 15:53 INFO     >> Global Model Train accuracy: 0.812920
+07-16 15:53 INFO     >> Global Model Test accuracy: 0.809100
+07-16 15:54 INFO     >> Global Model Entropy: 6.247047
+07-16 15:54 INFO     in comm round:7
+07-16 15:54 INFO     Training network 0. n_training: 11403
+07-16 15:54 INFO     Training network 0
+07-16 15:54 INFO     >> Pre-Training Training accuracy: 0.73770060510392
+07-16 15:54 INFO     >> Pre-Training Test accuracy: 0.8091
+07-16 15:54 INFO     Epoch: 0 Total: 0.3731 CE: 0.3561 Topo: 0.1417
+07-16 15:55 INFO     Epoch: 1 Total: 0.3361 CE: 0.3176 Topo: 0.1536
+07-16 15:55 INFO     Epoch: 2 Total: 0.3032 CE: 0.2846 Topo: 0.1545
+07-16 15:55 INFO     Epoch: 3 Total: 0.3069 CE: 0.2883 Topo: 0.1553
+07-16 15:56 INFO     Epoch: 4 Total: 0.2745 CE: 0.2556 Topo: 0.1582
+07-16 15:56 INFO     >> Training accuracy: 0.926861
+07-16 15:56 INFO     >> Test accuracy: 0.617200
+07-16 15:56 INFO      ** Training complete **
+07-16 15:56 INFO     >> Last-batch PI Similarity: 0.8242
+07-16 15:56 INFO     >> Last-batch Topo Distance: 0.2614
+07-16 15:56 INFO     >> Last-batch 1-CKA: 0.1581
+07-16 15:56 INFO     >> Last-batch Entropy: 0.167313
+07-16 15:56 INFO     >> Last-batch SWD: 0.0194
+07-16 15:56 INFO     net 0 final test acc 0.617200
+07-16 15:56 INFO     Training network 1. n_training: 7759
+07-16 15:56 INFO     Training network 1
+07-16 15:56 INFO     >> Pre-Training Training accuracy: 0.7495811315891223
+07-16 15:56 INFO     >> Pre-Training Test accuracy: 0.8091
+07-16 15:56 INFO     Epoch: 0 Total: 0.5733 CE: 0.5557 Topo: 0.1463
+07-16 15:57 INFO     Epoch: 1 Total: 0.5333 CE: 0.5143 Topo: 0.1581
+07-16 15:57 INFO     Epoch: 2 Total: 0.5015 CE: 0.4817 Topo: 0.1654
+07-16 15:57 INFO     Epoch: 3 Total: 0.4937 CE: 0.4741 Topo: 0.1630
+07-16 15:58 INFO     Epoch: 4 Total: 0.4502 CE: 0.4301 Topo: 0.1672
+07-16 15:58 INFO     >> Training accuracy: 0.829488
+07-16 15:58 INFO     >> Test accuracy: 0.707500
+07-16 15:58 INFO      ** Training complete **
+07-16 15:58 INFO     >> Last-batch PI Similarity: 0.8173
+07-16 15:58 INFO     >> Last-batch Topo Distance: 0.3024
+07-16 15:58 INFO     >> Last-batch 1-CKA: 0.1787
+07-16 15:58 INFO     >> Last-batch Entropy: 0.388076
+07-16 15:58 INFO     >> Last-batch SWD: 0.0170
+07-16 15:58 INFO     net 1 final test acc 0.707500
+07-16 15:58 INFO     Training network 2. n_training: 8763
+07-16 15:58 INFO     Training network 2
+07-16 15:58 INFO     >> Pre-Training Training accuracy: 0.8529042565331507
+07-16 15:58 INFO     >> Pre-Training Test accuracy: 0.8091
+07-16 15:58 INFO     Epoch: 0 Total: 0.4153 CE: 0.3983 Topo: 0.1423
+07-16 15:58 INFO     Epoch: 1 Total: 0.3845 CE: 0.3649 Topo: 0.1632
+07-16 15:59 INFO     Epoch: 2 Total: 0.3610 CE: 0.3405 Topo: 0.1706
+07-16 15:59 INFO     Epoch: 3 Total: 0.3518 CE: 0.3300 Topo: 0.1823
+07-16 15:59 INFO     Epoch: 4 Total: 0.3363 CE: 0.3144 Topo: 0.1823
+07-16 15:59 INFO     >> Training accuracy: 0.901974
+07-16 15:59 INFO     >> Test accuracy: 0.717000
+07-16 15:59 INFO      ** Training complete **
+07-16 15:59 INFO     >> Last-batch PI Similarity: 0.8301
+07-16 15:59 INFO     >> Last-batch Topo Distance: 0.2180
+07-16 15:59 INFO     >> Last-batch 1-CKA: 0.1426
+07-16 15:59 INFO     >> Last-batch Entropy: 0.461062
+07-16 15:59 INFO     >> Last-batch SWD: 0.0240
+07-16 15:59 INFO     net 2 final test acc 0.717000
+07-16 15:59 INFO     Training network 3. n_training: 11055
+07-16 15:59 INFO     Training network 3
+07-16 16:00 INFO     >> Pre-Training Training accuracy: 0.867842605156038
+07-16 16:00 INFO     >> Pre-Training Test accuracy: 0.8091
+07-16 16:00 INFO     Epoch: 0 Total: 0.3965 CE: 0.3792 Topo: 0.1448
+07-16 16:00 INFO     Epoch: 1 Total: 0.3683 CE: 0.3492 Topo: 0.1587
+07-16 16:01 INFO     Epoch: 2 Total: 0.3542 CE: 0.3344 Topo: 0.1654
+07-16 16:01 INFO     Epoch: 3 Total: 0.3288 CE: 0.3091 Topo: 0.1641
+07-16 16:02 INFO     Epoch: 4 Total: 0.3186 CE: 0.2985 Topo: 0.1675
+07-16 16:02 INFO     >> Training accuracy: 0.902035
+07-16 16:02 INFO     >> Test accuracy: 0.710500
+07-16 16:02 INFO      ** Training complete **
+07-16 16:02 INFO     >> Last-batch PI Similarity: 0.9080
+07-16 16:02 INFO     >> Last-batch Topo Distance: 0.2400
+07-16 16:02 INFO     >> Last-batch 1-CKA: 0.1661
+07-16 16:02 INFO     >> Last-batch Entropy: 0.337556
+07-16 16:02 INFO     >> Last-batch SWD: 0.0112
+07-16 16:02 INFO     net 3 final test acc 0.710500
+07-16 16:02 INFO     Training network 4. n_training: 11020
+07-16 16:02 INFO     Training network 4
+07-16 16:02 INFO     >> Pre-Training Training accuracy: 0.8431941923774955
+07-16 16:02 INFO     >> Pre-Training Test accuracy: 0.8091
+07-16 16:02 INFO     Epoch: 0 Total: 0.4571 CE: 0.4394 Topo: 0.1477
+07-16 16:03 INFO     Epoch: 1 Total: 0.4282 CE: 0.4088 Topo: 0.1612
+07-16 16:03 INFO     Epoch: 2 Total: 0.4172 CE: 0.3968 Topo: 0.1705
+07-16 16:03 INFO     Epoch: 3 Total: 0.3818 CE: 0.3623 Topo: 0.1620
+07-16 16:04 INFO     Epoch: 4 Total: 0.3762 CE: 0.3557 Topo: 0.1707
+07-16 16:04 INFO     >> Training accuracy: 0.878584
+07-16 16:04 INFO     >> Test accuracy: 0.702900
+07-16 16:04 INFO      ** Training complete **
+07-16 16:04 INFO     >> Last-batch PI Similarity: 0.8829
+07-16 16:04 INFO     >> Last-batch Topo Distance: 0.3497
+07-16 16:04 INFO     >> Last-batch 1-CKA: 0.1754
+07-16 16:04 INFO     >> Last-batch Entropy: 0.507861
+07-16 16:04 INFO     >> Last-batch SWD: 0.0288
+07-16 16:04 INFO     net 4 final test acc 0.702900
+07-16 16:04 INFO     global n_training: 1563
+07-16 16:04 INFO     global n_test: 313
+07-16 16:04 INFO     >> Global Model Train accuracy: 0.829220
+07-16 16:04 INFO     >> Global Model Test accuracy: 0.820000
+07-16 16:05 INFO     >> Global Model Entropy: 6.223037
+07-16 16:05 INFO     in comm round:8
+07-16 16:05 INFO     Training network 0. n_training: 11403
+07-16 16:05 INFO     Training network 0
+07-16 16:05 INFO     >> Pre-Training Training accuracy: 0.7650618258353065
+07-16 16:05 INFO     >> Pre-Training Test accuracy: 0.82
+07-16 16:06 INFO     Epoch: 0 Total: 0.3234 CE: 0.3067 Topo: 0.1284
+07-16 16:06 INFO     Epoch: 1 Total: 0.3038 CE: 0.2854 Topo: 0.1409
+07-16 16:07 INFO     Epoch: 2 Total: 0.2829 CE: 0.2633 Topo: 0.1505
+07-16 16:07 INFO     Epoch: 3 Total: 0.2679 CE: 0.2454 Topo: 0.1731
+07-16 16:07 INFO     Epoch: 4 Total: 0.2571 CE: 0.2371 Topo: 0.1540
+07-16 16:08 INFO     >> Training accuracy: 0.937911
+07-16 16:08 INFO     >> Test accuracy: 0.641100
+07-16 16:08 INFO      ** Training complete **
+07-16 16:08 INFO     >> Last-batch PI Similarity: 0.8474
+07-16 16:08 INFO     >> Last-batch Topo Distance: 0.2363
+07-16 16:08 INFO     >> Last-batch 1-CKA: 0.1366
+07-16 16:08 INFO     >> Last-batch Entropy: 0.071885
+07-16 16:08 INFO     >> Last-batch SWD: 0.0076
+07-16 16:08 INFO     net 0 final test acc 0.641100
+07-16 16:08 INFO     Training network 1. n_training: 7759
+07-16 16:08 INFO     Training network 1
+07-16 16:08 INFO     >> Pre-Training Training accuracy: 0.766722515788117
+07-16 16:08 INFO     >> Pre-Training Test accuracy: 0.82
+07-16 16:08 INFO     Epoch: 0 Total: 0.5246 CE: 0.5075 Topo: 0.1314
+07-16 16:08 INFO     Epoch: 1 Total: 0.4684 CE: 0.4506 Topo: 0.1373
+07-16 16:09 INFO     Epoch: 2 Total: 0.4658 CE: 0.4464 Topo: 0.1492
+07-16 16:09 INFO     Epoch: 3 Total: 0.4394 CE: 0.4196 Topo: 0.1520
+07-16 16:09 INFO     Epoch: 4 Total: 0.4346 CE: 0.4141 Topo: 0.1581
+07-16 16:09 INFO     >> Training accuracy: 0.879624
+07-16 16:09 INFO     >> Test accuracy: 0.703900
+07-16 16:09 INFO      ** Training complete **
+07-16 16:09 INFO     >> Last-batch PI Similarity: 0.8276
+07-16 16:09 INFO     >> Last-batch Topo Distance: 0.3122
+07-16 16:09 INFO     >> Last-batch 1-CKA: 0.1639
+07-16 16:09 INFO     >> Last-batch Entropy: 0.535783
+07-16 16:09 INFO     >> Last-batch SWD: 0.0134
+07-16 16:09 INFO     net 1 final test acc 0.703900
+07-16 16:09 INFO     Training network 2. n_training: 8763
+07-16 16:09 INFO     Training network 2
+07-16 16:09 INFO     >> Pre-Training Training accuracy: 0.8653429190916353
+07-16 16:09 INFO     >> Pre-Training Test accuracy: 0.82
+07-16 16:10 INFO     Epoch: 0 Total: 0.3754 CE: 0.3581 Topo: 0.1328
+07-16 16:10 INFO     Epoch: 1 Total: 0.3511 CE: 0.3316 Topo: 0.1503
+07-16 16:11 INFO     Epoch: 2 Total: 0.3244 CE: 0.3027 Topo: 0.1666
+07-16 16:12 INFO     Epoch: 3 Total: 0.3152 CE: 0.2923 Topo: 0.1764
+07-16 16:12 INFO     Epoch: 4 Total: 0.3029 CE: 0.2804 Topo: 0.1729
+07-16 16:13 INFO     >> Training accuracy: 0.918293
+07-16 16:13 INFO     >> Test accuracy: 0.753200
+07-16 16:13 INFO      ** Training complete **
+07-16 16:13 INFO     >> Last-batch PI Similarity: 0.8747
+07-16 16:13 INFO     >> Last-batch Topo Distance: 0.1763
+07-16 16:13 INFO     >> Last-batch 1-CKA: 0.1413
+07-16 16:13 INFO     >> Last-batch Entropy: 0.517749
+07-16 16:13 INFO     >> Last-batch SWD: 0.0151
+07-16 16:13 INFO     net 2 final test acc 0.753200
+07-16 16:13 INFO     Training network 3. n_training: 11055
+07-16 16:13 INFO     Training network 3
+07-16 16:13 INFO     >> Pre-Training Training accuracy: 0.8752600633197648
+07-16 16:13 INFO     >> Pre-Training Test accuracy: 0.82
+07-16 16:14 INFO     Epoch: 0 Total: 0.3503 CE: 0.3317 Topo: 0.1425
+07-16 16:15 INFO     Epoch: 1 Total: 0.3249 CE: 0.3037 Topo: 0.1628
+07-16 16:16 INFO     Epoch: 2 Total: 0.3113 CE: 0.2891 Topo: 0.1704
+07-16 16:17 INFO     Epoch: 3 Total: 0.3104 CE: 0.2861 Topo: 0.1869
+07-16 16:18 INFO     Epoch: 4 Total: 0.2921 CE: 0.2707 Topo: 0.1652
+07-16 16:18 INFO     >> Training accuracy: 0.894437
+07-16 16:18 INFO     >> Test accuracy: 0.720700
+07-16 16:18 INFO      ** Training complete **
+07-16 16:18 INFO     >> Last-batch PI Similarity: 0.8699
+07-16 16:18 INFO     >> Last-batch Topo Distance: 0.2029
+07-16 16:18 INFO     >> Last-batch 1-CKA: 0.1870
+07-16 16:18 INFO     >> Last-batch Entropy: 0.602298
+07-16 16:18 INFO     >> Last-batch SWD: 0.0084
+07-16 16:18 INFO     net 3 final test acc 0.720700
+07-16 16:18 INFO     Training network 4. n_training: 11020
+07-16 16:18 INFO     Training network 4
+07-16 16:18 INFO     >> Pre-Training Training accuracy: 0.8635208711433757
+07-16 16:18 INFO     >> Pre-Training Test accuracy: 0.82
+07-16 16:19 INFO     Epoch: 0 Total: 0.4095 CE: 0.3910 Topo: 0.1428
+07-16 16:20 INFO     Epoch: 1 Total: 0.3883 CE: 0.3684 Topo: 0.1534
+07-16 16:21 INFO     Epoch: 2 Total: 0.3613 CE: 0.3401 Topo: 0.1630
+07-16 16:22 INFO     Epoch: 3 Total: 0.3558 CE: 0.3350 Topo: 0.1603
+07-16 16:23 INFO     Epoch: 4 Total: 0.3332 CE: 0.3114 Topo: 0.1670
+07-16 16:23 INFO     >> Training accuracy: 0.914519
+07-16 16:23 INFO     >> Test accuracy: 0.765100
+07-16 16:23 INFO      ** Training complete **
+07-16 16:23 INFO     >> Last-batch PI Similarity: 0.8999
+07-16 16:23 INFO     >> Last-batch Topo Distance: 0.2803
+07-16 16:23 INFO     >> Last-batch 1-CKA: 0.1722
+07-16 16:23 INFO     >> Last-batch Entropy: 0.298466
+07-16 16:23 INFO     >> Last-batch SWD: 0.0183
+07-16 16:23 INFO     net 4 final test acc 0.765100
+07-16 16:23 INFO     global n_training: 1563
+07-16 16:23 INFO     global n_test: 313
+07-16 16:24 INFO     >> Global Model Train accuracy: 0.848080
+07-16 16:24 INFO     >> Global Model Test accuracy: 0.838300
+07-16 16:24 INFO     >> Global Model Entropy: 6.098680
+07-16 16:24 INFO     in comm round:9
+07-16 16:24 INFO     Training network 0. n_training: 11403
+07-16 16:24 INFO     Training network 0
+07-16 16:24 INFO     >> Pre-Training Training accuracy: 0.7971586424625099
+07-16 16:24 INFO     >> Pre-Training Test accuracy: 0.8383
+07-16 16:25 INFO     Epoch: 0 Total: 0.2963 CE: 0.2785 Topo: 0.1273
+07-16 16:26 INFO     Epoch: 1 Total: 0.2740 CE: 0.2525 Topo: 0.1533
+07-16 16:27 INFO     Epoch: 2 Total: 0.2625 CE: 0.2414 Topo: 0.1506
+07-16 16:27 INFO     Epoch: 3 Total: 0.2482 CE: 0.2263 Topo: 0.1561
+07-16 16:28 INFO     Epoch: 4 Total: 0.2285 CE: 0.2069 Topo: 0.1543
+07-16 16:28 INFO     >> Training accuracy: 0.930983
+07-16 16:28 INFO     >> Test accuracy: 0.645800
+07-16 16:28 INFO      ** Training complete **
+07-16 16:28 INFO     >> Last-batch PI Similarity: 0.8425
+07-16 16:28 INFO     >> Last-batch Topo Distance: 0.2552
+07-16 16:28 INFO     >> Last-batch 1-CKA: 0.1951
+07-16 16:28 INFO     >> Last-batch Entropy: 0.219587
+07-16 16:28 INFO     >> Last-batch SWD: 0.0056
+07-16 16:28 INFO     net 0 final test acc 0.645800
+07-16 16:28 INFO     Training network 1. n_training: 7759
+07-16 16:28 INFO     Training network 1
+07-16 16:29 INFO     >> Pre-Training Training accuracy: 0.7870859646861709
+07-16 16:29 INFO     >> Pre-Training Test accuracy: 0.8383
+07-16 16:29 INFO     Epoch: 0 Total: 0.4927 CE: 0.4736 Topo: 0.1361
+07-16 16:30 INFO     Epoch: 1 Total: 0.4537 CE: 0.4332 Topo: 0.1465
+07-16 16:31 INFO     Epoch: 2 Total: 0.4502 CE: 0.4289 Topo: 0.1525
+07-16 16:31 INFO     Epoch: 3 Total: 0.4256 CE: 0.4030 Topo: 0.1608
+07-16 16:32 INFO     Epoch: 4 Total: 0.3908 CE: 0.3686 Topo: 0.1583
+07-16 16:32 INFO     >> Training accuracy: 0.878721
+07-16 16:32 INFO     >> Test accuracy: 0.696900
+07-16 16:32 INFO      ** Training complete **
+07-16 16:32 INFO     >> Last-batch PI Similarity: 0.8748
+07-16 16:32 INFO     >> Last-batch Topo Distance: 0.2149
+07-16 16:32 INFO     >> Last-batch 1-CKA: 0.1621
+07-16 16:32 INFO     >> Last-batch Entropy: 0.343061
+07-16 16:32 INFO     >> Last-batch SWD: 0.0128
+07-16 16:32 INFO     net 1 final test acc 0.696900
+07-16 16:32 INFO     Training network 2. n_training: 8763
+07-16 16:32 INFO     Training network 2
+07-16 16:32 INFO     >> Pre-Training Training accuracy: 0.8894214310167751
+07-16 16:32 INFO     >> Pre-Training Test accuracy: 0.8383
+07-16 16:33 INFO     Epoch: 0 Total: 0.3345 CE: 0.3156 Topo: 0.1350
+07-16 16:34 INFO     Epoch: 1 Total: 0.3212 CE: 0.3006 Topo: 0.1470
+07-16 16:35 INFO     Epoch: 2 Total: 0.2935 CE: 0.2720 Topo: 0.1535
+07-16 16:35 INFO     Epoch: 3 Total: 0.2734 CE: 0.2505 Topo: 0.1640
+07-16 16:36 INFO     Epoch: 4 Total: 0.2605 CE: 0.2373 Topo: 0.1662
+07-16 16:36 INFO     >> Training accuracy: 0.929362
+07-16 16:36 INFO     >> Test accuracy: 0.706000
+07-16 16:36 INFO      ** Training complete **
+07-16 16:36 INFO     >> Last-batch PI Similarity: 0.8566
+07-16 16:36 INFO     >> Last-batch Topo Distance: 0.1625
+07-16 16:36 INFO     >> Last-batch 1-CKA: 0.1218
+07-16 16:36 INFO     >> Last-batch Entropy: 0.176496
+07-16 16:36 INFO     >> Last-batch SWD: 0.0111
+07-16 16:36 INFO     net 2 final test acc 0.706000
+07-16 16:36 INFO     Training network 3. n_training: 11055
+07-16 16:36 INFO     Training network 3
+07-16 16:37 INFO     >> Pre-Training Training accuracy: 0.891542288557214
+07-16 16:37 INFO     >> Pre-Training Test accuracy: 0.8383
+07-16 16:38 INFO     Epoch: 0 Total: 0.3189 CE: 0.3002 Topo: 0.1338
+07-16 16:38 INFO     Epoch: 1 Total: 0.2915 CE: 0.2701 Topo: 0.1527
+07-16 16:39 INFO     Epoch: 2 Total: 0.2835 CE: 0.2616 Topo: 0.1566
+07-16 16:40 INFO     Epoch: 3 Total: 0.2639 CE: 0.2415 Topo: 0.1604
+07-16 16:41 INFO     Epoch: 4 Total: 0.2556 CE: 0.2324 Topo: 0.1661
+07-16 16:42 INFO     >> Training accuracy: 0.922659
+07-16 16:42 INFO     >> Test accuracy: 0.738300
+07-16 16:42 INFO      ** Training complete **
+07-16 16:42 INFO     >> Last-batch PI Similarity: 0.8792
+07-16 16:42 INFO     >> Last-batch Topo Distance: 0.2308
+07-16 16:42 INFO     >> Last-batch 1-CKA: 0.1747
+07-16 16:42 INFO     >> Last-batch Entropy: 0.224533
+07-16 16:42 INFO     >> Last-batch SWD: 0.0106
+07-16 16:42 INFO     net 3 final test acc 0.738300
+07-16 16:42 INFO     Training network 4. n_training: 11020
+07-16 16:42 INFO     Training network 4
+07-16 16:42 INFO     >> Pre-Training Training accuracy: 0.8698729582577133
+07-16 16:42 INFO     >> Pre-Training Test accuracy: 0.8383
+07-16 16:43 INFO     Epoch: 0 Total: 0.3873 CE: 0.3674 Topo: 0.1424
+07-16 16:43 INFO     Epoch: 1 Total: 0.3516 CE: 0.3305 Topo: 0.1508
+07-16 16:44 INFO     Epoch: 2 Total: 0.3385 CE: 0.3158 Topo: 0.1620
+07-16 16:45 INFO     Epoch: 3 Total: 0.3200 CE: 0.2973 Topo: 0.1624
+07-16 16:46 INFO     Epoch: 4 Total: 0.2981 CE: 0.2750 Topo: 0.1649
+07-16 16:47 INFO     >> Training accuracy: 0.920327
+07-16 16:47 INFO     >> Test accuracy: 0.782800
+07-16 16:47 INFO      ** Training complete **
+07-16 16:47 INFO     >> Last-batch PI Similarity: 0.8385
+07-16 16:47 INFO     >> Last-batch Topo Distance: 0.2688
+07-16 16:47 INFO     >> Last-batch 1-CKA: 0.1722
+07-16 16:47 INFO     >> Last-batch Entropy: 0.408711
+07-16 16:47 INFO     >> Last-batch SWD: 0.0092
+07-16 16:47 INFO     net 4 final test acc 0.782800
+07-16 16:47 INFO     global n_training: 1563
+07-16 16:47 INFO     global n_test: 313
+07-16 16:48 INFO     >> Global Model Train accuracy: 0.848420
+07-16 16:48 INFO     >> Global Model Test accuracy: 0.835800
+07-16 16:49 INFO     >> Global Model Entropy: 5.955565

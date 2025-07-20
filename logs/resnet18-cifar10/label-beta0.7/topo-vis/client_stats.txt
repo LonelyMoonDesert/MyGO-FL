@@ -1,0 +1,40 @@
+
+[Round 0]
+Client 0 - L2距离: 0.9220, 余弦相似度: 0.9977
+Client 1 - L2距离: 1.8069, 余弦相似度: 0.9983
+Client 2 - L2距离: 1.0474, 余弦相似度: 0.9979
+Client 3 - L2距离: 1.5242, 余弦相似度: 0.9977
+Client 4 - L2距离: 2.5021, 余弦相似度: 0.9988
+Mean L2 Distance (Clients): 1.7991, Mean Cosine Similarity (Clients): 0.9999
+
+[Round 2]
+Client 0 - L2距离: 0.6913, 余弦相似度: 0.9999
+Client 1 - L2距离: 1.8653, 余弦相似度: 1.0000
+Client 2 - L2距离: 0.1674, 余弦相似度: 0.9999
+Client 3 - L2距离: 0.6311, 余弦相似度: 1.0000
+Client 4 - L2距离: 1.4707, 余弦相似度: 1.0000
+Mean L2 Distance (Clients): 1.3206, Mean Cosine Similarity (Clients): 0.9999
+
+[Round 5]
+Client 0 - L2距离: 0.9085, 余弦相似度: 1.0000
+Client 1 - L2距离: 0.3081, 余弦相似度: 1.0000
+Client 2 - L2距离: 0.6417, 余弦相似度: 1.0000
+Client 3 - L2距离: 0.1581, 余弦相似度: 0.9999
+Client 4 - L2距离: 0.0385, 余弦相似度: 1.0000
+Mean L2 Distance (Clients): 0.5479, Mean Cosine Similarity (Clients): 1.0000
+
+[Round 7]
+Client 0 - L2距离: 0.3343, 余弦相似度: 0.9999
+Client 1 - L2距离: 0.3821, 余弦相似度: 1.0000
+Client 2 - L2距离: 0.0729, 余弦相似度: 1.0000
+Client 3 - L2距离: 0.1566, 余弦相似度: 1.0000
+Client 4 - L2距离: 0.8674, 余弦相似度: 1.0000
+Mean L2 Distance (Clients): 0.3726, Mean Cosine Similarity (Clients): 1.0000
+
+[Round 9]
+Client 0 - L2距离: 0.2628, 余弦相似度: 0.9998
+Client 1 - L2距离: 0.3856, 余弦相似度: 1.0000
+Client 2 - L2距离: 0.2418, 余弦相似度: 0.9999
+Client 3 - L2距离: 1.0338, 余弦相似度: 0.9995
+Client 4 - L2距离: 0.2631, 余弦相似度: 1.0000
+Mean L2 Distance (Clients): 0.6745, Mean Cosine Similarity (Clients): 0.9997
