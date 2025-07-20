@@ -38,6 +38,10 @@ import gudhi
 import torch.nn.functional as F
 from torch import nn
 import seaborn as sns
+# 忽略警告
+import warnings
+
+warnings.filterwarnings('ignore')
 
 pi = PersistenceImage()  # 可以指定分辨率等参数
 # 定义绘图颜色
@@ -704,8 +708,8 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 target = target.long()
 
                 # === 1. forward 得到 local/global PI 向量 ===
-                local_feat  = extract_layer_features(net, x,  layer_name=args.feature_layer, pool_size=pool_size, device=device)
-                global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=pool_size, device=device)
+                local_feat  = extract_layer_features(net, x,  layer_name='layer3', pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name='layer3', pool_size=pool_size, device=device)
                 local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
                 global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
@@ -1510,18 +1514,18 @@ def fit_persistence_image_from_loader(model, dataloader, device, layer_name='lay
     return pi
 
 def cka(X, Y):
-    X = X.flatten(1); Y = Y.flatten(1)
-    hsic = (X @ Y.T).pow(2).mean()
-    norm = (X @ X.T).pow(2).mean().sqrt() * (Y @ Y.T).pow(2).mean().sqrt()
+    X_flat = X.flatten(1); Y_flat = Y.flatten(1)
+    hsic = (X_flat @ Y_flat.T).pow(2).mean()
+    norm = (X_flat @ X_flat.T).pow(2).mean().sqrt() * (Y_flat @ Y_flat.T).pow(2).mean().sqrt()
     return (hsic / (norm + 1e-8)).item()
 
 def swd(u, v, n_proj=64):
     d = u.numel()
-    u = u.flatten(); v = v.flatten()
-    proj = torch.randn(d, n_proj, device=u.device)
+    u_flat = u.flatten(); v_flat = v.flatten()
+    proj = torch.randn(d, n_proj, device=u_flat.device)
     proj /= (proj.norm(dim=0, keepdim=True) + 1e-8)
-    u_proj = torch.sort(u @ proj)[0]
-    v_proj = torch.sort(v @ proj)[0]
+    u_proj = torch.sort(u_flat @ proj)[0]
+    v_proj = torch.sort(v_flat @ proj)[0]
     return torch.mean((u_proj - v_proj).abs()).item()
 
 # 颜色与客户端标签
@@ -2461,394 +2465,7 @@ if __name__ == '__main__':
     key_rounds = [0, args.comm_round // 4, args.comm_round // 2, (3 * args.comm_round - 2) // 4, args.comm_round - 1]
 
     if args.alg == 'base':
-
-        logger.info("Initializing nets")
-        nets, local_model_meta_data, layer_type = init_nets(args.net_config, args.dropout_p, args.n_parties, args)
-        global_models, global_model_meta_data, global_layer_type = init_nets(args.net_config, 0, 1, args)
-        global_model = global_models[0]
-
-        global_para = global_model.state_dict()
-        if args.is_same_initial:
-            for net_id, net in nets.items():
-                net.load_state_dict(global_para)
-
-        # 初始化history，用于绘图
-        history = {
-            'client_total_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_ce_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_topo_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_train_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_test_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_topo_distance': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_similarity': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_entropy': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_delta_topo_dist': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'round_var': [0.0] * (args.comm_round + 1),
-            'client_cka': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-            'client_swd': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
-        }
-
-        # 设置需要保存PI的轮次
-        pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
-
-        # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
-        print("Fitting PersistenceImage on global_model + train_dl_global ...")
-        pi = fit_persistence_image_from_loader(
-            global_model, train_dl_global, device,
-            layer_name=args.feature_layer, pool_size=8, K=2, max_batches=20  # 按你需求可调参数
-        )
-        print("Done fitting PersistenceImage.")
-
-        for round in range(args.comm_round):
-            print(f"[进程实际内存] {(psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024):.1f} MB")
-            logger.info("in comm round:" + str(round))
-
-            arr = np.arange(args.n_parties)
-            np.random.shuffle(arr)
-            selected = arr[:int(args.n_parties * args.sample)]
-
-            global_para = global_model.state_dict()
-            if round == 0:
-                if args.is_same_initial:
-                    for idx in selected:
-                        nets[idx].load_state_dict(global_para)
-            else:
-                for idx in selected:
-                    nets[idx].load_state_dict(global_para)
-
-            local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, nets_train_dl_local, test_dl=test_dl_global, device=device)
-
-            # update global model
-            total_data_points = sum([len(net_dataidx_map[r]) for r in selected])
-            fed_avg_freqs = [len(net_dataidx_map[r]) / total_data_points for r in selected]
-
-            for idx in range(len(selected)):
-                net_para = nets[selected[idx]].cpu().state_dict()
-                if idx == 0:
-                    for key in net_para:
-                        global_para[key] = net_para[key] * fed_avg_freqs[idx]
-                else:
-                    for key in net_para:
-                        global_para[key] += net_para[key] * fed_avg_freqs[idx]
-            global_model.load_state_dict(global_para)
-
-            logger.info('global n_training: %d' % len(train_dl_global))
-            logger.info('global n_test: %d' % len(test_dl_global))
-
-            global_model.to(device)
-            global_model.eval()
-            train_acc = compute_accuracy(global_model, train_dl_global, device=device)
-            test_acc, conf_matrix = compute_accuracy(global_model, test_dl_global, get_confusion_matrix=True,
-                                                     device=device)
-
-            logger.info('>> Global Model Train accuracy: %f' % train_acc)
-            logger.info('>> Global Model Test accuracy: %f' % test_acc)
-
-            # 计算全局模型在全局数据集上的熵
-            if args.dataset != 'generated':
-                entropy = compute_global_entropy(global_model, train_dl_global, device=device)
-                logger.info('>> Global Model Entropy: %f' % entropy)
-
-            # ------------------------ 可视化主流程 ------------------------
-            if round in key_rounds:
-                # 0️⃣ 统一提特征（一次前向）
-                x, y = get_umap_sample_x(
-                    train_dl_global,
-                    n_batches=args.n_umap_batches,
-                    per_batch=32,
-                    device=args.device
-                )
-
-                model_names = ['global'] + [f'client{cid}' for cid in range(args.n_parties)]
-                models_all = [global_model] + [nets[k] for k in nets]
-
-                model_feats = {}  # {name: tensor(N,C,H,W)}
-                with torch.no_grad():
-                    for name, model in zip(model_names, models_all):
-                        model = model.to(args.device)
-                        model.eval()
-                        feat = extract_layer_features(
-                            model, x,
-                            layer_name=args.feature_layer,
-                            pool_size=8,
-                            device=args.device
-                        )
-                        model_feats[name] = feat.cpu()  # 存到 CPU
-                        torch.cuda.empty_cache()
-
-                # ============== 1. 拓扑条形图 & PI =================
-                global_feat = model_feats['global']
-                client_feats = [model_feats[f'client{cid}'] for cid in range(args.n_parties)]
-
-                vis_items = []  # [(name, bars, pi_vec)]
-                g_arr = global_feat[0, 0].numpy()
-                g_bars, g_pi = compute_barcode_and_pi(g_arr, pi)
-                vis_items.append(("Global", g_bars, g_pi))
-
-                for cid, feat in enumerate(client_feats):
-                    c_arr = feat[0, 0].numpy()
-                    c_bars, c_pi = compute_barcode_and_pi(c_arr, pi)
-                    vis_items.append((f"Client{cid}", c_bars, c_pi))
-
-                vmin, vmax = 0, max(p.max() for _, _, p in vis_items)  # 统一 PI 色阶
-                FILTRATION_RANGE = get_filtration_range([b for _, b, _ in vis_items])
-
-                fig, axs = plt.subplots(len(vis_items), 2,
-                                        figsize=(8, 2.8 * len(vis_items)))
-
-                legend_handles, legend_labels = [], []
-                for idx, (lbl, bars, pi_vec) in enumerate(vis_items):
-                    handles, labels_ = plot_barcode(
-                        bars, axs[idx, 0],
-                        title=f"{lbl} Barcode",
-                        linewidth=5, xlim=FILTRATION_RANGE,
-                        colors=custom_colors,
-                        title_fontsize=16, label_fontsize=15,
-                        legend_fontsize=14, show_legend=False
-                    )
-                if idx == 0:
-                    legend_handles, legend_labels = handles, labels_
-
-                    plot_pi(
-                        pi_vec, axs[idx, 1],
-                        title=f"{lbl} PI",
-                        cmap=morandi_deepblue_cmap_r,
-                        vmin=vmin, vmax=vmax,
-                        title_fontsize=16, label_fontsize=15,
-                        colorbar_fontsize=13
-                    )
-                    axs[idx, 0].set_ylabel(lbl, fontsize=15)
-
-                if legend_handles:
-                    # 给 legend 预留的高度
-                    reserved = 0.04  # 8 % 画布高度
-
-                    # 先让 tight_layout 只在 1‑reserved 之上排版
-                    plt.tight_layout(rect=(0, reserved, 1, 1))
-
-                    # 再把 legend 放到预留区的中间 (x=0.5, y=reserved/2)
-                    fig.legend(
-                        legend_handles, legend_labels,
-                        loc='lower center',
-                        bbox_to_anchor=(0.5, reserved / 2),
-                        bbox_transform=fig.transFigure,  # 以 fig 坐标解释 bbox
-                        ncol=len(legend_handles),
-                        fontsize=14,
-                        frameon=False
-                    )
-
-                plt.savefig(f"logs/topo_compare_round{round}.png",
-                            dpi=400, bbox_inches="tight")
-                plt.close(fig)
-                print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
-
-                # ================= 2. UMAP 可视化 ==================
-                # 2-1 拼接特征
-                all_features, all_labels = [], []
-                for name in model_names:
-                    feat_np = model_feats[name].view(model_feats[name].shape[0], -1).numpy()
-                    all_features.append(feat_np)
-                    all_labels += [name] * feat_np.shape[0]
-                feats = np.vstack(all_features)
-                labels = np.array(all_labels)
-
-                # 2-2 处理 y，使长度匹配 feats
-                if hasattr(y, 'cpu'):
-                    y = y.cpu().numpy()
-                elif isinstance(y, list):
-                    y = np.array(y)
-                y = np.tile(y, len(model_names))  # 复制到每个模型
-
-                if feats.shape[0] > args.max_samples:  # 可选截断
-                    feats = feats[:args.max_samples]
-                    labels = labels[:args.max_samples]
-                    y = y[:args.max_samples]
-
-                # 2-3 降维
-                X_emb2d = umap.UMAP(n_components=2, random_state=42).fit_transform(feats)
-                X_emb3d = umap.UMAP(n_components=3, random_state=42).fit_transform(feats)
-
-                # ------------- 2‑D 散点 -----------------
-                colors_umap = ['#DB7093', '#9370DB', '#6495ED',
-                               '#90EE90', '#F0E68C', '#F4A460']
-
-                fig, ax = plt.subplots(figsize=(8, 7))
-
-                # ① 先画所有非‑global 的点
-                for idx, name in enumerate(model_names):
-                    if name == 'global':
-                        continue  # 留到最后
-                    mask = labels == name
-                    ax.scatter(
-                        X_emb2d[mask, 0], X_emb2d[mask, 1],
-                        c=colors_umap[idx % len(colors_umap)],
-                        marker='o', s=60, alpha=0.5,
-                        edgecolors='none', zorder=1,  # 较低 zorder
-                        label=name.capitalize()
-                    )
-
-                # ② 再单独画 global，给很高的 zorder
-                g_mask = labels == 'global'
-                ax.scatter(
-                    X_emb2d[g_mask, 0], X_emb2d[g_mask, 1],
-                    c=colors_umap[0],
-                    marker='x', s=70, alpha=0.7,
-                    linewidths=2.5,
-                    edgecolors='none', zorder=100,  # 最高 zorder
-                    label='Global'
-                )
-
-                # ------- 布局与 legend -------
-                rows = 2
-                ncols = 3
-                reserved = 0.15  # 预留 12 % 画布高度，留得更宽一些
-
-                # ①：把子图都压到剩下 1‑reserved 的区域
-                fig.subplots_adjust(bottom=reserved)  # 和 tight_layout(rect=…) 等价但更直观
-
-                # ②：把 legend 放在预留区正中
-                handles, labels_ = ax.get_legend_handles_labels()
-                fig.legend(
-                    handles, labels_,
-                    loc='lower center',
-                    bbox_to_anchor=(0.5, reserved / 5),  # 纵坐标仍在预留区正中
-                    bbox_transform=fig.transFigure,
-                    ncol=ncols, handlelength=1.5,
-                    columnspacing=1.0, handletextpad=0.5,
-                    frameon=False, fontsize=16
-                )
-
-                ax.set_title(f'UMAP 2D feature projection (Round {round})', fontsize=20)
-                ax.set_xlabel('UMAP-1', fontsize=18)
-                ax.set_ylabel('UMAP-2', fontsize=18)
-                ax.tick_params(axis='both', labelsize=16)
-
-                # 给底部预留空间容纳 legend
-                fig.tight_layout(rect=[0, 0.08, 1, 1])
-
-                fig.savefig(f"logs/umap2d_compare_round{round}.png", dpi=400)
-                plt.close(fig)
-                print(f"[UMAP 2D可视化] 已保存 logs/umap2d_compare_round{round}.png")
-
-                # ------------- 3‑D 总图 ------------------
-                fig = plt.figure(figsize=(8, 7))
-                ax = fig.add_subplot(111, projection='3d', computed_zorder=False)
-
-                # ① 先画各 client
-                for idx, name in enumerate(model_names):
-                    if name == 'global':
-                        continue
-                    mask = labels == name
-                    ax.scatter(
-                        X_emb3d[mask, 0], X_emb3d[mask, 1], X_emb3d[mask, 2],
-                        c=colors_umap[idx % len(colors_umap)],
-                        s=40, alpha=0.5, edgecolors='none',
-                        zorder=1, label=name.capitalize()
-                    )
-
-                # ② 再单独画 global
-                g_mask = labels == 'global'
-                ax.scatter(
-                    X_emb3d[g_mask, 0], X_emb3d[g_mask, 1], X_emb3d[g_mask, 2],
-                    c=colors_umap[0],  # 颜色照旧
-                    marker='x', s=50, alpha=0.7,  # s 稍大更显眼
-                    linewidths=2.5,  # 用线宽来控制粗细
-                    zorder=100, label='Global'
-                )
-
-                # legend 现在就能包含 Global 了
-                ax.legend(fontsize=16, loc='best', frameon=True)
-
-                # —— 其余保持不变 ——
-                ax.set_title(f'UMAP 3D feature projection (Round {round})',
-                             fontsize=18, pad=12)
-                ax.set_xlabel('UMAP-1', fontsize=16, labelpad=16)
-                ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
-                ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
-
-                ax.locator_params(axis='x', nbins=15)
-                ax.locator_params(axis='y', nbins=15)
-                ax.locator_params(axis='z', nbins=15)
-                ax.tick_params(axis='both', labelsize=14)
-                ax.grid(True)
-
-                # ―― 旋转 UMAP‑1（x 轴）刻度标签 ――
-                for lbl in ax.get_xticklabels():
-                    lbl.set_rotation(45)  # 45° 斜排
-                    lbl.set_horizontalalignment('right')
-
-                plt.tight_layout()
-                plt.savefig(f"logs/umap3d_compare_round{round}.png", dpi=400)
-                plt.close(fig)
-                print(f"[UMAP 3D可视化] 已保存 logs/umap3d_compare_round{round}.png")
-
-                # ------------- 3-D 各模型子图 -------------
-                color_per_class = [
-                    '#CD5C5C', '#F4A460', '#F0E68C', '#90EE90', '#6495ED',
-                    '#9370DB', '#808080', '#FFB6C1', '#48D1CC', '#BDB76B'
-                ]
-                cifar10_labels = [
-                    "airplane", "automobile", "bird", "cat", "deer",
-                    "dog", "frog", "horse", "ship", "truck"
-                ]
-
-                fig = plt.figure(figsize=(8 * len(model_names), 8))
-                axs = [fig.add_subplot(1, len(model_names), i + 1, projection='3d')
-                       for i in range(len(model_names))]
-
-                for ax, name in zip(axs, model_names):
-                    mask = (labels == name)
-                    X_model = X_emb3d[mask]
-                    y_model = y[mask]
-
-                    for cls in np.unique(y_model):
-                        c_mask = (y_model == cls)
-                        ax.scatter(
-                            X_model[c_mask, 0], X_model[c_mask, 1], X_model[c_mask, 2],
-                            c=color_per_class[int(cls) % len(color_per_class)],
-                            s=60, label=cifar10_labels[int(cls)],
-                            alpha=0.78, edgecolors='none'
-                        )
-
-                    # —— 调整标题与坐标轴标题的位置 ——
-                    ax.set_title(f"{name} UMAP 3D (Round {round})",
-                                 fontsize=18, pad=0)  # pad ↓ 让标题稍微下移
-                    ax.set_xlabel('UMAP-1', fontsize=16, labelpad=12)  # labelpad ↑
-                    ax.set_ylabel('UMAP-2', fontsize=16, labelpad=12)
-                    ax.set_zlabel('UMAP-3', fontsize=16, labelpad=12)
-
-                    ax.locator_params(axis='x', nbins=8)
-                    ax.locator_params(axis='y', nbins=8)
-                    ax.locator_params(axis='z', nbins=8)
-                    ax.tick_params(axis='both', labelsize=14)
-
-                # —— 合并图例 ——
-                handles, labels_ = axs[0].get_legend_handles_labels()
-                by_label = dict(zip(labels_, handles))
-                fig.legend(
-                    list(by_label.values()), list(by_label.keys()),
-                    fontsize=16, loc='center left',
-                    bbox_to_anchor=(0.92, 0.5), borderaxespad=0.
-                )
-                fig.tight_layout(rect=(0, 0, 0.90, 1), w_pad=2.5)
-                plt.savefig(f"logs/umap3d_all_round{round}.png", dpi=400, bbox_inches="tight")
-                plt.close()
-                print(f"[3D-UMAP可视化] 已保存 logs/umap3d_all_round{round}.png")
-
-                # ----------- 释放显存 -----------
-                torch.cuda.empty_cache()
-
-        gc.collect()
-        torch.cuda.empty_cache()
-
-        # 最后再画一下 loss 曲线
-        # TODO: 去掉最后的10
-        fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
-        fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
-        plt.close(fig3)  # 关闭图形
-        # 节约内存这一块
-        plt.close('all')
-        gc.collect()
+        pass
 
     elif args.alg == 'fedtopo':
         logger.info("Initializing nets")
@@ -2894,8 +2511,6 @@ if __name__ == '__main__':
         # ---- 在 federated_learning 最开始，做一次全局 fit ----
         umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
 
-        # 设置需要保存PI的轮次
-        pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
 
         # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
         print("Fitting PersistenceImage on global_model + train_dl_global ...")
@@ -2921,6 +2536,9 @@ if __name__ == '__main__':
             else:
                 for idx in selected:
                     nets[idx].load_state_dict(global_para)
+
+            for net in nets.values():
+                net.train()  # 恢复客户端模型为训练模式
 
             local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model, history, round, pi, test_dl=test_dl_global, device=device)
 
@@ -2953,6 +2571,19 @@ if __name__ == '__main__':
                 entropy = compute_global_entropy(global_model, train_dl_global, device=device)
                 logger.info('>> Global Model Entropy: %f' % entropy)
 
+            # # 保存初始全局模型的权重
+            # initial_global_model_state = global_model.state_dict()
+            # # 在特征提取之前，保存每个客户端模型的初始状态
+            # initial_nets_state = {cid: net.state_dict() for cid, net in nets.items()}
+            # 在特征提取和可视化操作之前，冻结模型的参数
+
+            # 在特征提取和可视化操作之前，创建模型的深拷贝
+            global_model_copy = copy.deepcopy(global_model)
+            nets_copy = {cid: copy.deepcopy(net) for cid, net in nets.items()}
+
+            global_model_copy.eval()
+            for net in nets_copy.values():
+                net.eval()
             # ------------------------ 可视化主流程 ------------------------
             if round in key_rounds:
                 # 0️⃣ 统一提特征（一次前向）
@@ -2964,13 +2595,12 @@ if __name__ == '__main__':
                 )
 
                 model_names = ['global'] + [f'client{cid}' for cid in range(args.n_parties)]
-                models_all = [global_model] + [nets[k] for k in nets]
+                models_all = [global_model_copy] + [nets_copy[k] for k in nets_copy]
 
                 model_feats = {}  # {name: tensor(N,C,H,W)}
                 with torch.no_grad():
                     for name, model in zip(model_names, models_all):
                         model = model.to(args.device)
-                        model.eval()
                         feat = extract_layer_features(
                             model, x,
                             layer_name=args.feature_layer,
@@ -2978,7 +2608,6 @@ if __name__ == '__main__':
                             device=args.device
                         )
                         model_feats[name] = feat.cpu()  # 存到 CPU
-                torch.cuda.empty_cache()
 
                 # ============== 1. 拓扑条形图 & PI =================
                 global_feat = model_feats['global']
@@ -3046,7 +2675,7 @@ if __name__ == '__main__':
                 plt.close(fig)
                 print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
 
-                # ================= 2. UMAP 可视化 ==================
+                # # ================= 2. UMAP 可视化 ==================
                 # 2-1 拼接特征
                 all_features, all_labels = [], []
                 for name in model_names:
@@ -3132,7 +2761,7 @@ if __name__ == '__main__':
                 plt.close(fig)
                 print(f"[UMAP 2D可视化] 已保存 logs/umap2d_compare_round{round}.png")
 
-                # ------------- 3‑D 总图 ------------------
+                # # ------------- 3‑D 总图 ------------------
                 fig = plt.figure(figsize=(8, 7))
                 ax = fig.add_subplot(111, projection='3d', computed_zorder=False)
 
@@ -3238,11 +2867,24 @@ if __name__ == '__main__':
                 plt.close()
                 print(f"[3D-UMAP可视化] 已保存 logs/umap3d_all_round{round}.png")
 
-                # ----------- 释放显存 -----------
-                torch.cuda.empty_cache()
 
             gc.collect()
             torch.cuda.empty_cache()
+            # # 在每一轮结束后，再次检查全局模型的权重是否发生变化
+            # new_global_model_state = global_model.state_dict()
+            # # 在每一轮结束后检查模型权重的变化
+            # new_nets_state = {cid: net.state_dict() for cid, net in nets.items()}
+
+            # 比较模型的状态
+            # for cid, initial_state in initial_nets_state.items():
+            #     new_state = new_nets_state[cid]
+            #     for key in initial_state:
+            #         if not torch.equal(initial_state[key].to(device), new_state[key].to(device)):
+            #             print(f"Parameter {key} in client {cid} has changed.")
+            # # 比较两个状态字典的差异
+            # for key in initial_global_model_state:
+            #     if not torch.equal(initial_global_model_state[key].to(device), new_global_model_state[key].to(device)):
+            #         print(f"Parameter {key} in global has changed.")
 
         # 最后再画一下 loss 曲线
         # TODO: 去掉最后的10
