@@ -24,7 +24,10 @@ from resnetcifar import *
 from pytorch_pretrained_vit import ViT
 from sklearn.neighbors import KernelDensity
 from geomloss import SamplesLoss
+from gudhi import CubicalComplex
 from gudhi.representations import PersistenceImage
+from gudhi import plot_persistence_barcode
+from matplotlib.colors import LinearSegmentedColormap
 import gc
 import psutil
 
@@ -35,6 +38,12 @@ from torch import nn
 import seaborn as sns
 
 pi = PersistenceImage()  # 可以指定分辨率等参数
+# 定义绘图颜色
+custom_colors = ['#b2b1cf', '#eac7c7', '#e3d6b5']
+# 举例：莫兰迪蓝渐变
+morandi_blue_cmap = LinearSegmentedColormap.from_list(
+    "morandi_blue", ["#b2b1cf", "#eaeaea", "#ffffff"]
+)
 
 
 def get_args():
@@ -744,7 +753,7 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
     history['client_entropy'][net_id][round] = entropy
     delta = distance - history['client_topo_distance'][net_id][round - 1] if round > 0 else 0.0
     history['client_delta_topo_dist'][net_id][round] = delta
-    dists = [history['client_topo_distance'][net_id][round] for cid in range(args.n_parties)]
+    dists = [history['client_topo_distance'][net_id][round] for net_id in range(args.n_parties)]
     history['round_var'][round] = float(np.var(dists))
     swd_val = swd(last_local_pi, last_global_pi)
     history['client_swd'][net_id][round] = swd_val
@@ -781,6 +790,8 @@ def train_net_fedavg(net_id, net, train_dataloader, test_dataloader, epochs, lr,
     # writer = SummaryWriter()
     G_output_list = None
     for epoch in range(epochs):
+        total_loss_collector = []
+        last_local_pi, last_global_pi, last_out = None, None, None
         epoch_loss_collector = []
         for tmp in train_dataloader:
             for batch_idx, (x, target) in enumerate(tmp):
@@ -790,6 +801,12 @@ def train_net_fedavg(net_id, net, train_dataloader, test_dataloader, epochs, lr,
                 x.requires_grad = True
                 target.requires_grad = False
                 target = target.long()
+
+                # === 1. forward 得到 local/global PI 向量 ===
+                local_feat  = extract_layer_features(net, x,  layer_name=args.feature_layer, pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=pool_size, device=device)
+                local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
+                global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
                 out = net(x)
 
@@ -807,25 +824,19 @@ def train_net_fedavg(net_id, net, train_dataloader, test_dataloader, epochs, lr,
                 loss.backward()
                 optimizer.step()
 
+                total_loss_collector.append(loss.item())
+
+                # 只记录最后一个batch的特征和输出
+                last_local_pi = local_pi.detach()
+                last_global_pi = global_pi.detach()
+                last_out = out.detach()
+
                 cnt += 1
                 epoch_loss_collector.append(loss.item())
 
         epoch_loss = sum(epoch_loss_collector) / len(epoch_loss_collector)
-        logger.info('Epoch: %d Loss: %f' % (epoch, epoch_loss))
-
-        # train_acc = compute_accuracy(net, train_dataloader, device=device)
-        # test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
-
-        # writer.add_scalar('Accuracy/train', train_acc, epoch)
-        # writer.add_scalar('Accuracy/test', test_acc, epoch)
-
-        # if epoch % 10 == 0:
-        #     logger.info('Epoch: %d Loss: %f' % (epoch, epoch_loss))
-        #     train_acc = compute_accuracy(net, train_dataloader, device=device)
-        #     test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
-        #
-        #     logger.info('>> Training accuracy: %f' % train_acc)
-        #     logger.info('>> Test accuracy: %f' % test_acc)
+        epoch_total_loss = np.mean(total_loss_collector)
+        logger.info('Epoch: %d Loss: %f' % (epoch, epoch_total_loss))
 
     train_acc = compute_accuracy(net, train_dataloader, device=device)
     test_acc, conf_matrix = compute_accuracy(net, test_dataloader, get_confusion_matrix=True, device=device)
@@ -836,10 +847,46 @@ def train_net_fedavg(net_id, net, train_dataloader, test_dataloader, epochs, lr,
     net.to('cpu')
     logger.info(' ** Training complete **')
 
-    if args.dataset != 'generated':
-        entropy = compute_entropy(G_output_list)
-        # 记录这次的平均熵值
-        logger.info('>> Entropy: %f' % entropy)
+    # === 用最后一个batch的local_pi/global_pi和out统计指标 ===
+    # 1. 特征相似性（以欧氏距离为例，或者你可以换成别的指标）
+    if last_local_pi is not None and last_global_pi is not None:
+        similarity = torch.nn.functional.cosine_similarity(
+            last_local_pi.flatten(1), last_global_pi.flatten(1)
+        ).mean().item()
+        distance = torch.norm(last_local_pi - last_global_pi, p=2).item() / last_local_pi.shape[0]
+    else:
+        similarity = 0.0
+        distance = 0.0
+    logger.info(f">> Last-batch PI Similarity: {similarity:.4f}")
+    logger.info(f">> Last-batch Topo Distance: {distance:.4f}")
+    cka_val = cka(local_feat, global_feat)
+    history['client_cka'][net_id][round] = 1 - cka_val  # 越小越相似
+    logger.info(f'>> Last-batch 1-CKA: {1 - cka_val:.4f}')
+
+    # 2. 用最后一个batch的logits算熵
+    if last_out is not None:
+        probs = torch.nn.functional.softmax(last_out, dim=1)
+        log_probs = torch.log(probs + 1e-7)
+        entropy = -torch.sum(probs * log_probs, dim=1).mean().item()
+        logger.info('>> Last-batch Entropy: %f' % entropy)
+    else:
+        entropy = 0.0
+    # 更新历史记录
+    history['client_total_loss'][net_id][round] = epoch_total_loss
+    history['client_ce_loss'][net_id][round] = epoch_total_loss
+    history['client_topo_loss'][net_id][round] = 0.0
+    history['client_train_acc'][net_id][round] = train_acc
+    history['client_test_acc'][net_id][round] = test_acc
+    history['client_topo_distance'][net_id][round] = distance
+    history['client_similarity'][net_id][round] = similarity
+    history['client_entropy'][net_id][round] = entropy
+    delta = distance - history['client_topo_distance'][net_id][round - 1] if round > 0 else 0.0
+    history['client_delta_topo_dist'][net_id][round] = delta
+    dists = [history['client_topo_distance'][net_id][round] for net_id in range(args.n_parties)]
+    history['round_var'][round] = float(np.var(dists))
+    swd_val = swd(last_local_pi, last_global_pi)
+    history['client_swd'][net_id][round] = swd_val
+    logger.info(f'>> Last-batch SWD: {swd_val:.4f}')
 
     return train_acc, test_acc
 
@@ -1454,6 +1501,9 @@ def swd(u, v, n_proj=64):
     v_proj = torch.sort(v @ proj)[0]
     return torch.mean((u_proj - v_proj).abs()).item()
 
+# ----------- 可选：全局柔和风格 ----------
+plt.style.use('seaborn-v0_8-muted')  # 柔和审美
+
 # ========== 可视化相关函数 ==========
 def compute_barcode_and_pi(feature_map, pi):
     # feature_map: numpy数组，单通道
@@ -1467,14 +1517,73 @@ def compute_barcode_and_pi(feature_map, pi):
     pi_vec = pi.transform([bars_pd]).reshape(pi.resolution)
     return bars, pi_vec
 
-def plot_barcode(bars, ax, title="Barcode"):
-    plot_persistence_barcode(bars, axes=ax)
+def plot_barcode(
+    bars, ax, title="Barcode", linewidth=3,
+    xlim=(0, 1.0),
+    colors=None
+):
+    if colors is None:
+        # 默认用tab10色板
+        import matplotlib
+        colors = matplotlib.colormaps['tab10'].colors[:3]
+    labels = {0: 'H0 (Connected)', 1: 'H1 (Hole)', 2: 'H2 (Cavity)'}
+    y = [0, 0, 0]
+    for bar in bars:
+        if len(bar) > 1:
+            dim = bar[0]
+            birth, death = bar[1]
+            if death > birth:
+                ax.hlines(y[dim], birth, death, color=colors[dim], linewidth=linewidth,
+                          label=labels[dim] if y[dim] == 0 else "")
+                y[dim] += 1
     ax.set_title(title)
+    ax.set_xlabel("Birth/Death Value")
+    ax.set_ylabel("Barcode Index")
+    ax.set_yticks([])
+    ax.set_xlim(xlim)
+    handles, legend_labels = ax.get_legend_handles_labels()
+    by_label = dict(zip(legend_labels, handles))
+    if by_label:
+        ax.legend(by_label.values(), by_label.keys(), fontsize=10, loc='best')
 
-def plot_pi(pi_vec, ax, title="Persistence Image"):
-    im = ax.imshow(pi_vec, cmap='hot')
+
+
+def plot_pi(pi_vec, ax, title="Persistence Image", cmap=morandi_blue_cmap):
+    im = ax.imshow(pi_vec, cmap=cmap, aspect='auto', origin='lower')
     ax.set_title(title)
-    plt.colorbar(im, ax=ax)
+    ax.set_xlabel("Birth")
+    ax.set_ylabel("Persistence")
+    plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+
+def get_filtration_range(barcodes_list, margin=0.05, fallback=(0, 1)):
+    births = []
+    deaths = []
+    for bars in barcodes_list:
+        for bar in bars:
+            if len(bar) > 1:
+                birth, death = bar[1]
+                if (death > birth) and (np.isfinite(birth)) and (np.isfinite(death)):
+                    births.append(birth)
+                    deaths.append(death)
+    if not births or not deaths:
+        return fallback
+    min_birth = min(births)
+    max_death = max(deaths)
+    if not np.isfinite(min_birth) or not np.isfinite(max_death):
+        return fallback
+    span = max_death - min_birth
+    if span == 0:
+        min_birth -= 0.05
+        max_death += 0.05
+    else:
+        min_birth -= margin * span
+        max_death += margin * span
+    # 最终再防一手
+    if not np.isfinite(min_birth) or not np.isfinite(max_death):
+        return fallback
+    return (min_birth, max_death)
+
 
 def save_global_model(global_model_checkpoint, directory, filename="global_model.pth"):
     """
@@ -1544,7 +1653,7 @@ def plot_training_progress(history, n_clients, n_rounds):
         "Persistence Entropy", "Client CKA", "Client SWD", "Between-Client Variance"
     ]
     # 映射到 3×4 网格位置
-    for ax, title in zip(axs.flatten()[:10], titles):
+    for ax, title in zip(axs.flatten()[:len(titles)], titles):
         ax.set_title(title, fontsize=13)
 
     # ----------- 统一坐标轴/刻度 ----------
@@ -2350,7 +2459,7 @@ if __name__ == '__main__':
                                                                                       args.datadir,
                                                                                       args.batch_size,
                                                                                       32)
-
+    key_rounds = [0, args.comm_round // 4, args.comm_round // 2, (3 * args.comm_round - 2) // 4, args.comm_round - 1]
     if args.alg == 'fedgan':
         logger.info("Initializing nets")
         nets, local_model_meta_data, layer_type = init_nets(args.net_config, args.dropout_p, args.n_parties, args)
@@ -2537,7 +2646,6 @@ if __name__ == '__main__':
         umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
 
         # 设置需要保存PI的轮次
-        key_rounds = [0,  args.comm_round // 4, args.comm_round // 2, (3 * args.comm_round - 2) // 4, args.comm_round - 1]
         pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
 
         # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
@@ -2597,95 +2705,78 @@ if __name__ == '__main__':
                 logger.info('>> Global Model Entropy: %f' % entropy)
 
             if round in key_rounds:
-                pi_records[round] = {}
                 # --- 每个客户端 ---
-                client_feats = []
-                for net_id, net in nets.items():
-                    net = net.to(args.device)  # 新增：把模型放到同一个 device 上
-                    net.eval()
-                    # 采样一批本地数据
-                    dataidxs = net_dataidx_map[net_id]
-                    if args.noise_type == 'space':
-                        train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir,
-                                                                             args.batch_size, 32,
-                                                                             dataidxs, noise_level, net_id,
-                                                                             args.n_parties - 1)
-                    else:
-                        noise_level = args.noise / (args.n_parties - 1) * net_id
-                        train_dl_local, test_dl_local, _, _ = get_dataloader(args.dataset, args.datadir,
-                                                                             args.batch_size, 32,
-                                                                             dataidxs, noise_level)
-                    x, _ = next(iter(train_dl_local))
-                    x = x[:32].to(args.device)  # 可设batch大小
-                    feat = extract_layer_features(net, x, layer_name=args.feature_layer, pool_size=8,
-                                                  device=args.device)
-                    client_feats.append(feat.cpu())  # 先转到CPU，节省显存
-
-                    # 计算PI并存储
-                    pi_vec = batch_channel_pi(feat, K=8, pi=pi)
-                    pi_records[round][net_id] = pi_vec.cpu().numpy()
-
-                    # 清理显存
-                    del feat
-                    torch.cuda.empty_cache()
+                x, _ = next(iter(train_dl_global))
+                x = x[:32].to(args.device)  # 可设batch大小
+                with torch.no_grad():
+                    client_feats = []
+                    for net_id, net in nets.items():
+                        net = net.to(args.device)  # 把模型放到同一个 device 上
+                        net.eval()
+                        feat = extract_layer_features(net, x, layer_name=args.feature_layer, pool_size=8,
+                                                      device=args.device)
+                        client_feats.append(feat.cpu())  # 先转到CPU，节省显存
+                        # 清理显存
+                        torch.cuda.empty_cache()
 
                 # --- 全局模型 ---
                 global_model = global_model.to(args.device)  # 保证全局模型也在对的设备
                 global_model.eval()
-                x, _ = next(iter(train_dl_global))
-                x = x[:32].to(args.device)
                 global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=8,
                                                      device=args.device)
-                pi_vec = batch_channel_pi(global_feat, K=8, pi=pi)
-                pi_records[round]['global'] = pi_vec.cpu().numpy()
 
                 # 清理全局特征数据
-                del global_feat
                 torch.cuda.empty_cache()
 
-                print(f"[INFO] Collected PI for round {round}")
-
+                # ----开始可视化-----
                 # 全局模型特征转CPU
                 global_feat = global_feat.cpu()
 
-                # 只取第一个样本的第一个通道做条形码和PI可视化
+                # 1. 一次性先处理并存储所有 bars/pi，避免重复计算
+                vis_items = []  # [(name, bars, pi)]
+                # 全局
                 g_arr = global_feat[0, 0].numpy()
                 g_bars, g_pi = compute_barcode_and_pi(g_arr, pi)
+                vis_items.append(("Global", g_bars, g_pi))
 
-                # 画图
-                fig, axs = plt.subplots(args.n_parties + 1, 2, figsize=(8, 3 * (args.n_parties + 1)))
-                plot_barcode(g_bars, axs[0, 0], title=f"Global Barcode (Round {round})")
-                plot_pi(g_pi, axs[0, 1], title="Global PI")
-                axs[0, 0].set_ylabel("Global", fontsize=10)
-
-                # 后续行：各client
+                # 各client
                 for cid, feat in enumerate(client_feats):
                     c_arr = feat[0, 0].numpy()
                     c_bars, c_pi = compute_barcode_and_pi(c_arr, pi)
-                    plot_barcode(c_bars, axs[cid + 1, 0], title=f"Client{cid} Barcode")
-                    plot_pi(c_pi, axs[cid + 1, 1], title=f"Client{cid} PI")
-                    axs[cid + 1, 0].set_ylabel(f"Client{cid}", fontsize=10)
+                    vis_items.append((f"Client{cid}", c_bars, c_pi))
+
+                # 2. 统一统计横轴范围（只遍历一遍）
+                all_bars = [item[1] for item in vis_items]
+                FILTRATION_RANGE = get_filtration_range(all_bars)  # 上面提供的自动统计函数
+
+                # 3. 开始画图（也只遍历一遍）
+                fig, axs = plt.subplots(len(vis_items), 2, figsize=(10, 3.5 * len(vis_items)))
+                for idx, (label, bars, pi_vec) in enumerate(vis_items):
+                    plot_barcode(bars, axs[idx, 0], title=f"{label} Barcode", linewidth=5,
+                                 xlim=FILTRATION_RANGE, colors=custom_colors)
+                    plot_pi(pi_vec, axs[idx, 1], title=f"{label} PI", cmap=morandi_blue_cmap)
+                    axs[idx, 0].set_ylabel(label, fontsize=12)
 
                 plt.tight_layout()
-                plt.savefig(f"logs/topo_compare_round{round}.png")
+                plt.savefig(f"logs/topo_compare_round{round}.png", dpi=300)
                 plt.close(fig)
                 print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
 
                 # 清理显存
-                del client_feats
                 torch.cuda.empty_cache()
 
             gc.collect()
             torch.cuda.empty_cache()
-
-        np.savez("logs/topo_PI_records.npz", **{f"round{r}": pi_records[r] for r in pi_records})
-        print("Saved all PI vectors to topo_PI_records.npz")
 
         # 最后再画一下 loss 曲线
         # TODO: 去掉最后的10
         fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
         fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
         plt.close(fig3)  # 关闭图形
+        # 节约内存这一块
+        del client_feats, global_feat, vis_items, all_bars, g_bars, g_pi, c_bars, c_pi, c_arr
+        plt.close('all')
+        gc.collect()
 
     elif args.alg == 'fedavg':
         logger.info("Initializing nets")
@@ -2694,12 +2785,38 @@ if __name__ == '__main__':
         global_model = global_models[0]
 
         global_para = global_model.state_dict()
-        print(nets[0])
+
         if args.is_same_initial:
             for net_id, net in nets.items():
                 net.load_state_dict(global_para)
 
-        print(nets[0])
+        # 设置需要保存PI的轮次
+        pi_records = {}  # {round: {client_id: pi_vec, 'global': pi_vec}}
+
+        # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
+        print("Fitting PersistenceImage on global_model + train_dl_global ...")
+        pi = fit_persistence_image_from_loader(
+            global_model, train_dl_global, device,
+            layer_name=args.feature_layer, pool_size=8, K=2, max_batches=20  # 按你需求可调参数
+        )
+        print("Done fitting PersistenceImage.")
+
+        # 初始化history，用于绘图
+        history = {
+            'client_total_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_ce_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_topo_loss': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_train_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_test_acc': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_topo_distance': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_similarity': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_entropy': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_delta_topo_dist': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'round_var': [0.0] * (args.comm_round + 1),
+            'client_cka': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+            'client_swd': [[0.0] * (args.comm_round + 1) for _ in range(args.n_parties)],
+        }
+
         for round in range(args.comm_round):
             logger.info("in comm round:" + str(round))
 
@@ -2748,6 +2865,77 @@ if __name__ == '__main__':
             if args.dataset != 'generated':
                 entropy = compute_global_entropy(global_model, train_dl_global, device=device)
                 logger.info('>> Global Model Entropy: %f' % entropy)
+
+            pi_records = {}
+            if round in key_rounds:
+                # --- 每个客户端 ---
+                x, _ = next(iter(train_dl_global))
+                x = x[:32].to(args.device)  # 可设batch大小
+                with torch.no_grad():
+                    client_feats = []
+                    for net_id, net in nets.items():
+                        net = net.to(args.device)  # 把模型放到同一个 device 上
+                        net.eval()
+                        feat = extract_layer_features(net, x, layer_name=args.feature_layer, pool_size=8,
+                                                      device=args.device)
+                        client_feats.append(feat.cpu())  # 先转到CPU，节省显存
+                        # 清理显存
+                        torch.cuda.empty_cache()
+
+                    # --- 全局模型 ---
+                    global_model = global_model.to(args.device)  # 保证全局模型也在对的设备
+                    global_model.eval()
+                    global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=8,
+                                                         device=args.device)
+
+                    # 清理全局特征数据
+                    torch.cuda.empty_cache()
+
+                # ----开始可视化-----
+                # 全局模型特征转CPU
+                global_feat = global_feat.cpu()
+
+                # 1. 一次性先处理并存储所有 bars/pi，避免重复计算
+                vis_items = []  # [(name, bars, pi)]
+                # 全局
+                g_arr = global_feat[0, 0].numpy()
+                g_bars, g_pi = compute_barcode_and_pi(g_arr, pi)
+                vis_items.append(("Global", g_bars, g_pi))
+
+                # 各client
+                for cid, feat in enumerate(client_feats):
+                    c_arr = feat[0, 0].numpy()
+                    c_bars, c_pi = compute_barcode_and_pi(c_arr, pi)
+                    vis_items.append((f"Client{cid}", c_bars, c_pi))
+
+                # 2. 统一统计横轴范围（只遍历一遍）
+                all_bars = [item[1] for item in vis_items]
+                FILTRATION_RANGE = get_filtration_range(all_bars)  # 上面提供的自动统计函数
+
+                # 3. 开始画图（也只遍历一遍）
+                fig, axs = plt.subplots(len(vis_items), 2, figsize=(10, 3.5 * len(vis_items)))
+                for idx, (label, bars, pi_vec) in enumerate(vis_items):
+                    plot_barcode(bars, axs[idx, 0], title=f"{label} Barcode", linewidth=5,
+                                 xlim=FILTRATION_RANGE, colors=custom_colors)
+                    plot_pi(pi_vec, axs[idx, 1], title=f"{label} PI", cmap=morandi_blue_cmap)
+                    axs[idx, 0].set_ylabel(label, fontsize=12)
+
+                plt.tight_layout()
+                plt.savefig(f"logs/topo_compare_round{round}.png", dpi=300)
+                plt.close(fig)
+                print(f"[可视化] 已保存 logs/topo_compare_round{round}.png")
+
+                # 清理显存
+                torch.cuda.empty_cache()
+
+            gc.collect()
+            torch.cuda.empty_cache()
+
+        # 最后再画一下 loss 曲线
+        # TODO: 去掉最后的10
+        fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
+        fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
+        plt.close(fig3)  # 关闭图形
 
     elif args.alg == 'fedprox':
         logger.info("Initializing nets")
