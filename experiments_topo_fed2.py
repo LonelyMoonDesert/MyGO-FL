@@ -3105,17 +3105,18 @@ if __name__ == '__main__':
                 # ------- 布局与 legend -------
                 rows = 2
                 ncols = 3
-                reserved = 0.15  # 预留 12 % 画布高度，留得更宽一些
+                reserved = 0.25  # 增加预留区域高度
+                bottom_margin = 0.1  # 新增底部边距
 
                 # ①：把子图都压到剩下 1‑reserved 的区域
-                fig.subplots_adjust(bottom=reserved)  # 和 tight_layout(rect=…) 等价但更直观
+                fig.subplots_adjust(bottom=reserved + bottom_margin)
 
                 # ②：把 legend 放在预留区正中
                 handles, labels_ = ax.get_legend_handles_labels()
                 fig.legend(
                     handles, labels_,
-                    loc='lower center',
-                    bbox_to_anchor=(0.5, reserved / 5),  # 纵坐标仍在预留区正中
+                    loc='center',
+                    bbox_to_anchor=(0.5, bottom_margin + reserved/4),  # 调整y坐标
                     bbox_transform=fig.transFigure,
                     ncol=ncols, handlelength=1.5,
                     columnspacing=1.0, handletextpad=0.5,
