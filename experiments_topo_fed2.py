@@ -688,17 +688,17 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                               weight_decay=args.reg)
     criterion = nn.CrossEntropyLoss().to(device)
 
-    # 学习率调度器
-    if args_scheduler == 'StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-    elif args_scheduler == 'ExponentialLR':
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
-    elif args_scheduler == 'CosineAnnealingLR':
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=0)
-    elif args_scheduler == 'ReduceLROnPlateau':
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5, verbose=True)
-    else:
-        raise ValueError(f"Unsupported scheduler type: {args_scheduler}")
+    # # 学习率调度器
+    # if args_scheduler == 'StepLR':
+    #     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    # elif args_scheduler == 'ExponentialLR':
+    #     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    # elif args_scheduler == 'CosineAnnealingLR':
+    #     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=0)
+    # elif args_scheduler == 'ReduceLROnPlateau':
+    #     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5, verbose=True)
+    # else:
+    #     raise ValueError(f"Unsupported scheduler type: {args_scheduler}")
 
     logger.info('Training network %s' % str(net_id))
 
@@ -722,8 +722,8 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 target = target.long()
 
                 # === 1. forward 得到 local/global PI 向量 ===
-                local_feat  = extract_layer_features(net, x,  layer_name=FEATURE_LAYER, pool_size=pool_size, device=device)
-                global_feat = extract_layer_features(global_model, x, layer_name=FEATURE_LAYER, pool_size=pool_size, device=device)
+                local_feat  = extract_layer_features(net, x,  layer_name='layer3', pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name='layer3', pool_size=pool_size, device=device)
                 local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
                 global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
@@ -736,7 +736,10 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 out = net(x)
                 ce_loss = criterion(out, target)
                 topo_loss = torch.norm(local_pi - global_pi, p=2) / x.shape[0]
+
                 total_loss = ce_loss + alpha * topo_loss
+
+                # 检查损失是否为 NaN
 
                 total_loss.backward()
                 optimizer.step()
@@ -753,14 +756,14 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
         epoch_total_loss = np.mean(total_loss_collector)
         epoch_ce_loss = np.mean(ce_loss_collector)
         epoch_topo_loss = np.mean(topo_loss_collector)
-        logger.info(f'Epoch: {epoch} Total: {epoch_total_loss:.4f} CE: {epoch_ce_loss:.4f} Topo: {epoch_topo_loss:.4f} LR: {scheduler.get_last_lr()[0]}')
+        logger.info(f'Epoch: {epoch} Total: {epoch_total_loss:.4f} CE: {epoch_ce_loss:.4f} Topo: {epoch_topo_loss:.4f}')
 
-        # 如果使用 ReduceLROnPlateau 调度器，调用 scheduler.step(val_loss) 来更新学习率
-        if args_scheduler == 'ReduceLROnPlateau':
-            val_loss = epoch_total_loss  # 假设验证集损失是总损失
-            scheduler.step(val_loss)
-        else:
-            scheduler.step()
+        # # 如果使用 ReduceLROnPlateau 调度器，调用 scheduler.step(val_loss) 来更新学习率
+        # if args_scheduler == 'ReduceLROnPlateau':
+        #     val_loss = epoch_total_loss  # 假设验证集损失是总损失
+        #     scheduler.step(val_loss)
+        # else:
+        #     scheduler.step()
 
     # 结尾照常统计 acc/记录 history ...
     train_acc = compute_accuracy(net, train_dataloader, device=device)
@@ -1516,18 +1519,20 @@ def fit_persistence_image_from_loader(model, dataloader, device, layer_name=FEAT
     return pi
 
 def cka(X, Y):
-    X = X.flatten(1); Y = Y.flatten(1)
-    hsic = (X @ Y.T).pow(2).mean()
-    norm = (X @ X.T).pow(2).mean().sqrt() * (Y @ Y.T).pow(2).mean().sqrt()
-    return (hsic / (norm + 1e-8)).item()
+    X_flat = X.flatten(1)  # 使用新的变量保存展平后的 X
+    Y_flat = Y.flatten(1)  # 使用新的变量保存展平后的 Y
+    hsic = (X_flat @ Y_flat.T).pow(2).mean()  # 计算 HSIC
+    norm = (X_flat @ X_flat.T).pow(2).mean().sqrt() * (Y_flat @ Y_flat.T).pow(2).mean().sqrt()  # 计算归一化因子
+    return (hsic / (norm + 1e-8)).item()  # 返回结果
 
 def swd(u, v, n_proj=64):
     d = u.numel()
-    u = u.flatten(); v = v.flatten()
+    u_flat = u.flatten()  # 使用 u_flat 保存展平后的张量
+    v_flat = v.flatten()  # 使用 v_flat 保存展平后的张量
     proj = torch.randn(d, n_proj, device=u.device)
     proj /= (proj.norm(dim=0, keepdim=True) + 1e-8)
-    u_proj = torch.sort(u @ proj)[0]
-    v_proj = torch.sort(v @ proj)[0]
+    u_proj = torch.sort(u_flat @ proj)[0]
+    v_proj = torch.sort(v_flat @ proj)[0]
     return torch.mean((u_proj - v_proj).abs()).item()
 
 def cmyk_to_rgb(c, m, y, k):
@@ -2119,15 +2124,17 @@ def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model,
                                                                  dataidxs, noise_level)
         train_dl_global, test_dl_global, _, _ = get_dataloader(args.dataset, args.datadir, args.batch_size, 32)
         n_epoch = args.epochs
+        lr = args.lr
 
         # trainacc, testacc = train_net_fedtopo(net_id, net, train_dl_local, test_dl, n_epoch, args.lr,
         #                                        args.optimizer, global_model, history, round,
         #                                        device=device)
         # 轮数越大，alpha越大（可控上线）
         alpha = min(0.05 + round * 0.01, 0.5)  # 最高到0.5
-
+        # 训练PACS时：
+        # lr = args.lr - round * 0.001
         trainacc, testacc = train_net_fedtopo(
-            net_id, net, train_dl_local, test_dl, n_epoch, args.lr, args.optimizer, args.scheduler,
+            net_id, net, train_dl_local, test_dl, n_epoch, lr, args.optimizer, args.scheduler,
             global_model, history, round, device=device, pi=pi, K=2, pool_size=8, alpha=alpha)
         logger.info("net %d final test acc %f" % (net_id, testacc))
         avg_acc += testacc
@@ -2885,17 +2892,18 @@ if __name__ == '__main__':
                 # ------- 布局与 legend -------
                 rows = 2
                 ncols = 3
-                reserved = 0.15  # 预留 12 % 画布高度，留得更宽一些
+                reserved = 0.25  # 增加预留区域高度
+                bottom_margin = 0.1  # 新增底部边距
 
                 # ①：把子图都压到剩下 1‑reserved 的区域
-                fig.subplots_adjust(bottom=reserved)  # 和 tight_layout(rect=…) 等价但更直观
+                fig.subplots_adjust(bottom=reserved + bottom_margin)
 
                 # ②：把 legend 放在预留区正中
                 handles, labels_ = ax.get_legend_handles_labels()
                 fig.legend(
                     handles, labels_,
-                    loc='lower center',
-                    bbox_to_anchor=(0.5, reserved / 5),  # 纵坐标仍在预留区正中
+                    loc='center',
+                    bbox_to_anchor=(0.5, bottom_margin + reserved/4),  # 调整y坐标
                     bbox_transform=fig.transFigure,
                     ncol=ncols, handlelength=1.5,
                     columnspacing=1.0, handletextpad=0.5,
