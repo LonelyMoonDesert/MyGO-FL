@@ -708,8 +708,8 @@ def train_net_fedtopo(net_id, net, train_dataloader, test_dataloader, epochs, lr
                 target = target.long()
 
                 # === 1. forward 得到 local/global PI 向量 ===
-                local_feat  = extract_layer_features(net, x,  layer_name='layer3', pool_size=pool_size, device=device)
-                global_feat = extract_layer_features(global_model, x, layer_name='layer3', pool_size=pool_size, device=device)
+                local_feat  = extract_layer_features(net, x,  layer_name=args.feature_layer, pool_size=pool_size, device=device)
+                global_feat = extract_layer_features(global_model, x, layer_name=args.feature_layer, pool_size=pool_size, device=device)
                 local_pi  = batch_channel_pi(local_feat, K=K, pi=pi)   # [B, M]
                 global_pi = batch_channel_pi(global_feat, K=K, pi=pi)  # [B, M]
 
@@ -2516,7 +2516,7 @@ if __name__ == '__main__':
         print("Fitting PersistenceImage on global_model + train_dl_global ...")
         pi = fit_persistence_image_from_loader(
             global_model, train_dl_global, device,
-            layer_name='layer3', pool_size=8, K=2, max_batches=20  # 按你需求可调参数
+            layer_name=args.feature_layer, pool_size=8, K=2, max_batches=20  # 按你需求可调参数
         )
         print("Done fitting PersistenceImage.")
 
