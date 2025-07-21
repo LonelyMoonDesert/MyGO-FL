@@ -29,10 +29,85 @@ from sklearn.datasets import load_svmlight_file
 
 from torchvision.datasets.utils import download_url
 import zipfile
+from torch.utils.data import Subset
+from torchvision.datasets import ImageFolder
 
 logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+PACS_DOMAINS = ['photo', 'art_painting', 'cartoon', 'sketch']
+
+PACS_DOMAIN_ALIASES = {
+    'photo':        ['photo', 'photos', 'Photo'],
+    'art_painting': ['art_painting', 'art', 'painting', 'Art_Painting'],
+    'cartoon':      ['cartoon', 'Cartoon'],
+    'sketch':       ['sketch', 'Sketch'],
+}
+
+def _resolve_pacs_root(datadir):
+    """
+    Try to locate the actual PACS domain root under datadir.
+    Expected substructure:
+      datadir/pacs_data/pacs_data/<domain>/
+      or datadir/dct2_images/dct2_images/<domain>/
+      or datadir/<domain>/
+    Returns canonical root path (str).
+    """
+    import os
+    cands = [
+        os.path.join(datadir, 'pacs_data', 'pacs_data'),
+        os.path.join(datadir, 'dct2_images', 'dct2_images'),
+        datadir,
+    ]
+    for c in cands:
+        if all(os.path.isdir(os.path.join(c, d)) for d in PACS_DOMAINS if os.path.isdir(c)):
+            return c
+    # fallback to datadir anyway
+    return datadir
+
+
+def _locate_pacs_domain(root, domain_key):
+    """
+    Given canonical root and canonical domain_key in PACS_DOMAINS,
+    try alias names; return path.
+    """
+    import os
+    for alias in PACS_DOMAIN_ALIASES[domain_key]:
+        p = os.path.join(root, alias)
+        if os.path.isdir(p):
+            return p
+    raise ValueError(f'Cannot find PACS domain {domain_key} under {root}')
+
+class PACSSubset(data.Dataset):
+    """
+    Wraps an ImageFolder for a PACS domain; optionally selects a subset of indices.
+    """
+    def __init__(self, base_ds, indices=None, transform=None):
+        self.base = base_ds
+        self.transform = transform if transform is not None else base_ds.transform
+        if indices is None:
+            self.indices = np.arange(len(base_ds))
+        else:
+            self.indices = np.array(indices, dtype=int)
+
+    def __len__(self):
+        return len(self.indices)
+
+    def __getitem__(self, i):
+        j = int(self.indices[i])
+        img, target = self.base[j]
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, target
+
+def _split_indices(n, train_ratio=0.8, seed=0):
+    rng = np.random.RandomState(seed)
+    idxs = np.arange(n)
+    rng.shuffle(idxs)
+    cut = int(train_ratio * n)
+    return idxs[:cut], idxs[cut:]
+
 
 def mkdirs(dirpath):
     try:
@@ -206,6 +281,58 @@ def load_tinyimagenet_data(datadir):
 
     return (X_train, y_train, X_test, y_test)
 
+def load_pacs_data(datadir, train_ratio=1.0, seed=0):
+    """
+    Scan PACS directory, build global train/test split per domain.
+    Returns:
+        X_train (np.ndarray object of paths)
+        y_train (np.ndarray int)
+        X_test  (np.ndarray object)
+        y_test  (np.ndarray int)
+        domain_train (np.ndarray int)  # 0..3
+        domain_test  (np.ndarray int)
+    """
+    import os, numpy as np
+    from torchvision.datasets import ImageFolder
+    root = _resolve_pacs_root(datadir)
+
+    paths_all = []
+    labels_all = []
+    domains_all = []
+
+    for di, dk in enumerate(PACS_DOMAINS):
+        droot = _locate_pacs_domain(root, dk)
+        ds = ImageFolder(droot, transform=None)
+        # ds.samples: list of (path, class_idx)
+        for p, cls in ds.samples:
+            paths_all.append(p)
+            labels_all.append(cls)
+            domains_all.append(di)
+
+    paths_all = np.array(paths_all, dtype=object)
+    labels_all = np.array(labels_all, dtype=np.int64)
+    domains_all = np.array(domains_all, dtype=np.int64)
+
+    # per-domain split
+    rng = np.random.RandomState(seed)
+    train_mask = np.zeros(len(paths_all), dtype=bool)
+    for di in range(len(PACS_DOMAINS)):
+        idx = np.where(domains_all == di)[0]
+        rng.shuffle(idx)
+        cut = int(train_ratio * len(idx))
+        train_mask[idx[:cut]] = True
+
+    X_train = paths_all[train_mask]
+    y_train = labels_all[train_mask]
+    domain_train = domains_all[train_mask]
+
+    X_test = paths_all[~train_mask]
+    y_test = labels_all[~train_mask]
+    domain_test = domains_all[~train_mask]
+
+    return X_train, y_train, X_test, y_test, domain_train, domain_test
+
+
 def record_net_data_stats(y_train, net_dataidx_map, logdir):
 
     net_cls_counts = {}
@@ -239,6 +366,8 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
         X_train, y_train, X_test, y_test = load_cifar100_data(datadir)
     elif dataset == 'tinyimagenet':
         X_train, y_train, X_test, y_test = load_tinyimagenet_data(datadir)
+    elif dataset == 'pacs':
+        X_train, y_train, X_test, y_test, dom_train, dom_test = load_pacs_data(datadir)
     elif dataset == 'generated':
         X_train, y_train = [], []
         for loc in range(4):
@@ -334,6 +463,21 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
         np.save("data/generated/y_train.npy",y_train)
         np.save("data/generated/y_test.npy",y_test)
 
+    # ---------- PACS domain partition special case ----------
+    if dataset == 'pacs' and partition in ('pacs-domain', 'bydomain', 'domain', 'lodo'):
+        dom_ids = np.unique(dom_train)  # 0..3
+        n_use = min(n_parties, len(dom_ids))
+        net_dataidx_map = {}
+        # 顺序分配domain，超出的客户端循环使用domain（多客户端可重复同一domain）
+        for i in range(n_parties):
+            if i < len(dom_ids):
+                di = dom_ids[i]
+            else:
+                di = dom_ids[i % len(dom_ids)]
+            idx = np.where(dom_train == di)[0]
+            net_dataidx_map[i] = idx
+        traindata_cls_counts = record_net_data_stats(y_train, net_dataidx_map, logdir)
+        return (X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts)
 
     n_train = y_train.shape[0]
 
@@ -563,7 +707,39 @@ def partition_data(dataset, datadir, logdir, partition, n_parties, beta=0.4):
                     flag=True
                     break
                     
-        
+    elif dataset == 'pacs' and partition in ('pacs-domain-labeldir',):
+        dom_ids = np.unique(dom_train)
+        n_domains = len(dom_ids)
+        # 每个domain分到的client数量
+        clients_per_domain = n_parties // n_domains
+        remainder = n_parties % n_domains
+        net_dataidx_map = {}
+        beta = 0.4  # 可调
+        client_id = 0
+        for di in dom_ids:
+            idx_domain = np.where(dom_train == di)[0]
+            y_domain = y_train[idx_domain]
+            K = len(np.unique(y_domain))
+            # 每个domain分配clients_per_domain个client
+            n_clients = clients_per_domain + (1 if remainder > 0 else 0)
+            if remainder > 0:
+                remainder -= 1
+            idx_batch = [[] for _ in range(n_clients)]
+            for k in np.unique(y_domain):
+                idx_k = idx_domain[y_domain == k]
+                np.random.shuffle(idx_k)
+                proportions = np.random.dirichlet(np.repeat(beta, n_clients))
+                proportions = proportions / proportions.sum()
+                proportions = (np.cumsum(proportions) * len(idx_k)).astype(int)[:-1]
+                splits = np.split(idx_k, proportions)
+                for j in range(n_clients):
+                    idx_batch[j] += splits[j].tolist()
+            for j in range(n_clients):
+                net_dataidx_map[client_id] = np.array(idx_batch[j])
+                client_id += 1
+        traindata_cls_counts = record_net_data_stats(y_train, net_dataidx_map, logdir)
+        return (X_train, y_train, X_test, y_test, net_dataidx_map, traindata_cls_counts)
+
         if dataset in ('celeba', 'covtype', 'a9a', 'rcv1', 'SUSY'):
             K = 2
             stat[:,0]=np.sum(stat[:,:5],axis=1)
@@ -715,8 +891,16 @@ class AddGaussianNoise(object):
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
-def get_dataloader(dataset, datadir, train_bs, test_bs, dataidxs=None, noise_level=0, net_id=None, total=0):
-    if dataset in ('mnist', 'femnist', 'fmnist', 'cifar10', 'svhn', 'generated', 'covtype', 'a9a', 'rcv1', 'SUSY', 'cifar100', 'tinyimagenet'):
+def get_dataloader(dataset, datadir, train_bs, test_bs,
+                   dataidxs=None, noise_level=0, net_id=None, total=0,
+                   pacs_train_ratio=0.8):
+    """
+    Extended get_dataloader with PACS support.
+    """
+    if dataset in ('mnist', 'femnist', 'fmnist', 'cifar10', 'svhn', 'generated',
+                   'covtype', 'a9a', 'rcv1', 'SUSY', 'cifar100', 'tinyimagenet',
+                   'pacs'):
+
         if dataset == 'mnist':
             dl_obj = MNIST_truncated
 
@@ -770,7 +954,6 @@ def get_dataloader(dataset, datadir, train_bs, test_bs, dataidxs=None, noise_lev
                 transforms.ToTensor(),
                 AddGaussianNoise(0., noise_level, net_id, total)
             ])
-            # data prep for test set
             transform_test = transforms.Compose([
                 transforms.ToTensor(),
                 AddGaussianNoise(0., noise_level, net_id, total)])
@@ -780,21 +963,12 @@ def get_dataloader(dataset, datadir, train_bs, test_bs, dataidxs=None, noise_lev
 
             normalize = transforms.Normalize(mean=[0.5070751592371323, 0.48654887331495095, 0.4409178433670343],
                                              std=[0.2673342858792401, 0.2564384629170883, 0.27615047132568404])
-            # transform_train = transforms.Compose([
-            #     transforms.RandomCrop(32),
-            #     transforms.RandomHorizontalFlip(),
-            #     transforms.ToTensor(),
-            #     normalize
-            # ])
             transform_train = transforms.Compose([
-                # transforms.ToPILImage(),
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomRotation(15),
                 transforms.ToTensor(),
-                normalize
-            ])
-            # data prep for test set
+                normalize])
             transform_test = transforms.Compose([
                 transforms.ToTensor(),
                 normalize])
@@ -814,22 +988,113 @@ def get_dataloader(dataset, datadir, train_bs, test_bs, dataidxs=None, noise_lev
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ])
 
+        elif dataset == 'pacs':
+            root = _resolve_pacs_root(datadir)
+            # choose domain(s)
+            if net_id is None:
+                domain_keys = PACS_DOMAINS  # all domains
+            else:
+                domain_keys = [PACS_DOMAINS[net_id % len(PACS_DOMAINS)]]
+
+            # transforms (ImageNet style)
+            pacs_norm = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                             std=[0.229, 0.224, 0.225])
+            transform_train = transforms.Compose([
+                transforms.Resize(256),
+                transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                pacs_norm,
+                AddGaussianNoise(0., noise_level, net_id, total),
+            ])
+            transform_test = transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                pacs_norm,
+                AddGaussianNoise(0., noise_level, net_id, total),
+            ])
+
+            # build a flat list over requested domains
+            paths = []
+            targets = []
+            for dk in domain_keys:
+                droot = _locate_pacs_domain(root, dk)
+                base = ImageFolder(droot, transform=None)
+                for p, cls in base.samples:
+                    paths.append(p)
+                    targets.append(cls)
+            paths = np.array(paths, dtype=object)
+            targets = np.array(targets, dtype=np.int64)
+
+            # if dataidxs provided, use as train indices (global indexing in above flatten)
+            if dataidxs is not None:
+                train_indices = np.array(dataidxs, dtype=int)
+                mask = np.ones(len(paths), dtype=bool)
+                mask[train_indices] = False
+                test_indices = np.arange(len(paths))[mask]
+            else:
+                # 80/20 split
+                rng = np.random.RandomState(0 if net_id is None else net_id)
+                perm = rng.permutation(len(paths))
+                cut = int(0.8 * len(paths))
+                train_indices = perm[:cut]
+                test_indices = perm[cut:]
+
+            # simple dataset wrapper
+            class PACSPathsDataset(data.Dataset):
+                def __init__(self, paths, labels, indices, transform):
+                    self.paths = paths[indices]
+                    self.labels = labels[indices]
+                    self.transform = transform
+                def __len__(self): return len(self.paths)
+                def __getitem__(self, i):
+                    img = Image.open(self.paths[i]).convert('RGB')
+                    if self.transform: img = self.transform(img)
+                    return img, int(self.labels[i])
+
+            from PIL import Image
+            train_ds = PACSPathsDataset(paths, targets, train_indices, transform_train)
+            test_ds  = PACSPathsDataset(paths, targets, test_indices,  transform_test)
+
         else:
             dl_obj = Generated
             transform_train = None
             transform_test = None
 
-
+        # ----- instantiate non-PACS datasets -----
         if dataset == "tinyimagenet":
             train_ds = dl_obj(datadir+'tiny-imagenet-200/train/', dataidxs=dataidxs, transform=transform_train)
             test_ds = dl_obj(datadir+'tiny-imagenet-200/val/', transform=transform_test)
-        else:
-            train_ds = dl_obj(datadir, dataidxs=dataidxs, train=True, transform=transform_train, download=True)
-            test_ds = dl_obj(datadir, train=False, transform=transform_test, download=True)
+        elif dataset not in ('pacs',):
+            train_ds = dl_obj(datadir, dataidxs=dataidxs, train=True,
+                              transform=transform_train, download=True)
+            test_ds = dl_obj(datadir, train=False,
+                             transform=transform_test, download=True)
 
-        train_dl = data.DataLoader(dataset=train_ds, batch_size=train_bs, shuffle=True, drop_last=False)
-        test_dl = data.DataLoader(dataset=test_ds, batch_size=test_bs, shuffle=False, drop_last=False)
+        train_dl = data.DataLoader(dataset=train_ds, batch_size=train_bs,
+                                   shuffle=True, drop_last=False)
+        test_dl = data.DataLoader(dataset=test_ds, batch_size=test_bs,
+                                  shuffle=False, drop_last=False)
 
+        return train_dl, test_dl, train_ds, test_ds
+
+    # fallback if dataset not matched
+    raise ValueError(f"Unknown dataset: {dataset}")
+
+
+def get_dataloader_idxs(full_train, full_test, train_bs, test_bs, dataidxs=None):
+    """
+    full_train, full_test: 全量数据集对象
+    dataidxs: 当前client的数据索引（int数组）
+    """
+    if dataidxs is not None:
+        train_ds = Subset(full_train, dataidxs)
+    else:
+        train_ds = full_train
+    test_ds = full_test
+    train_dl = DataLoader(train_ds, batch_size=train_bs, shuffle=True, drop_last=False)
+    test_dl = DataLoader(test_ds, batch_size=test_bs, shuffle=False, drop_last=False)
     return train_dl, test_dl, train_ds, test_ds
 
 

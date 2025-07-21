@@ -172,6 +172,9 @@ def init_nets(net_configs, dropout_p, n_parties, args):
         n_classes = 2
     elif args.dataset == 'imagenet':
         n_classes = 1000  # ImageNet has 1000 classes
+    elif args.dataset == 'pacs':
+        n_classes = 7
+
 
     if args.use_projection_head:
         add = ""
@@ -190,8 +193,8 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                 nets[net_i] = net
         else:
             for net_i in range(n_parties):
-                # For ImageNet dataset, choose from several popular pretrained models
-                if args.dataset in ("imagenet", "tinyimagenet"):
+                # For ImageNet-like data (large RGB) choose pretrained backbones
+                if args.dataset in ("imagenet", "tinyimagenet", "pacs"):
                     if args.model == "resnet18":
                         net = models.resnet18(pretrained=True)
                     elif args.model == "resnet50":
@@ -201,8 +204,39 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                     elif args.model == "vit":
                         net = ViT('B_16_imagenet1k', pretrained=True)
                     else:
-                        print("Model not supported for ImageNet")
+                        print("Model not supported for ImageNet/PACS")
                         exit(1)
+
+                    # reset classifier to match dataset classes
+                    if hasattr(net, 'fc') and isinstance(net.fc, nn.Linear):
+                        in_f = net.fc.in_features
+                        net.fc = nn.Linear(in_f, n_classes)
+                    elif hasattr(net, 'classifier'):
+                        if isinstance(net.classifier, nn.Sequential):
+                            last_idx = -1
+                            for i in reversed(range(len(net.classifier))):
+                                if isinstance(net.classifier[i], nn.Linear):
+                                    last_idx = i; break
+                            if last_idx >= 0:
+                                in_f = net.classifier[last_idx].in_features
+                                net.classifier[last_idx] = nn.Linear(in_f, n_classes)
+                            else:
+                                raise RuntimeError("Cannot locate final Linear in classifier")
+                        elif isinstance(net.classifier, nn.Linear):
+                            in_f = net.classifier.in_features
+                            net.classifier = nn.Linear(in_f, n_classes)
+                        else:
+                            raise RuntimeError("Unknown classifier type for model=%s" % args.model)
+
+                    # topology hook (only PACS unless you broaden)
+                    if args.dataset == 'pacs':
+                        pacs_layer = getattr(args, 'pacs_hook_layer', args.feature_layer)
+                        if hasattr(net, pacs_layer):
+                            mod = getattr(net, pacs_layer)
+                        else:
+                            mod = getattr(net, args.feature_layer, net)
+                        hook_handle = mod.register_forward_hook(make_store_hook(net, attr_name='_feat'))
+
                 elif args.dataset == "generated":
                     net = PerceptronModel()
                 elif args.model == "mlp":
@@ -228,6 +262,10 @@ def init_nets(net_configs, dropout_p, n_parties, args):
                         input_size = 18
                         output_size = 2
                         hidden_sizes = [16, 8]
+                        # NOTE: you didn't instantiate net for SUSY originally; add:
+                        net = FcNet(input_size, hidden_sizes, 2, dropout_p)
+                        hook_handle = net.layers[-1].register_forward_hook(hook_fn)
+
                 elif args.model == "vgg11":
                     net = vgg11()
                     hook_handle = net.features[20].register_forward_hook(hook_fn)
@@ -1311,19 +1349,56 @@ def hook_fn_resnet50_cifar10(module, input, output):
     # 保存特征图
     features = reduced_output
 
-# 收集全局特征的函数
-def collect_global_features(global_model, train_dl_global, device):
+def make_store_hook(net, attr_name='_feat'):
+    def _hook(m, inp, out):
+        setattr(net, attr_name, out.detach())
+    return _hook
+
+
+import torch
+import numpy as np
+import os
+
+def collect_global_features(global_model, train_dl_global, device, save_dir='./features'):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)  # 创建保存特征和标签的目录
     global_samples = []
     global_targets = []
+
     global_model.to(device)
+    batch_idx = 0
     with torch.no_grad():
         for data, target in train_dl_global:
             data = data.to(device)
             out = global_model(data)
-            global_features = features
-            global_features = global_features.view(global_features.size(0), -1)
-            global_samples.append(global_features.cpu())
-            global_targets.append(target.numpy())  # 收集标签
+
+            if args.dataset == 'pacs':
+                # 获取通过 hook 保存的特征
+                global_features = getattr(global_model, '_feat', None)
+                if global_features is None:
+                    raise ValueError("Unable to get global features")
+
+                global_features = global_features.view(global_features.size(0), -1)  # 扁平化特征
+                # 保存特征到磁盘
+                torch.save(global_features.cpu(), os.path.join(save_dir, f"features_batch_{batch_idx}.pt"))
+                np.save(os.path.join(save_dir, f"targets_batch_{batch_idx}.npy"), target.numpy())  # 保存标签
+            else:
+                # 对于其他数据集，继续使用内存操作
+                global_features = features
+                global_features = global_features.view(global_features.size(0), -1)
+                global_samples.append(global_features.cpu())
+                global_targets.append(target.numpy())  # 收集标签
+
+            batch_idx += 1
+            # 及时释放内存
+            del data, out
+            torch.cuda.empty_cache()  # 清理缓存（如果使用GPU）
+
+    # 如果是 pacs 数据集，返回合并后的文件路径
+    if args.dataset == 'pacs':
+        return os.path.join(save_dir, "features_batch_*.pt"), os.path.join(save_dir, "targets_batch_*.npy")
+
+    # 对于其他数据集，返回原来处理的数据
     return torch.cat(global_samples, dim=0).to(device), np.concatenate(global_targets, axis=0)
 
 # 计算熵的函数
@@ -1348,7 +1423,7 @@ def compute_feature_similarity(client, global_):
     return torch.cosine_similarity(client_mean.unsqueeze(0), global_mean.unsqueeze(0))
 
 # 计算全局模型在全局数据集上的熵
-def compute_global_entropy(global_model, train_dataloader, device):
+def compute_global_entropy(global_model, train_dataloader, device, args):
     global_model.eval()  # 切换到评估模式
     all_feature_maps = []
 
@@ -1360,7 +1435,10 @@ def compute_global_entropy(global_model, train_dataloader, device):
             out = global_model(x)
 
             # 将每个批次的特征图收集到一个列表中
-            all_feature_maps.append(features)
+            if args.dataset == 'pacs':
+                all_feature_maps.append(getattr(global_model, '_feat', None))
+            else:
+                all_feature_maps.append(features)
 
     # 将所有批次的输出合并成一个张量
     all_feature_maps = torch.cat(all_feature_maps, dim=0)
@@ -1412,11 +1490,6 @@ def compute_geometric_alignment_loss(client_features, global_features, scaling_f
     )(client_sample, global_sample)
 
     return scaling_factor * wasserstein_loss
-
-def hybrid_alignment_loss(client_features, global_features, alpha=0.9):
-    statistical_loss = compute_feature_alignment_loss(client_features, global_features)  # 原统计损失
-    geometric_loss = compute_geometric_alignment_loss(client_features, global_features)  # 新几何损失
-    return alpha * geometric_loss + (1 - alpha) * statistical_loss
 
 def extract_layer_features(model, x, layer_name='layer3', pool_size=32, device='cuda'):
     """
@@ -1724,6 +1797,184 @@ def get_filtration_range(barcodes_list, margin=0.05, fallback=(0, 1)):
         return fallback
     return (min_birth, max_death)
 
+
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def visualize_feature_grid(layer_feats, model_names, layer_names, round_num, save_dir='./visualizations',
+                           input_samples=None):
+    """
+    可视化每个通道的特征图，每个模型每个样本生成一张图
+    同时可视化输入样本(原图)
+
+    Args:
+        layer_feats: {model_name: {layer_name: tensor(N, C, H, W)}}
+        model_names: 模型的名称列表
+        layer_names: 要可视化的层名称列表
+        round_num: 当前轮次
+        save_dir: 保存可视化图像的目录
+        input_samples: 输入样本张量 (N, C, H, W)
+    """
+    # 确保保存目录存在
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # 1. 首先可视化输入样本(原图)
+    if input_samples is not None:
+        # 创建输入样本可视化目录
+        input_save_dir = os.path.join(save_dir, 'input_samples')
+        if not os.path.exists(input_save_dir):
+            os.makedirs(input_save_dir)
+
+        # 遍历每个样本
+        for sample_idx in range(len(input_samples)):
+            plt.figure(figsize=(4, 4), dpi=300)
+
+            # 获取样本并调整通道顺序 (C, H, W) -> (H, W, C)
+            sample = input_samples[sample_idx].cpu().numpy()
+            sample = np.transpose(sample, (1, 2, 0))
+
+            # 反归一化 (假设原始数据范围是0-1)
+            sample = np.clip(sample, 0, 1)
+
+            # 绘制原图
+            plt.imshow(sample)
+            plt.title(f"Input Sample: {sample_idx + 1}")
+            plt.axis('off')
+
+            # 保存原图
+            save_path = os.path.join(input_save_dir, f"input_sample{sample_idx + 1}_round{round_num}.png")
+            plt.savefig(save_path, bbox_inches='tight', pad_inches=0.1)
+            plt.close()
+            print(f"已保存输入样本: {save_path}")
+
+    # 2. 可视化特征图
+    # 遍历每个模型
+    for model_idx, model_name in enumerate(model_names):
+        # 获取当前模型的特征
+        model_data = layer_feats.get(model_name)
+        if model_data is None:
+            print(f"警告: 未找到模型 {model_name} 的特征数据")
+            continue
+
+        # 遍历每个样本
+        for sample_idx in range(len(next(iter(model_data.values())))):
+            # 创建新图像 - 行数为层数，列数为通道数(2)
+            fig, axs = plt.subplots(
+                len(layer_names),  # 行数 = 层数
+                2,  # 列数 = 2个通道(第一个和最后一个)
+                figsize=(10, 4 * len(layer_names)),  # 动态调整高度
+                dpi=300
+            )
+
+            # 如果只有一层，将axs转换为2D数组以便统一处理
+            if len(layer_names) == 1:
+                axs = np.array([axs])
+
+            # 设置主标题 (增加上边距防止遮挡)
+            fig.suptitle(f"Model: {model_name}, Sample: {sample_idx + 1}, Round: {round_num}",
+                         fontsize=14, y=0.98)
+
+            # 遍历每个层
+            for layer_idx, layer_name in enumerate(layer_names):
+                # 获取当前层的特征张量
+                layer_tensor = model_data.get(layer_name)
+                if layer_tensor is None:
+                    print(f"警告: 模型 {model_name} 未找到层 {layer_name}")
+                    continue
+
+                # 获取当前样本的特征图
+                sample_feats = layer_tensor[sample_idx]
+                num_channels = sample_feats.size(0)
+
+                # 选择第一个和最后一个通道
+                channels_to_show = [0, num_channels - 1] if num_channels > 1 else [0]
+
+                # 遍历要显示的通道
+                for ch_idx, channel in enumerate(channels_to_show):
+                    # 获取当前通道的特征图
+                    channel_feat = sample_feats[channel].cpu().numpy()
+
+                    # 绘制特征图 (使用蓝色系的coolwarm配色)
+                    ax = axs[layer_idx, ch_idx]
+                    im = ax.imshow(channel_feat, cmap='coolwarm')
+
+                    # 添加颜色条
+                    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+                    # 设置子图标题
+                    ax.set_title(f"Layer: {layer_name}\nChannel: {channel} ({channel + 1}/{num_channels})")
+                    ax.axis('off')  # 关闭坐标轴
+
+            # 调整布局并保存 (增加上边距)
+            plt.tight_layout(rect=[0, 0, 1, 0.96])  # rect参数: [left, bottom, right, top]
+            save_path = os.path.join(save_dir, f"{model_name}_sample{sample_idx + 1}_round{round_num}.png")
+            plt.savefig(save_path, dpi=300)
+            plt.close()
+            print(f"已保存特征图: {save_path}")
+
+    # 3. 额外保存采样过的样本单独图像 (所有模型的特征图对比)
+    print("保存所有模型的特征图对比...")
+    for sample_idx in range(len(next(iter(layer_feats[model_names[0]].values())))):
+        # 创建新图像 - 行数为模型数，列数为通道数(2)
+        fig, axs = plt.subplots(
+            len(model_names),  # 行数 = 模型数
+            2,  # 列数 = 2个通道
+            figsize=(12, 4 * len(model_names)),  # 动态调整高度
+            dpi=300
+        )
+
+        # 设置主标题 (增加上边距)
+        fig.suptitle(f"Sample: {sample_idx + 1}, Round: {round_num}",
+                     fontsize=16, y=0.98)
+
+        # 如果只有一个模型，将axs转换为2D数组
+        if len(model_names) == 1:
+            axs = np.array([axs])
+
+        # 遍历每个模型
+        for model_idx, model_name in enumerate(model_names):
+            model_data = layer_feats.get(model_name)
+            if model_data is None:
+                continue
+
+            # 获取第一层的特征（假设所有模型都有相同的层）
+            layer_name = layer_names[0]
+            layer_tensor = model_data.get(layer_name)
+            if layer_tensor is None:
+                continue
+
+            # 获取当前样本的特征图
+            sample_feats = layer_tensor[sample_idx]
+            num_channels = sample_feats.size(0)
+
+            # 选择第一个和最后一个通道
+            channels_to_show = [0, num_channels - 1] if num_channels > 1 else [0]
+
+            # 遍历要显示的通道
+            for ch_idx, channel in enumerate(channels_to_show):
+                # 获取当前通道的特征图
+                channel_feat = sample_feats[channel].cpu().numpy()
+
+                # 绘制特征图 (使用蓝色系的coolwarm配色)
+                ax = axs[model_idx, ch_idx]
+                im = ax.imshow(channel_feat, cmap='coolwarm')
+
+                # 添加颜色条
+                fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+                # 设置子图标题
+                ax.set_title(f"Model: {model_name}\nChannel: {channel} ({channel + 1}/{num_channels})")
+                ax.axis('off')  # 关闭坐标轴
+
+        # 调整布局并保存 (增加上边距)
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        save_path = os.path.join(save_dir, f"sample{sample_idx + 1}_round{round_num}_all_models.png")
+        plt.savefig(save_path, dpi=300)
+        plt.close()
+        print(f"已保存模型对比: {save_path}")
 
 def save_global_model(global_model_checkpoint, directory, filename="global_model.pth"):
     """
@@ -2502,14 +2753,18 @@ if __name__ == '__main__':
         client_targets_list = []
 
         # 生成初始全局特征
-        global_model.eval()
-        global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
-        if len(global_features) > MAX_SAMPLES:
-            idx = rng.choice(len(global_features), MAX_SAMPLES, replace=False)
-            global_features = global_features[idx]
-            global_targets = global_targets[idx]  # 同步下采样标签
-        # ---- 在 federated_learning 最开始，做一次全局 fit ----
-        umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
+        if args.dataset == 'pacs':
+            global_model.eval()
+            _, _ = collect_global_features(global_model, train_dl_global, device)
+        else:
+            global_model.eval()
+            global_features, global_targets = collect_global_features(global_model, train_dl_global, device)
+            if len(global_features) > MAX_SAMPLES:
+                idx = rng.choice(len(global_features), MAX_SAMPLES, replace=False)
+                global_features = global_features[idx]
+                global_targets = global_targets[idx]  # 同步下采样标签
+            # ---- 在 federated_learning 最开始，做一次全局 fit ----
+            umap_reducer = umap.UMAP(n_components=3, random_state=42).fit(global_features.cpu().numpy())
 
 
         # ---- 先对全局模型用全局训练集采样，对 PI fit 一次！----
@@ -2567,8 +2822,10 @@ if __name__ == '__main__':
             logger.info('>> Global Model Test accuracy: %f' % test_acc)
 
             # 计算全局模型在全局数据集上的熵
-            if args.dataset != 'generated':
-                entropy = compute_global_entropy(global_model, train_dl_global, device=device)
+            if args.dataset == 'pacs':
+                pass
+            elif args.dataset != 'generated':
+                entropy = compute_global_entropy(global_model, train_dl_global, device=device, args=args)
                 logger.info('>> Global Model Entropy: %f' % entropy)
 
             # # 保存初始全局模型的权重
@@ -2608,6 +2865,49 @@ if __name__ == '__main__':
                             device=args.device
                         )
                         model_feats[name] = feat.cpu()  # 存到 CPU
+
+                # ============== 0. 特征图可视化 =================
+                # 选择每个类别的第一个样本，确保样本在每个 round 中固定
+                if args.model == 'resnet18':
+
+                    if round == 0:
+                        class_samples = {}
+                        with torch.no_grad():
+                            for data, target in train_dl_global:
+                                for idx, label in enumerate(target.numpy()):
+                                    if label not in class_samples:
+                                        class_samples[label] = data[idx]  # 选择每个类别的第一个样本
+                                    if len(class_samples) == 1:  # CIFAR10有10个类别
+                                        break
+                                if len(class_samples) == 1:
+                                    break
+
+                        x_class = torch.stack(list(class_samples.values()))  # 选择固定的样本数据
+                    else:
+                        x_class = x_class_round_0
+
+                    model_vis_feats = {}
+                    x_class_round_0 = x_class
+                    for name, model in zip(model_names, models_all):
+                        model_vis_feats[name] = {}  # 初始化每个模型的特征字典
+                        model = model.to(args.device)
+                        for layer_name in ['conv1','layer3']:
+                            feat = extract_layer_features(
+                                model, x_class,
+                                layer_name=layer_name,
+                                pool_size=8,
+                                device=args.device
+                            )
+                            # 将每层的特征存储到 model_vis_feats 字典中
+                            model_vis_feats[name][layer_name] = feat.cpu()
+
+                    # # 打印字典的形状
+                    # for model_name, layers in model_vis_feats.items():  # 遍历每个模型
+                    #     print(f"Model: {model_name}")
+                    #     for layer_name, feat in layers.items():  # 遍历每个层
+                    #         print(f"  Layer: {layer_name}, Feature Shape: {feat.shape}")
+
+                    visualize_feature_grid(model_vis_feats, model_names, ['conv1','layer3'], round, save_dir='./visualizations', input_samples=x_class)
 
                 # ============== 1. 拓扑条形图 & PI =================
                 global_feat = model_feats['global']
@@ -2980,7 +3280,7 @@ if __name__ == '__main__':
 
             # 计算全局模型在全局数据集上的熵
             if args.dataset != 'generated':
-                entropy = compute_global_entropy(global_model, train_dl_global, device=device)
+                entropy = compute_global_entropy(global_model, train_dl_global, device=device, args=args)
                 logger.info('>> Global Model Entropy: %f' % entropy)
 
             pi_records = {}
