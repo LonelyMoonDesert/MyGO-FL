@@ -1631,7 +1631,7 @@ def plot_training_progress(history, n_clients, n_rounds):
     round_labels = [str(r) for r in xs]
 
     # ---------- 每个客户端曲线 ----------
-    for cid in range(n_clients):
+    for cid in n_clients:
         color = CLIENT_COLORS[cid % len(CLIENT_COLORS)]
         label = f'Client {cid + 1}'
 
@@ -1875,7 +1875,7 @@ def visualize_feature_grid(layer_feats, model_names, layer_names, round_num, sav
 
             # 设置主标题 (增加上边距防止遮挡)
             fig.suptitle(f"Model: {model_name}, Sample: {sample_idx + 1}, Round: {round_num}",
-                         fontsize=14, y=0.98)
+                         fontsize=18, y=0.98)
 
             # 遍历每个层
             for layer_idx, layer_name in enumerate(layer_names):
@@ -1905,7 +1905,7 @@ def visualize_feature_grid(layer_feats, model_names, layer_names, round_num, sav
                     fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 
                     # 设置子图标题
-                    ax.set_title(f"Layer: {layer_name}\nChannel: {channel} ({channel + 1}/{num_channels})")
+                    ax.set_title(f"Layer: {layer_name}\nChannel: {channel+1} ({channel + 1}/{num_channels})")
                     ax.axis('off')  # 关闭坐标轴
 
             # 调整布局并保存 (增加上边距)
@@ -1928,7 +1928,7 @@ def visualize_feature_grid(layer_feats, model_names, layer_names, round_num, sav
 
         # 设置主标题 (增加上边距)
         fig.suptitle(f"Sample: {sample_idx + 1}, Round: {round_num}",
-                     fontsize=16, y=0.98)
+                     fontsize=20, y=0.98)
 
         # 如果只有一个模型，将axs转换为2D数组
         if len(model_names) == 1:
@@ -2836,6 +2836,10 @@ if __name__ == '__main__':
 
             # 在特征提取和可视化操作之前，创建模型的深拷贝
             global_model_copy = copy.deepcopy(global_model)
+            # selected_nets = [nets[idx] for idx in selected]
+            # nets_copy = {}
+            # for idx, net in zip(selected, selected_nets):
+            #     nets_copy[idx] = copy.deepcopy(net)
             nets_copy = {cid: copy.deepcopy(net) for cid, net in nets.items()}
 
             global_model_copy.eval()
@@ -2868,38 +2872,44 @@ if __name__ == '__main__':
 
                 # ============== 0. 特征图可视化 =================
                 # 选择每个类别的第一个样本，确保样本在每个 round 中固定
-                if args.model == 'resnet18':
 
-                    if round == 0:
-                        class_samples = {}
-                        with torch.no_grad():
-                            for data, target in train_dl_global:
-                                for idx, label in enumerate(target.numpy()):
-                                    if label not in class_samples:
-                                        class_samples[label] = data[idx]  # 选择每个类别的第一个样本
-                                    if len(class_samples) == 1:  # CIFAR10有10个类别
-                                        break
-                                if len(class_samples) == 1:
+                if round == 0:
+                    class_samples = {}
+                    with torch.no_grad():
+                        for data, target in train_dl_global:
+                            for idx, label in enumerate(target.numpy()):
+                                if label not in class_samples:
+                                    class_samples[label] = data[idx]  # 选择每个类别的第一个样本
+                                if len(class_samples) == 1:  # CIFAR10有10个类别
                                     break
+                            if len(class_samples) == 1:
+                                break
 
-                        x_class = torch.stack(list(class_samples.values()))  # 选择固定的样本数据
-                    else:
-                        x_class = x_class_round_0
+                    x_class = torch.stack(list(class_samples.values()))  # 选择固定的样本数据
+                else:
+                    x_class = x_class_round_0
 
-                    model_vis_feats = {}
-                    x_class_round_0 = x_class
-                    for name, model in zip(model_names, models_all):
-                        model_vis_feats[name] = {}  # 初始化每个模型的特征字典
-                        model = model.to(args.device)
-                        for layer_name in ['conv1','layer3']:
-                            feat = extract_layer_features(
-                                model, x_class,
-                                layer_name=layer_name,
-                                pool_size=8,
-                                device=args.device
-                            )
-                            # 将每层的特征存储到 model_vis_feats 字典中
-                            model_vis_feats[name][layer_name] = feat.cpu()
+                if args.model == 'resnet18':
+                    layer_names = ['conv1','layer3']
+                elif args.model == 'simple-cnn':
+                    layer_names = ['conv1', 'conv2']
+                else:
+                    print('unknown model:', args.model)
+
+                model_vis_feats = {}
+                x_class_round_0 = x_class
+                for name, model in zip(model_names, models_all):
+                    model_vis_feats[name] = {}  # 初始化每个模型的特征字典
+                    model = model.to(args.device)
+                    for layer_name in layer_names:
+                        feat = extract_layer_features(
+                            model, x_class,
+                            layer_name=layer_name,
+                            pool_size=8,
+                            device=args.device
+                        )
+                        # 将每层的特征存储到 model_vis_feats 字典中
+                        model_vis_feats[name][layer_name] = feat.cpu()
 
                     # # 打印字典的形状
                     # for model_name, layers in model_vis_feats.items():  # 遍历每个模型
@@ -2907,7 +2917,7 @@ if __name__ == '__main__':
                     #     for layer_name, feat in layers.items():  # 遍历每个层
                     #         print(f"  Layer: {layer_name}, Feature Shape: {feat.shape}")
 
-                    visualize_feature_grid(model_vis_feats, model_names, ['conv1','layer3'], round, save_dir='./visualizations', input_samples=x_class)
+                visualize_feature_grid(model_vis_feats, model_names, layer_names, round, save_dir='./visualizations', input_samples=x_class)
 
                 # ============== 1. 拓扑条形图 & PI =================
                 global_feat = model_feats['global']
@@ -3119,10 +3129,27 @@ if __name__ == '__main__':
                     '#CD5C5C', '#F4A460', '#F0E68C', '#90EE90', '#6495ED',
                     '#9370DB', '#808080', '#FFB6C1', '#48D1CC', '#BDB76B'
                 ]
-                cifar10_labels = [
-                    "airplane", "automobile", "bird", "cat", "deer",
-                    "dog", "frog", "horse", "ship", "truck"
-                ]
+                if args.dataset == 'cifar10':
+                    cifar10_labels = [
+                        "airplane", "automobile", "bird", "cat", "deer",
+                        "dog", "frog", "horse", "ship", "truck"
+                    ]
+                    labels = cifar10_labels
+                elif args.dataset == 'mnist':
+                    mnist_labels = [
+                        "1", "2", "3", "4", "5",
+                        "6", "7", "8", "9", "10"
+                    ]
+                    labels = mnist_labels
+                elif args.dataset == 'femnist':
+                    femnist_labels = [str(i) for i in range(10)] + \
+                                     [chr(i) for i in range(65, 91)] + \
+                                     [chr(i) for i in range(97, 123)]
+                    labels = femnist_labels
+                else:
+                    labels = [
+                        "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
+                    ]
 
                 fig = plt.figure(figsize=(8 * len(model_names), 8))
                 axs = [fig.add_subplot(1, len(model_names), i + 1, projection='3d')
@@ -3138,7 +3165,7 @@ if __name__ == '__main__':
                         ax.scatter(
                             X_model[c_mask, 0], X_model[c_mask, 1], X_model[c_mask, 2],
                             c=color_per_class[int(cls) % len(color_per_class)],
-                            s=60, label=cifar10_labels[int(cls)],
+                            s=60, label=labels[int(cls) % len(color_per_class)],
                             alpha=0.78, edgecolors='none'
                         )
 
@@ -3188,7 +3215,7 @@ if __name__ == '__main__':
 
         # 最后再画一下 loss 曲线
         # TODO: 去掉最后的10
-        fig3 = plot_training_progress(history, args.n_parties, args.comm_round)
+        fig3 = plot_training_progress(history, selected, args.comm_round)
         fig3.savefig(os.path.join(args.logdir, 'training_progress.png'))
         plt.close(fig3)  # 关闭图形
         # 节约内存这一块
