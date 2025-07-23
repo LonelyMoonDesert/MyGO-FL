@@ -149,6 +149,11 @@ def get_args():
     parser.add_argument('--umap_dim', type=int, default=3, help='UMAP降维后的维度')
     parser.add_argument('--n_umap_batches', type=int, default=4, help='UMAP可视化采样的batch数')
 
+    # topo loss weight
+    parser.add_argument('--alpha_init', type=float, default=0.05, help='Initial weight for Topo loss.')
+    parser.add_argument('--alpha_max', type=float, default=0.5, help='MAX weight for Topo loss.')
+    parser.add_argument('--alpha_delta', type=float, default=0.01, help='Delta per round for Topo loss.')
+
     args = parser.parse_args()
     return args
 
@@ -1797,12 +1802,6 @@ def get_filtration_range(barcodes_list, margin=0.05, fallback=(0, 1)):
         return fallback
     return (min_birth, max_death)
 
-
-import os
-import matplotlib.pyplot as plt
-import numpy as np
-
-
 def visualize_feature_grid(layer_feats, model_names, layer_names, round_num, save_dir='./visualizations',
                            input_samples=None):
     """
@@ -1915,66 +1914,6 @@ def visualize_feature_grid(layer_feats, model_names, layer_names, round_num, sav
             plt.close()
             print(f"已保存特征图: {save_path}")
 
-    # 3. 额外保存采样过的样本单独图像 (所有模型的特征图对比)
-    print("保存所有模型的特征图对比...")
-    for sample_idx in range(len(next(iter(layer_feats[model_names[0]].values())))):
-        # 创建新图像 - 行数为模型数，列数为通道数(2)
-        fig, axs = plt.subplots(
-            len(model_names),  # 行数 = 模型数
-            2,  # 列数 = 2个通道
-            figsize=(12, 4 * len(model_names)),  # 动态调整高度
-            dpi=300
-        )
-
-        # 设置主标题 (增加上边距)
-        fig.suptitle(f"Sample: {sample_idx + 1}, Round: {round_num}",
-                     fontsize=20, y=0.98)
-
-        # 如果只有一个模型，将axs转换为2D数组
-        if len(model_names) == 1:
-            axs = np.array([axs])
-
-        # 遍历每个模型
-        for model_idx, model_name in enumerate(model_names):
-            model_data = layer_feats.get(model_name)
-            if model_data is None:
-                continue
-
-            # 获取第一层的特征（假设所有模型都有相同的层）
-            layer_name = layer_names[0]
-            layer_tensor = model_data.get(layer_name)
-            if layer_tensor is None:
-                continue
-
-            # 获取当前样本的特征图
-            sample_feats = layer_tensor[sample_idx]
-            num_channels = sample_feats.size(0)
-
-            # 选择第一个和最后一个通道
-            channels_to_show = [0, num_channels - 1] if num_channels > 1 else [0]
-
-            # 遍历要显示的通道
-            for ch_idx, channel in enumerate(channels_to_show):
-                # 获取当前通道的特征图
-                channel_feat = sample_feats[channel].cpu().numpy()
-
-                # 绘制特征图 (使用蓝色系的coolwarm配色)
-                ax = axs[model_idx, ch_idx]
-                im = ax.imshow(channel_feat, cmap='coolwarm')
-
-                # 添加颜色条
-                fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-
-                # 设置子图标题
-                ax.set_title(f"Model: {model_name}\nChannel: {channel} ({channel + 1}/{num_channels})")
-                ax.axis('off')  # 关闭坐标轴
-
-        # 调整布局并保存 (增加上边距)
-        plt.tight_layout(rect=[0, 0, 1, 0.96])
-        save_path = os.path.join(save_dir, f"sample{sample_idx + 1}_round{round_num}_all_models.png")
-        plt.savefig(save_path, dpi=300)
-        plt.close()
-        print(f"已保存模型对比: {save_path}")
 
 def save_global_model(global_model_checkpoint, directory, filename="global_model.pth"):
     """
@@ -2354,7 +2293,7 @@ def local_train_net_fedtopo(nets, selected, args, net_dataidx_map, global_model,
         #                                        args.optimizer, global_model, history, round,
         #                                        device=device)
         # 轮数越大，alpha越大（可控上线）
-        alpha = min(0.05 + round * 0.01, 0.5)  # 最高到0.5
+        alpha = min(args.alpha_init + round * args.alpha_delta, args.alpha_max)  # 最高到0.5
 
         trainacc, testacc = train_net_fedtopo(
             net_id, net, train_dl_local, test_dl, n_epoch, args.lr, args.optimizer,
@@ -3134,20 +3073,26 @@ if __name__ == '__main__':
                         "airplane", "automobile", "bird", "cat", "deer",
                         "dog", "frog", "horse", "ship", "truck"
                     ]
-                    labels = cifar10_labels
+                    class_labels = cifar10_labels
                 elif args.dataset == 'mnist':
                     mnist_labels = [
-                        "1", "2", "3", "4", "5",
-                        "6", "7", "8", "9", "10"
+                        "0", "1", "2", "3", "4",
+                        "5", "6", "7", "8", "9"
                     ]
-                    labels = mnist_labels
+                    class_labels = mnist_labels
+                elif args.dataset == 'fmnist':  # Fashion‑MNIST
+                    fmnist_labels = [
+                        "T‑shirt/top", "Trouser", "Pullover", "Dress", "Coat",
+                        "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
+                    ]
+                    class_labels = fmnist_labels
                 elif args.dataset == 'femnist':
                     femnist_labels = [str(i) for i in range(10)] + \
                                      [chr(i) for i in range(65, 91)] + \
                                      [chr(i) for i in range(97, 123)]
-                    labels = femnist_labels
+                    class_labels = femnist_labels
                 else:
-                    labels = [
+                    class_labels = [
                         "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
                     ]
 
@@ -3165,7 +3110,7 @@ if __name__ == '__main__':
                         ax.scatter(
                             X_model[c_mask, 0], X_model[c_mask, 1], X_model[c_mask, 2],
                             c=color_per_class[int(cls) % len(color_per_class)],
-                            s=60, label=labels[int(cls) % len(color_per_class)],
+                            s=60, label=class_labels[int(cls) % len(color_per_class)],
                             alpha=0.78, edgecolors='none'
                         )
 
